@@ -1,12 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link"; // Import Link for navigation
+import Link from "next/link";
 import {
-  FiUsers, FiUserCheck, FiBookOpen, FiTrendingUp,
-  FiLayers, FiSettings, FiBriefcase, FiTruck, FiBell, FiCalendar, FiBook, FiChevronRight
+  FiUsers, FiUserCheck, FiBookOpen, FiTruck, FiBell, FiCalendar, FiBook, FiChevronRight, FiBriefcase
 } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
+
+// 1. Define the Interface
+interface QuickStat {
+  label: string;
+  count: number;
+  Icon: React.ElementType; // Use ElementType for the component reference
+  path: string;
+}
 
 export default function AdminDashboard() {
   const [counts, setCounts] = useState({ 
@@ -48,9 +55,16 @@ export default function AdminDashboard() {
     fetchStats();
   }, []);
 
+  // 2. Define the stats array using the interface
+  const stats: QuickStat[] = [
+    { label: "Students", count: counts.students, Icon: FiUsers, path: '/admin/students' },
+    { label: "Faculty", count: counts.teachers, Icon: FiUserCheck, path: '/admin/teachers' },
+    { label: "Bus Routes", count: counts.transport_routes, Icon: FiTruck, path: '/admin/transport' },
+    { label: "Subjects", count: counts.subjects, Icon: FiBook, path: '/admin/subjects' },
+  ];
+
   return (
     <div className="space-y-10 p-6 pt-20 bg-white min-h-screen">
-
       {/* --- SOFT BRAND BANNER --- */}
       <section className="relative overflow-hidden bg-brand-soft/40 rounded-[2.5rem] p-10 md:p-14 border border-brand-soft">
         <div className="absolute -top-10 -right-10 w-64 h-64 bg-brand-light/5 rounded-full blur-3xl"></div>
@@ -80,29 +94,27 @@ export default function AdminDashboard() {
 
       {/* --- QUICK STATS GRID --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-            { label: "Students", count: counts.students, icon: <FiUsers />, path: '/admin/students' },
-            { label: "Faculty", count: counts.teachers, icon: <FiUserCheck />, path: '/admin/teachers' },
-            { label: "Bus Routes", count: counts.transport_routes, icon: <FiTruck />, path: '/admin/transport' },
-            { label: "Subjects", count: counts.subjects, icon: <FiBook />, path: '/admin/subjects' },
-        ].map((stat, index) => (
-          <Link href={stat.path} key={index} className="bg-white p-8 rounded-[2.5rem] border border-brand-soft hover:bg-brand-soft/20 transition-all group flex flex-col gap-4">
-            <div className="text-brand-light group-hover:scale-110 transition-transform duration-300">
-              {React.cloneElement(stat.icon as React.ReactElement, { size: 28 })}
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-black text-brand-light/40 tracking-[0.2em]">{stat.label}</p>
-              <p className="text-4xl font-black text-brand-light mt-1 tracking-tighter">
-                {loading ? "..." : stat.count}
-              </p>
-            </div>
-          </Link>
-        ))}
+        {stats.map((stat, index) => {
+          // 3. Extract Icon as a Capitalized variable for React to recognize it as a component
+          const Icon = stat.Icon;
+          return (
+            <Link href={stat.path} key={index} className="bg-white p-8 rounded-[2.5rem] border border-brand-soft hover:bg-brand-soft/20 transition-all group flex flex-col gap-4">
+              <div className="text-brand-light group-hover:scale-110 transition-transform duration-300">
+                <Icon size={28} />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-black text-brand-light/40 tracking-[0.2em]">{stat.label}</p>
+                <p className="text-4xl font-black text-brand-light mt-1 tracking-tighter">
+                  {loading ? "..." : stat.count}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
       </div>
 
       {/* --- MANAGEMENT COMMAND CENTER --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-
         {/* Academics Block */}
         <div className="bg-white rounded-[2.5rem] border border-brand-soft p-8 space-y-6">
           <div className="flex items-center gap-3 text-brand-light">
@@ -111,9 +123,9 @@ export default function AdminDashboard() {
           </div>
           <div className="grid grid-cols-1 gap-2">
             {[
-                { label: "Classes & Sections", path: "/admin/classes" },
-                { label: "Subjects Management", path: "/admin/subjects" },
-                { label: "Master Time Table", path: "/admin/timetable" }
+              { label: "Classes & Sections", path: "/admin/classes" },
+              { label: "Subjects Management", path: "/admin/subjects" },
+              { label: "Master Time Table", path: "/admin/timetable" }
             ].map((item) => (
               <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-brand-soft/10 text-brand-light font-bold text-[11px] uppercase hover:bg-brand-soft/30 transition-all flex justify-between items-center group">
                 {item.label} <FiChevronRight className="opacity-40 group-hover:translate-x-1 transition-all" />
@@ -130,9 +142,9 @@ export default function AdminDashboard() {
           </div>
           <div className="grid grid-cols-1 gap-2">
             {[
-                { label: "Attendance Logs", path: "/admin/attendance" },
-                { label: "Exams & Grading", path: "/admin/exams" },
-                { label: "Fee Management", path: "/admin/fees" }
+              { label: "Attendance Logs", path: "/admin/attendance" },
+              { label: "Exams & Grading", path: "/admin/exams" },
+              { label: "Fee Management", path: "/admin/fees" }
             ].map((item) => (
               <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-brand-soft/10 text-brand-light font-bold text-[11px] uppercase hover:bg-brand-soft/30 transition-all flex justify-between items-center group">
                 {item.label} <FiChevronRight className="opacity-40 group-hover:translate-x-1 transition-all" />
@@ -159,7 +171,6 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
-
       </div>
     </div>
   );
