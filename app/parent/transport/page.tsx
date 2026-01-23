@@ -45,7 +45,9 @@ export default function ParentTransport() {
   }
 
   // Helper to turn the comma-separated stops string into an array
-  const stopList = route?.stops ? route.stops.split(',').map((s: string) => s.trim()) : [];
+const stopList: string[] = route?.stops
+  ? route.stops.split(",").map((s: string) => s.trim())
+  : [];
 
   return (
     <div className="space-y-8 p-6 bg-white min-h-screen animate-in fade-in duration-700">
@@ -95,12 +97,13 @@ export default function ParentTransport() {
                             <div>
                                 <p className="text-[10px] font-black text-brand-light/40 uppercase tracking-widest">Route Stops</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                    {stopList.map((stop, idx) => (
-                                        <div key={idx} className="flex items-center gap-2 bg-brand-soft/30 px-3 py-1.5 rounded-lg border border-brand-soft">
-                                            <FiMapPin size={10} className="text-brand-light" />
-                                            <span className="text-[11px] font-bold text-brand-light uppercase">{stop}</span>
-                                        </div>
-                                    ))}
+                                  {stopList.map((stop, idx) => (
+  <div key={idx} className="flex items-center gap-2 bg-brand-soft/30 px-3 py-1.5 rounded-lg border border-brand-soft">
+    <FiMapPin size={10} className="text-brand-light" />
+    <span className="text-[11px] font-bold text-brand-light uppercase">{stop}</span>
+  </div>
+))}
+
                                 </div>
                             </div>
                         </div>
