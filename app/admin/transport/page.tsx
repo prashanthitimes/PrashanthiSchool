@@ -510,12 +510,31 @@ function StatCard({ label, value, icon }: any) {
 }
 // --- Internal Helper Components ---
 
-function StyledInput({ label, placeholder, value, type = "text", onChange }: any) {
+type StyledInputProps = {
+  label: string
+  placeholder?: string
+  value: string | number
+  type?: "text" | "number"
+  onChange: (value: string) => void
+}
+
+function StyledInput({
+  label,
+  placeholder,
+  value,
+  type = "text",
+  onChange,
+}: StyledInputProps) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-black text-[#a63d93] uppercase ml-2 tracking-widest">{label}</label>
+      <label className="text-[10px] font-black text-[#a63d93] uppercase ml-2 tracking-widest">
+        {label}
+      </label>
       <input
-        type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
         className="w-full bg-[#f3e8f1]/50 border border-[#f3e8f1] p-4 rounded-2xl font-bold outline-none focus:border-[#8f1e7a] transition-all text-sm text-[#6b165c]"
       />
     </div>
