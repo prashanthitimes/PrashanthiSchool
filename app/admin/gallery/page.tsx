@@ -466,21 +466,32 @@ export default function GalleryPage() {
                       ))}
 
                       {/* New Pending Media */}
-                      {files.map((file, idx) => (
-                        <div key={`new-${idx}`} className="group relative aspect-square rounded-[1.5rem] overflow-hidden shadow-sm border-2 border-brand-light/20">
-                          {file.type.startsWith('video/') ? (
-                            <div className="w-full h-full bg-slate-100 flex items-center justify-center text-brand-light"><FiPlayCircle size={24} /></div>
-                          ) : (
-                            <img src={URL.createObjectURL(file)} className="w-full h-full object-cover opacity-80" alt="New Asset" />
-                          )}
-                          <button
-                            onClick={() => setFiles(files.filter((_, i) => i !== idx))}
-                            className="absolute inset-0 bg-slate-800/80 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-all"
-                          >
-                            <FiX size={20} />
-                          </button>
-                        </div>
-                      ))}
+                     {/* New Pending Media */}
+{files.map((file, idx) => {
+  const previewUrl = URL.createObjectURL(file);
+  return (
+    <div key={`new-${idx}`} className="group relative aspect-square rounded-[1.5rem] overflow-hidden shadow-sm border-2 border-brand-light/20">
+      {file.type.startsWith('video/') ? (
+        <div className="w-full h-full bg-slate-100 flex items-center justify-center text-brand-light">
+          <FiPlayCircle size={24} />
+        </div>
+      ) : (
+        <img 
+          src={previewUrl} 
+          onLoad={() => URL.revokeObjectURL(previewUrl)} // Clean up memory after image loads
+          className="w-full h-full object-cover opacity-80" 
+          alt="New Asset" 
+        />
+      )}
+      <button
+        onClick={() => setFiles(files.filter((_, i) => i !== idx))}
+        className="absolute inset-0 bg-slate-800/80 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-all"
+      >
+        <FiX size={20} />
+      </button>
+    </div>
+  );
+})}
                     </div>
                   </div>
                 </div>
@@ -557,10 +568,28 @@ export default function GalleryPage() {
   );
 }
 
-function FormItem({ label, children, error }: { label: string, children: React.ReactNode, error?: string }) {
+// Updated FormItem with 'icon' support
+// Place this at the very bottom of your file
+function FormItem({ 
+  label, 
+  children, 
+  icon, 
+  error 
+}: { 
+  label: string; 
+  children: React.ReactNode; 
+  icon?: React.ReactNode; // This allows the icon prop to be optional
+  error?: string;
+}) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">{label}</label>
+      <div className="flex items-center gap-2 ml-1">
+        {/* Only renders the icon if you actually provide one */}
+        {icon && <span className="text-brand-light">{icon}</span>}
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          {label}
+        </label>
+      </div>
       {children}
       {error && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{error}</p>}
     </div>
