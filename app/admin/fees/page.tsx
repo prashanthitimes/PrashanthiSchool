@@ -27,16 +27,19 @@ interface StudentFee {
 }
 
 export default function FeesPage() {
-// To this:
-const [classFees, setClassFees] = useState<any[]>([]);
-const [studentFees, setStudentFees] = useState<any[]>([]);
+  // Use the interfaces instead of any[]
+  const [classFees, setClassFees] = useState<ClassFee[]>([]);
+  const [studentFees, setStudentFees] = useState<StudentFee[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Specify that editingId can be a string or null
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // ... rest of your code
   // Modal States
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState(null);
 
   const [classForm, setClassForm] = useState({ class: "", fee_type: "", amount: "" });
   const [studentForm, setStudentForm] = useState({
@@ -58,24 +61,52 @@ const [studentFees, setStudentFees] = useState<any[]>([]);
 
   /* ---------------- ACTIONS ---------------- */
 
-  const handleSaveClassFee = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    const payload = { ...classForm, amount: Number(classForm.amount) };
+  /* ---------------- ACTIONS ---------------- */
 
-    const { error } = editingId
-      ? await supabase.from("class_fees").update(payload).eq("id", editingId)
-      : await supabase.from("class_fees").insert([payload]);
+// Added React.FormEvent type to 'e'
+const handleSaveClassFee = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  const payload = { ...classForm, amount: Number(classForm.amount) };
 
-    if (!error) {
-      closeModals();
-      fetchAll();
-      toast.success(editingId ? "Fee structure updated!" : "Fee structure added!");
-    } else {
-      toast.error(error.message);
-    }
-    setLoading(false);
+  const { error } = editingId
+    ? await supabase.from("class_fees").update(payload).eq("id", editingId)
+    : await supabase.from("class_fees").insert([payload]);
+
+  if (!error) {
+    closeModals();
+    fetchAll();
+    toast.success(editingId ? "Fee structure updated!" : "Fee structure added!");
+  } else {
+    toast.error(error.message);
+  }
+  setLoading(false);
+};
+
+// Added React.FormEvent type to 'e'
+const handleSaveStudentFee = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  const payload = {
+    ...studentForm,
+    roll_no: studentForm.roll_no ? Number(studentForm.roll_no) : null,
+    total_amount: Number(studentForm.total_amount),
+    paid_amount: Number(studentForm.paid_amount || 0),
   };
+
+  const { error } = editingId
+    ? await supabase.from("student_fees").update(payload).eq("id", editingId)
+    : await supabase.from("student_fees").insert([payload]);
+
+  if (!error) {
+    closeModals();
+    fetchAll();
+    toast.success(editingId ? "Student fee updated!" : "Student fee added!");
+  } else {
+    toast.error(error.message);
+  }
+  setLoading(false);
+};
 
   const handleSaveStudentFee = async (e) => {
     e.preventDefault();
