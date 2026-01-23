@@ -13,6 +13,9 @@ export default function ParentDashboard() {
   const [loading, setLoading] = useState(true);
   const [childData, setChildData] = useState<any>(null);
   const [recentMarks, setRecentMarks] = useState<any[]>([]);
+  const [parentName, setParentName] = useState<string | null>(null);
+  const [childId, setChildId] = useState<string | null>(null);
+
   const [stats, setStats] = useState({
     attendance: "0%",
     homeworkPending: 0,
@@ -20,14 +23,21 @@ export default function ParentDashboard() {
     feeStatus: "Paid",
   });
 
+  // Get localStorage values in client-side effect
   useEffect(() => {
-    fetchParentDashboardData();
+    setParentName(localStorage.getItem('parentName'));
+    setChildId(localStorage.getItem('childId'));
   }, []);
+
+  useEffect(() => {
+    if (childId) {
+      fetchParentDashboardData();
+    }
+  }, [childId]);
 
   async function fetchParentDashboardData() {
     setLoading(true);
     try {
-      const childId = localStorage.getItem('childId');
       if (!childId) return;
 
       const { data: student } = await supabase
@@ -60,16 +70,17 @@ export default function ParentDashboard() {
     }
   }
 
+  if (!childId) return <p>Loading...</p>; // avoid render before localStorage is loaded
+
   return (
     <div className="space-y-10 p-6 pt-10 bg-white min-h-screen animate-in fade-in duration-700">
-
       {/* --- SOFT BRAND PARENT BANNER --- */}
       <section className="relative overflow-hidden bg-brand-soft/40 rounded-[2.5rem] p-10 md:p-14 border border-brand-soft">
         <div className="absolute -top-10 -right-10 w-64 h-64 bg-brand-light/5 rounded-full blur-3xl"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="max-w-2xl">
             <h1 className="text-4xl md:text-5xl font-black text-brand-light mb-4 tracking-tighter uppercase">
-              Hello, {localStorage.getItem('parentName')?.split(' ')[0] || "Parent"}!
+              Hello, {parentName?.split(' ')[0] || "Parent"}!
             </h1>
             <p className="text-brand-light/70 text-lg font-bold leading-relaxed">
               Tracking progress for <span className="text-brand-light underline decoration-2 underline-offset-4">{childData?.full_name || "Student"}</span>.
@@ -90,6 +101,8 @@ export default function ParentDashboard() {
           </div>
         </div>
       </section>
+
+
 
       {/* --- QUICK STATS GRID --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -161,24 +174,24 @@ export default function ParentDashboard() {
             <FiBell size={20} />
             <h3 className="font-black uppercase text-xs tracking-widest text-white/80">Updates</h3>
           </div>
-         <div className="grid grid-cols-1 gap-2">
-  {[
-    { label: "School Notices", icon: FiBell, path: "/parent/notices" },
-    { label: "Transport Alerts", icon: FiTruck, path: "/parent/transport" },
-    { label: "Upcoming Events", icon: FiCalendar, path: "/parent/exams" },
-  ].map((item) => (
-    <Link
-      href={item.path}
-      key={item.label}
-      className="w-full text-left p-4 rounded-2xl bg-white/10 text-white font-bold text-[11px] uppercase hover:bg-white/20 transition-all flex justify-between items-center group"
-    >
-      {item.label}
-      <span className="opacity-50 group-hover:opacity-100">
-        <item.icon size={18} />
-      </span>
-    </Link>
-  ))}
-</div>
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              { label: "School Notices", icon: FiBell, path: "/parent/notices" },
+              { label: "Transport Alerts", icon: FiTruck, path: "/parent/transport" },
+              { label: "Upcoming Events", icon: FiCalendar, path: "/parent/exams" },
+            ].map((item) => (
+              <Link
+                href={item.path}
+                key={item.label}
+                className="w-full text-left p-4 rounded-2xl bg-white/10 text-white font-bold text-[11px] uppercase hover:bg-white/20 transition-all flex justify-between items-center group"
+              >
+                {item.label}
+                <span className="opacity-50 group-hover:opacity-100">
+                  <item.icon size={18} />
+                </span>
+              </Link>
+            ))}
+          </div>
 
         </div>
 
