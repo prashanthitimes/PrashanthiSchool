@@ -35,7 +35,7 @@ export default function FeesPage() {
 
   // Specify that editingId can be a string or null
   const [editingId, setEditingId] = useState<string | null>(null);
-  
+
   // ... rest of your code
   // Modal States
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
@@ -59,56 +59,30 @@ export default function FeesPage() {
     setStudentFees(sf || []);
   }
 
-  /* ---------------- ACTIONS ---------------- */
+ /* ---------------- ACTIONS ---------------- */
 
-  /* ---------------- ACTIONS ---------------- */
+ /* ---------------- ACTIONS ---------------- */
 
-// Added React.FormEvent type to 'e'
-const handleSaveClassFee = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  const payload = { ...classForm, amount: Number(classForm.amount) };
+  const handleSaveClassFee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const payload = { ...classForm, amount: Number(classForm.amount) };
 
-  const { error } = editingId
-    ? await supabase.from("class_fees").update(payload).eq("id", editingId)
-    : await supabase.from("class_fees").insert([payload]);
+    const { error } = editingId
+      ? await supabase.from("class_fees").update(payload).eq("id", editingId)
+      : await supabase.from("class_fees").insert([payload]);
 
-  if (!error) {
-    closeModals();
-    fetchAll();
-    toast.success(editingId ? "Fee structure updated!" : "Fee structure added!");
-  } else {
-    toast.error(error.message);
-  }
-  setLoading(false);
-};
-
-// Added React.FormEvent type to 'e'
-const handleSaveStudentFee = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  const payload = {
-    ...studentForm,
-    roll_no: studentForm.roll_no ? Number(studentForm.roll_no) : null,
-    total_amount: Number(studentForm.total_amount),
-    paid_amount: Number(studentForm.paid_amount || 0),
+    if (!error) {
+      closeModals();
+      fetchAll();
+      toast.success(editingId ? "Fee structure updated!" : "Fee structure added!");
+    } else {
+      toast.error(error.message);
+    }
+    setLoading(false);
   };
 
-  const { error } = editingId
-    ? await supabase.from("student_fees").update(payload).eq("id", editingId)
-    : await supabase.from("student_fees").insert([payload]);
-
-  if (!error) {
-    closeModals();
-    fetchAll();
-    toast.success(editingId ? "Student fee updated!" : "Student fee added!");
-  } else {
-    toast.error(error.message);
-  }
-  setLoading(false);
-};
-
-  const handleSaveStudentFee = async (e) => {
+  const handleSaveStudentFee = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const payload = {
@@ -132,7 +106,7 @@ const handleSaveStudentFee = async (e: React.FormEvent) => {
     setLoading(false);
   };
 
-  const deleteRecord = async (table, id) => {
+  const deleteRecord = async (table: string, id: string) => {
     if (confirm("Are you sure you want to delete this?")) {
       await supabase.from(table).delete().eq("id", id);
       fetchAll();
@@ -140,13 +114,18 @@ const handleSaveStudentFee = async (e: React.FormEvent) => {
     }
   };
 
-  const openEdit = (type, item) => {
+  const openEdit = (type: 'class' | 'student', item: any) => {
     setEditingId(item.id);
     if (type === 'class') {
-      setClassForm({ class: item.class, fee_type: item.fee_type, amount: item.amount });
+      setClassForm({ class: item.class, fee_type: item.fee_type, amount: item.amount.toString() });
       setIsClassModalOpen(true);
     } else {
-      setStudentForm(item);
+      setStudentForm({
+        ...item,
+        roll_no: item.roll_no?.toString() || "",
+        total_amount: item.total_amount.toString(),
+        paid_amount: item.paid_amount.toString(),
+      });
       setIsStudentModalOpen(true);
     }
   };
@@ -156,7 +135,15 @@ const handleSaveStudentFee = async (e: React.FormEvent) => {
     setIsStudentModalOpen(false);
     setEditingId(null);
     setClassForm({ class: "", fee_type: "", amount: "" });
-    setStudentForm({ student_name: "", roll_no: "", class: "", fee_type: "", total_amount: "", paid_amount: "", payment_method: "" });
+    setStudentForm({
+      student_name: "",
+      roll_no: "",
+      class: "",
+      fee_type: "",
+      total_amount: "",
+      paid_amount: "",
+      payment_method: "",
+    });
   };
 
   const filteredStudents = studentFees.filter(s =>
@@ -315,7 +302,7 @@ const handleSaveStudentFee = async (e: React.FormEvent) => {
                       className="modal-input"
                       value={classForm.class}
                       onChange={e => setClassForm({ ...classForm, class: e.target.value })} // Corrected: set classForm
-        required
+                      required
                     >
                       <option value="">Select Class</option>
                       {ACADEMIC_CLASSES.map(cls => (
