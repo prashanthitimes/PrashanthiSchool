@@ -179,11 +179,13 @@ export default function TeacherDashboard() {
             <h3 className="font-black uppercase text-xs tracking-widest text-white/80">Staff Portal</h3>
           </div>
           <div className="grid grid-cols-1 gap-2">
-            {[
-              { label: "View Profile", icon: <FiUsers />, path: "/teacher/profile" },
-              { label: "School Notices", icon: <FiBell />, path: "/teacher/notices" },
-              { label: "Upcoming Events", icon: <FiCalendar />, path: "/teacher/calendar" }
-            ].map((item) => (
+            {// To this:
+[
+  { label: "Total Students", count: stats.myStudents, Icon: FiUsers, path: '/teacher/students' },
+  { label: "Syllabus Status", count: stats.pendingAssignments, Icon: FiCheckSquare, path: '/teacher/syllabus' },
+  { label: "Class Load", count: stats.classesToday, Icon: FiClock, path: '/teacher/timetable' },
+  { label: "Attendance Rate", count: stats.attendanceRate, Icon: FiBookOpen, path: '/teacher/attendance' },
+].map((item) => (
               <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-white/10 text-white font-bold text-[11px] uppercase hover:bg-white/20 transition-all flex justify-between items-center group">
                 {item.label} <span className="opacity-50 group-hover:opacity-100">{item.icon}</span>
               </Link>
