@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  FiUser, FiCheckSquare, FiBookOpen, FiActivity, 
-  FiCalendar, FiArrowRight, FiCreditCard, FiAlertCircle, 
-  FiChevronRight, FiBriefcase, FiBell, FiTruck 
+import {
+  FiUser, FiCheckSquare, FiBookOpen, FiActivity,
+  FiCalendar, FiArrowRight, FiCreditCard, FiAlertCircle,
+  FiChevronRight, FiBriefcase, FiBell, FiTruck
 } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 
@@ -47,7 +47,7 @@ export default function ParentDashboard() {
 
         setRecentMarks(marks || []);
         setStats({
-          attendance: "94%", 
+          attendance: "94%",
           homeworkPending: 2,
           upcomingExams: 1,
           feeStatus: "Up to date",
@@ -62,7 +62,7 @@ export default function ParentDashboard() {
 
   return (
     <div className="space-y-10 p-6 pt-10 bg-white min-h-screen animate-in fade-in duration-700">
-      
+
       {/* --- SOFT BRAND PARENT BANNER --- */}
       <section className="relative overflow-hidden bg-brand-soft/40 rounded-[2.5rem] p-10 md:p-14 border border-brand-soft">
         <div className="absolute -top-10 -right-10 w-64 h-64 bg-brand-light/5 rounded-full blur-3xl"></div>
@@ -72,7 +72,7 @@ export default function ParentDashboard() {
               Hello, {localStorage.getItem('parentName')?.split(' ')[0] || "Parent"}!
             </h1>
             <p className="text-brand-light/70 text-lg font-bold leading-relaxed">
-              Tracking progress for <span className="text-brand-light underline decoration-2 underline-offset-4">{childData?.full_name || "Student"}</span>. 
+              Tracking progress for <span className="text-brand-light underline decoration-2 underline-offset-4">{childData?.full_name || "Student"}</span>.
               Class {childData?.class_name}-{childData?.section} systems are updated.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
@@ -94,23 +94,24 @@ export default function ParentDashboard() {
       {/* --- QUICK STATS GRID --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-            { label: "Attendance", count: stats.attendance, icon: <FiActivity />, path: '/parent/attendance' },
-            { label: "Homework", count: stats.homeworkPending, icon: <FiBookOpen />, path: '/parent/homework' },
-            { label: "Exams", count: stats.upcomingExams, icon: <FiCalendar />, path: '/parent/exams' },
-            { label: "Fees", count: stats.feeStatus, icon: <FiCreditCard />, path: '/parent/fees' },
-        ].map((stat, index) => (
-          <Link href={stat.path} key={index} className="bg-white p-8 rounded-[2.5rem] border border-brand-soft hover:bg-brand-soft/20 transition-all group flex flex-col gap-4">
-            <div className="text-brand-light group-hover:scale-110 transition-transform duration-300">
-              {React.cloneElement(stat.icon as React.ReactElement, { size: 28 })}
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-black text-brand-light/40 tracking-[0.2em]">{stat.label}</p>
-              <p className="text-3xl font-black text-brand-light mt-1 tracking-tighter">
-                {loading ? "..." : stat.count}
-              </p>
-            </div>
-          </Link>
-        ))}
+          { label: "Attendance", count: stats.attendance, icon: FiActivity, path: "/parent/attendance" },
+          { label: "Homework", count: stats.homeworkPending, icon: FiBookOpen, path: "/parent/homework" },
+          { label: "Exams", count: stats.upcomingExams, icon: FiCalendar, path: "/parent/exams" },
+          { label: "Fees", count: stats.feeStatus, icon: FiCreditCard, path: "/parent/fees" },
+        ]
+          .map((stat, index) => (
+            <Link href={stat.path} key={index} className="bg-white p-8 rounded-[2.5rem] border border-brand-soft hover:bg-brand-soft/20 transition-all group flex flex-col gap-4">
+              <div className="text-brand-light group-hover:scale-110 transition-transform duration-300"><stat.icon size={28} />
+
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-black text-brand-light/40 tracking-[0.2em]">{stat.label}</p>
+                <p className="text-3xl font-black text-brand-light mt-1 tracking-tighter">
+                  {loading ? "..." : stat.count}
+                </p>
+              </div>
+            </Link>
+          ))}
       </div>
 
       {/* --- MANAGEMENT COMMAND CENTER --- */}
@@ -124,9 +125,9 @@ export default function ParentDashboard() {
           </div>
           <div className="grid grid-cols-1 gap-2">
             {[
-                { label: "Exam Marks", path: "/parent/marks" },
-                { label: "Homework Status", path: "/parent/homework" },
-                { label: "Class Timetable", path: "/parent/exams" }
+              { label: "Exam Marks", path: "/parent/marks" },
+              { label: "Homework Status", path: "/parent/homework" },
+              { label: "Class Timetable", path: "/parent/exams" }
             ].map((item) => (
               <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-brand-soft/10 text-brand-light font-bold text-[11px] uppercase hover:bg-brand-soft/30 transition-all flex justify-between items-center group">
                 {item.label} <FiChevronRight className="opacity-40 group-hover:translate-x-1 transition-all" />
@@ -143,9 +144,9 @@ export default function ParentDashboard() {
           </div>
           <div className="grid grid-cols-1 gap-2">
             {[
-                { label: "Fee Statements", path: "/parent/fees" },
-                { label: "Transport Details", path: "/parent/transport" },
-                { label: "Profile Settings", path: "/parent/profile" }
+              { label: "Fee Statements", path: "/parent/fees" },
+              { label: "Transport Details", path: "/parent/transport" },
+              { label: "Profile Settings", path: "/parent/profile" }
             ].map((item) => (
               <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-brand-soft/10 text-brand-light font-bold text-[11px] uppercase hover:bg-brand-soft/30 transition-all flex justify-between items-center group">
                 {item.label} <FiChevronRight className="opacity-40 group-hover:translate-x-1 transition-all" />
@@ -162,9 +163,10 @@ export default function ParentDashboard() {
           </div>
           <div className="grid grid-cols-1 gap-2">
             {[
-              { label: "School Notices", icon: <FiBell />, path: "/parent/notices" },
-              { label: "Transport Alerts", icon: <FiTruck />, path: "/parent/transport" },
-              { label: "Upcoming Events", icon: <FiCalendar />, path: "/parent/exams" }
+              { label: "School Notices", icon: FiBell, path: "/parent/notices" },
+              { label: "Transport Alerts", icon: FiTruck, path: "/parent/transport" },
+              { label: "Upcoming Events", icon: FiCalendar, path: "/parent/exams" },
+
             ].map((item) => (
               <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-white/10 text-white font-bold text-[11px] uppercase hover:bg-white/20 transition-all flex justify-between items-center group">
                 {item.label} <span className="opacity-50 group-hover:opacity-100">{item.icon}</span>
