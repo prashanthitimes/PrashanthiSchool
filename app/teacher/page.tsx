@@ -187,7 +187,8 @@ export default function TeacherDashboard() {
                 { label: "Attendance Rate", count: stats.attendanceRate, Icon: FiBookOpen, path: '/teacher/attendance' },
               ].map((item) => (
                 <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-white/10 text-white font-bold text-[11px] uppercase hover:bg-white/20 transition-all flex justify-between items-center group">
-                  {item.label} <span className="opacity-50 group-hover:opacity-100">{item.icon}</span>
+                  {item.label} <item.Icon size={18} className="opacity-50 group-hover:opacity-100" />
+
                 </Link>
               ))}
           </div>
