@@ -1,26 +1,67 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #8f1e7a;
+    border-radius: 10px;
+}
+
+
+@layer components {
+  .compact-input {
+    @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 
+           text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all
+           focus:bg-white focus:border-brand focus:ring-2 focus:ring-brand/10;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .compact-input {
+    @apply w-full border-2 border-slate-100 bg-slate-50/30 p-3.5 rounded-2xl outline-none focus:border-brand/30 focus:bg-white transition-all font-bold text-sm text-slate-700 placeholder:text-slate-300;
+  }
+
+
+
+    .premium-input {
+          @apply w-full bg-slate-50 border-2 border-transparent focus:border-brand/10 focus:bg-white p-4 rounded-2xl outline-none transition-all font-bold;
+        }
+        .premium-select {
+          @apply w-full bg-slate-50 border-2 border-transparent focus:border-brand/10 focus:bg-white p-4 rounded-2xl outline-none transition-all font-bold appearance-none cursor-pointer;
+        }
+
+        .form-input-v2 {
+  @apply w-full px-6 py-4 bg-white border border-slate-100 rounded-[1.25rem] 
+         font-bold text-slate-700 outline-none transition-all text-sm
+         shadow-[0_4px_12px_-4px_rgba(0,0,0,0.02)]
+         focus:border-brand-light focus:bg-white focus:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.08)];
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
 }
