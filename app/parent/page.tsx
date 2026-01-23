@@ -161,18 +161,25 @@ export default function ParentDashboard() {
             <FiBell size={20} />
             <h3 className="font-black uppercase text-xs tracking-widest text-white/80">Updates</h3>
           </div>
-          <div className="grid grid-cols-1 gap-2">
-            {[
-              { label: "School Notices", icon: FiBell, path: "/parent/notices" },
-              { label: "Transport Alerts", icon: FiTruck, path: "/parent/transport" },
-              { label: "Upcoming Events", icon: FiCalendar, path: "/parent/exams" },
+         <div className="grid grid-cols-1 gap-2">
+  {[
+    { label: "School Notices", icon: FiBell, path: "/parent/notices" },
+    { label: "Transport Alerts", icon: FiTruck, path: "/parent/transport" },
+    { label: "Upcoming Events", icon: FiCalendar, path: "/parent/exams" },
+  ].map((item) => (
+    <Link
+      href={item.path}
+      key={item.label}
+      className="w-full text-left p-4 rounded-2xl bg-white/10 text-white font-bold text-[11px] uppercase hover:bg-white/20 transition-all flex justify-between items-center group"
+    >
+      {item.label}
+      <span className="opacity-50 group-hover:opacity-100">
+        <item.icon size={18} />
+      </span>
+    </Link>
+  ))}
+</div>
 
-            ].map((item) => (
-              <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-white/10 text-white font-bold text-[11px] uppercase hover:bg-white/20 transition-all flex justify-between items-center group">
-                {item.label} <span className="opacity-50 group-hover:opacity-100">{item.icon}</span>
-              </Link>
-            ))}
-          </div>
         </div>
 
       </div>
