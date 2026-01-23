@@ -7,10 +7,29 @@ import {
   ReceiptIndianRupee, Wallet, Calendar, User, BookOpen
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+interface ClassFee {
+  id: string;
+  class: string;
+  fee_type: string;
+  amount: number;
+  created_at?: string;
+}
+
+interface StudentFee {
+  id: string;
+  student_name: string;
+  roll_no: number;
+  class: string;
+  fee_type: string;
+  total_amount: number;
+  paid_amount: number;
+  payment_method: string;
+}
 
 export default function FeesPage() {
-  const [classFees, setClassFees] = useState([]);
-  const [studentFees, setStudentFees] = useState([]);
+// To this:
+const [classFees, setClassFees] = useState<any[]>([]);
+const [studentFees, setStudentFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
