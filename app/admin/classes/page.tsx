@@ -45,25 +45,27 @@ export default function StudentManagement() {
   const sections = ["A", "B", "C", "D"];
 
 
-  const [formData, setFormData] = useState({
-    full_name: "",
-    email: "",
-    parent_phone: "",
-    dob: "",
-    father_name: "",
-    mother_name: "",
-    caste: "",
-    mobile_no: "",
-    sats_no: "",
-    pen_no: "",
-    birth_certificate_no: "",
-    aadhar_no: "",
-    village: "",
-    class_name: "",
-    section: "",
-    roll_number: "",
-    academic_year: "2026-27"
-  });
+const [formData, setFormData] = useState({
+  student_id: "", // ✅ ADD THIS
+  full_name: "",
+  email: "",
+  parent_phone: "",
+  dob: "",
+  father_name: "",
+  mother_name: "",
+  caste: "",
+  mobile_no: "",
+  sats_no: "",
+  pen_no: "",
+  birth_certificate_no: "",
+  aadhar_no: "",
+  village: "",
+  class_name: "",
+  section: "",
+  roll_number: "",
+  academic_year: "2026-27"
+});
+
 
 
   const fetchStudents = useCallback(async () => {
@@ -252,25 +254,27 @@ export default function StudentManagement() {
     setShowModal(false);
     setIsEditing(false);
     setMode('add');
-    setFormData({
-      full_name: "",
-      email: "",
-      parent_phone: "",
-      dob: "",
-      father_name: "",
-      mother_name: "",
-      caste: "",
-      mobile_no: "",
-      sats_no: "",
-      pen_no: "",
-      birth_certificate_no: "",
-      aadhar_no: "",
-      village: "",
-      class_name: selectedClass,
-      section: selectedSection,
-      roll_number: "",
-      academic_year: "2026-27"
-    });
+setFormData({
+  student_id: "", // ✅ RESET
+  full_name: "",
+  email: "",
+  parent_phone: "",
+  dob: "",
+  father_name: "",
+  mother_name: "",
+  caste: "",
+  mobile_no: "",
+  sats_no: "",
+  pen_no: "",
+  birth_certificate_no: "",
+  aadhar_no: "",
+  village: "",
+  class_name: selectedClass,
+  section: selectedSection,
+  roll_number: "",
+  academic_year: "2026-27"
+});
+
   };
   // ✅ PLACE THIS OUTSIDE YOUR MAIN COMPONENT FUNCTION
   // 1. MUST be outside the main component
