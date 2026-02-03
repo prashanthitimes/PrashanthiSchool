@@ -35,8 +35,10 @@ export default function AdminSidebar({ activeMenu, setActiveMenu }: Props) {
     { id: 'subjects', label: 'Subjects', icon: <FiBook />, path: '/admin/subjects', group: 'Academics' },
  { id: 'time-table', label: 'Time Table', icon: <FiClock />, path: '/admin/timetable', group: 'Academics' },
     { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/admin/attendance', group: 'Operations' },
-    { id: 'exams-marks', label: 'Exams & Marks', icon: <FiClipboard />, path: '/admin/exams', group: 'Operations' },
-    { id: 'fee-management', label: 'Fee Management', icon: <FiDollarSign />, path: '/admin/fees', group: 'Operations' },
+// Add these to your menuItems array
+{ id: 'exam-setup', label: 'Exam Setup', icon: <FiSettings />, path: '/admin/exams', group: 'Operations' },
+{ id: 'exam-timetable', label: 'Exam Time Table', icon: <FiCalendar />, path: '/admin/examtimetable', group: 'Operations' },
+{ id: 'marks-ledger', label: 'Marks Ledger', icon: <FiClipboard />, path: '/admin/examsmarks', group: 'Operations' },    { id: 'fee-management', label: 'Fee Management', icon: <FiDollarSign />, path: '/admin/fees', group: 'Operations' },
     { id: 'transport', label: 'Transport', icon: <FiTruck />, path: '/admin/transport', group: 'Logistics' },
     { id: 'notices-circulars', label: 'Notices & Circulars', icon: <FiFileText />, path: '/admin/notices', group: 'Communication' },
     { id: 'calendar', label: 'Calendar', icon: <FiCalendar />, path: '/admin/calendar', group: 'Communication' },

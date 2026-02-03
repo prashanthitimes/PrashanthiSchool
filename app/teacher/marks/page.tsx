@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
     FiEdit3, FiSave, FiAward, FiRefreshCw,
-    FiCheckCircle, FiAlertCircle, FiChevronRight, 
-    FiTarget, FiArrowLeft, FiSearch, FiLayers, FiBookOpen
+    FiCheckCircle, FiAlertCircle, FiSearch, FiBookOpen,
+    FiUserX 
 } from 'react-icons/fi'
 
 export default function MarksEntryPage() {
@@ -88,13 +88,21 @@ export default function MarksEntryPage() {
     }
 
     const handleMarkInput = (studentId: string, value: string) => {
+        if (value === '') {
+            setMarksData(prev => ({
+                ...prev,
+                [studentId]: { ...prev[studentId], marks: '', status: 'Pending' }
+            }))
+            return;
+        }
+
         const marks = parseFloat(value);
         const maxMarks = selectedExam.exams?.total_marks || 100;
         const passMarks = selectedExam.exams?.pass_marks || 33;
+        
         if (marks > maxMarks) return;
 
-        let status = 'Pending';
-        if (!isNaN(marks)) status = marks >= passMarks ? 'Pass' : 'Fail';
+        let status = marks >= passMarks ? 'Pass' : 'Fail';
 
         setMarksData(prev => ({
             ...prev,
@@ -102,22 +110,54 @@ export default function MarksEntryPage() {
         }))
     }
 
+    const toggleAbsent = (studentId: string) => {
+        setMarksData(prev => {
+            const isCurrentlyAbsent = prev[studentId]?.status === 'Absent';
+            return {
+                ...prev,
+                [studentId]: { 
+                    ...prev[studentId], 
+                    marks: isCurrentlyAbsent ? '' : '0', 
+                    status: isCurrentlyAbsent ? 'Pending' : 'Absent',
+                    // Remark logic: Add "Absent" if marking absent, Clear it if unmarking
+                    remarks: isCurrentlyAbsent ? '' : 'Student was absent' 
+                }
+            }
+        });
+    }
+
     async function saveMarks() {
+        // Validation: Check if all students have a status other than 'Pending'
+        const incomplete = students.some(s => marksData[s.id]?.status === 'Pending' || marksData[s.id]?.marks === '');
+        
+        if (incomplete) {
+            setMessage({ type: 'error', text: 'Please enter marks or mark absent for all students before saving.' });
+            setTimeout(() => setMessage(null), 4000);
+            return;
+        }
+
         setLoading(true)
+        
+        // Map all student data for saving
         const updates = students.map(s => ({
             syllabus_id: selectedExam.id,
             student_id: s.id,
             subject_id: selectedExam.subject_id,
             teacher_id: selectedExam.teacher_id,
             marks_obtained: parseFloat(marksData[s.id].marks) || 0,
-            remarks: marksData[s.id].remarks,
+            remarks: marksData[s.id].remarks || '',
             status: marksData[s.id].status,
             total_marks: selectedExam.exams?.total_marks || 100 
         }))
 
         const { error } = await supabase.from('exam_marks').upsert(updates, { onConflict: 'syllabus_id, student_id' })
-        if (error) setMessage({ type: 'error', text: error.message })
-        else setMessage({ type: 'success', text: 'Marks Synchronized!' })
+        
+        if (error) {
+            setMessage({ type: 'error', text: error.message })
+        } else {
+            setMessage({ type: 'success', text: 'All student marks saved successfully!' })
+        }
+        
         setLoading(false)
         setTimeout(() => setMessage(null), 3000)
     }
@@ -130,7 +170,6 @@ export default function MarksEntryPage() {
     return (
         <div className="min-h-screen bg-[#FDFCFD] pb-32">
             
-            {/* --- HEADER --- */}
             <div className="px-6 pt-6">
                 <div className="relative overflow-hidden bg-brand-soft p-10 rounded-[3rem] border border-brand-light/10 shadow-sm shadow-brand-soft/20">
                     <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
@@ -145,14 +184,7 @@ export default function MarksEntryPage() {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            {message && (
-                                <div className={`px-6 py-3 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg animate-in slide-in-from-top-2 ${
-                                    message.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
-                                }`}>
-                                    {message.type === 'success' ? <FiCheckCircle size={16} /> : <FiAlertCircle size={16} />} 
-                                    {message.text}
-                                </div>
-                            )}
+                   
 
                             <div className="bg-white/60 backdrop-blur-md px-10 py-4 rounded-[2rem] border border-white shadow-sm min-w-[160px]">
                                 <p className="text-[10px] font-black text-brand-light uppercase tracking-widest text-center mb-1">Students Loaded</p>
@@ -160,17 +192,12 @@ export default function MarksEntryPage() {
                             </div>
                         </div>
                     </div>
-                    {/* Decorative Blurs */}
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-2xl"></div>
-                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-brand-light/10 rounded-full blur-2xl"></div>
                 </div>
             </div>
 
             <div className="max-w-7xl mx-auto px-6 mt-8 space-y-6">
                 
-                {/* --- SELECTION STEPPER --- */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Class Selection */}
                     <div className="space-y-3">
                         <h2 className="text-[10px] font-black text-brand uppercase tracking-[0.2em] px-4 opacity-60">1. Select Class Allocation</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -185,7 +212,6 @@ export default function MarksEntryPage() {
                         </div>
                     </div>
 
-                    {/* Exam Selection - Now clearly visible next to class */}
                     <div className="space-y-3">
                         <h2 className="text-[10px] font-black text-brand uppercase tracking-[0.2em] px-4 opacity-60">2. Select Target Exam</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -205,9 +231,8 @@ export default function MarksEntryPage() {
                     </div>
                 </div>
 
-                {/* --- DATA ENTRY TABLE --- */}
                 {selectedExam ? (
-                    <div className="bg-white rounded-[3rem] shadow-sm border border-brand-soft/50 overflow-hidden animate-in fade-in zoom-in-95">
+                    <div className="bg-white rounded-[3rem] shadow-sm border border-brand-soft/50 overflow-hidden">
                         <div className="p-8 border-b border-brand-soft flex flex-col md:flex-row justify-between items-center gap-4 bg-brand-soft/5">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-white rounded-2xl text-brand shadow-sm"><FiBookOpen size={20} /></div>
@@ -218,15 +243,24 @@ export default function MarksEntryPage() {
                             </div>
                             
                             <div className="flex items-center gap-3 w-full md:w-auto">
+                                         {message && (
+                                <div className={`px-6 py-3 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg animate-in slide-in-from-top-2 ${
+                                    message.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                                }`}>
+                                    {message.type === 'success' ? <FiCheckCircle size={16} /> : <FiAlertCircle size={16} />} 
+                                    {message.text}
+                                </div>
+                            )}
                                 <div className="relative flex-1 md:w-64">
                                     <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-light" />
                                     <input type="text" placeholder="Filter by name or ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full bg-white border border-brand-soft rounded-2xl py-2.5 pl-11 pr-4 text-xs font-bold outline-none focus:ring-2 ring-brand/10 transition-all" />
+                                        className="w-full bg-white border border-brand-soft rounded-2xl py-2.5 pl-11 pr-4 text-xs font-bold outline-none focus:ring-2 ring-brand/10" />
                                 </div>
-                                <button onClick={saveMarks} disabled={loading} className="bg-brand text-white px-6 py-2.5 rounded-2xl font-black text-xs flex items-center gap-2 shadow-xl hover:scale-105 transition-all">
-                                    {loading ? <FiRefreshCw className="animate-spin" /> : <FiSave />} SAVE ALL
+                                <button onClick={saveMarks} disabled={loading} className="bg-brand text-white px-6 py-2.5 rounded-2xl font-black text-xs flex items-center gap-2 shadow-xl hover:scale-105 active:scale-95 transition-all">
+                                    {loading ? <FiRefreshCw className="animate-spin" /> : <FiSave />} SAVE ALL RECORDS
                                 </button>
                             </div>
+                            
                         </div>
 
                         <div className="overflow-x-auto">
@@ -235,7 +269,8 @@ export default function MarksEntryPage() {
                                     <tr className="bg-brand-accent/20 text-[10px] font-black text-brand-light uppercase tracking-[0.2em] border-b border-brand-soft">
                                         <th className="px-10 py-6">Student</th>
                                         <th className="px-10 py-6 w-40 text-center">Score / {selectedExam.exams?.total_marks}</th>
-                                        <th className="px-10 py-6">Status & Teacher Remarks</th>
+                                        <th className="px-10 py-6 w-32 text-center">Attendance</th>
+                                        <th className="px-10 py-6">Status & Remarks</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-brand-soft/30">
@@ -252,15 +287,33 @@ export default function MarksEntryPage() {
                                             </td>
                                             <td className="px-10 py-5">
                                                 <input type="number" 
-                                                    className="w-full bg-brand-accent/30 border-2 border-transparent focus:border-brand focus:bg-white rounded-xl py-3 text-center font-black text-brand transition-all outline-none"
+                                                    disabled={marksData[s.id]?.status === 'Absent'}
+                                                    className={`w-full border-2 border-transparent focus:border-brand focus:bg-white rounded-xl py-3 text-center font-black transition-all outline-none ${
+                                                        marksData[s.id]?.status === 'Absent' ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand-accent/30 text-brand'
+                                                    }`}
                                                     value={marksData[s.id]?.marks || ''}
                                                     onChange={(e) => handleMarkInput(s.id, e.target.value)}
                                                 />
                                             </td>
+                                            <td className="px-10 py-5 text-center">
+                                                <button 
+                                                    onClick={() => toggleAbsent(s.id)}
+                                                    className={`p-3 rounded-xl transition-all border-2 ${
+                                                        marksData[s.id]?.status === 'Absent' 
+                                                        ? 'bg-rose-500 text-white border-rose-500 shadow-md' 
+                                                        : 'bg-white text-slate-400 border-slate-100 hover:border-rose-200 hover:text-rose-400'
+                                                    }`}
+                                                    title="Mark as Absent"
+                                                >
+                                                    <FiUserX size={18} />
+                                                </button>
+                                            </td>
                                             <td className="px-10 py-5">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-24">
-                                                        {marksData[s.id]?.status === 'Pass' ? (
+                                                        {marksData[s.id]?.status === 'Absent' ? (
+                                                            <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg uppercase">ABSENT</span>
+                                                        ) : marksData[s.id]?.status === 'Pass' ? (
                                                             <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg uppercase">PASSED</span>
                                                         ) : marksData[s.id]?.status === 'Fail' ? (
                                                             <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg uppercase">FAILED</span>

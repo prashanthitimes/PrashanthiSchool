@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { 
-  FiHome, FiUser, FiClock, FiActivity, FiBookOpen, 
+  FiHome, FiUser, FiClock, FiActivity, FiBookOpen, FiCalendar ,
   FiEdit3, FiFileText, FiUsers, FiBell, FiCheckSquare
 } from 'react-icons/fi'
 
@@ -21,17 +21,19 @@ export default function TeacherSidebar({ activeMenu, setActiveMenu }: Props) {
     
     { id: 'profile', label: 'My Profile', icon: <FiUser />, path: '/teacher/profile', group: 'Personal' },
     
-    { id: 'timetable', label: 'Timetable', icon: <FiClock />, path: '/teacher/timetable', group: 'Workspace' },
+{ id: 'timetable', label: 'Timetable', icon: <FiClock />, path: '/teacher/timetable', group: 'Workspace' },
+    { id: 'calendar', label: 'Academic Calendar', icon: <FiCalendar />, path: '/teacher/calendar', group: 'Workspace' }, // Added Calendar
     { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/teacher/attendance', group: 'Workspace' },
     { id: 'notices', label: 'Notices', icon: <FiBell />, path: '/teacher/notices', group: 'Workspace' },
-    
     { id: 'homework', label: 'Homework', icon: <FiEdit3 />, path: '/teacher/homework', group: 'Classroom' },
     { id: 'assignments', label: 'Assignments', icon: <FiBookOpen />, path: '/teacher/assignments', group: 'Classroom' },
     { id: 'student-profiles', label: 'Student Profiles', icon: <FiUsers />, path: '/teacher/students', group: 'Classroom' },
     
-    { id: 'exam-syllabus', label: 'Exam Syllabus', icon: <FiFileText />, path: '/teacher/syllabus', group: 'Evaluation' },
-    { id: 'marks-entry', label: 'Marks Entry', icon: <FiCheckSquare />, path: '/teacher/marks', group: 'Evaluation' },
-  ]
+// ... inside your menuItems array ...
+{ id: 'exam-syllabus', label: 'Exam Syllabus', icon: <FiFileText />, path: '/teacher/syllabus', group: 'Evaluation' },
+{ id: 'exam-timetable', label: 'Exam Timetable', icon: <FiClock />, path: '/teacher/exam-timetable', group: 'Evaluation' }, // Added this
+{ id: 'marks-entry', label: 'Marks Entry', icon: <FiCheckSquare />, path: '/teacher/marks', group: 'Evaluation' },
+ ]
 
   // Logical groups for the teacher layout
   const groups = ['Overview', 'Personal', 'Workspace', 'Classroom', 'Evaluation']

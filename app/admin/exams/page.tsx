@@ -133,16 +133,16 @@ const [today, setToday] = useState<string | null>(null);
       <div className="bg-white rounded-[2.5rem] shadow-xl shadow-brand/5 border border-brand-soft/30 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-brand-accent/40 text-[10px] font-black text-brand-dark/50 uppercase tracking-[0.2em]">
-                <th className="p-6 text-left">Exam Details</th>
-                <th className="p-6 text-left">Target Classes</th>
-                <th className="p-6 text-center">Score Schema</th> {/* Updated Header */}
-                <th className="p-6 text-left">Timeline</th>
-                <th className="p-6 text-center">Status</th>
-                <th className="p-6 text-right">Actions</th>
-              </tr>
-            </thead>
+           <thead>
+                <tr className="bg-brand-accent/40 text-[10px] font-black text-brand-dark/50 uppercase tracking-[0.2em]">
+                  <th className="p-6 text-left">Exam Details</th>
+                  <th className="p-6 text-left">Target Classes</th>
+                  <th className="p-6 text-center">Score Schema</th>
+                  <th className="p-6 text-left">Timeline</th>
+                  <th className="p-6 text-center">Status</th>
+                  <th className="p-6 text-right">Actions</th>
+                </tr>
+              </thead>
             <tbody className="divide-y divide-brand-soft/20 text-xs font-bold uppercase tracking-wider">
               {exams.length === 0 ? (
                 <tr>

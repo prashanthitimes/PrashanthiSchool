@@ -2,35 +2,36 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
-import { FiEye, FiEyeOff, FiLock, FiMail, FiUsers } from 'react-icons/fi'
+import { FiEye, FiEyeOff, FiLock, FiUser, FiUsers } from 'react-icons/fi' // Changed FiMail to FiUser
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function ParentLoginPage() {
-  const [email, setEmail] = useState('')
+  const [userId, setUserId] = useState('') // Changed from email to userId
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   const handleLogin = async () => {
-    if (!email || !password) return alert('Please enter email and password')
+    // Check for userId instead of email
+    if (!userId || !password) return alert('Please enter Parent ID and password')
     setLoading(true)
 
     try {
-      // 1. Query the 'parents' table
+      // 1. Query the 'parents' table using 'user_id' instead of 'email'
       const { data, error } = await supabase
         .from('parents')
         .select(`
           *,
           students:child_id (full_name, class_name, section)
         `)
-        .ilike('email', email.trim())
+        .eq('user_id', userId.trim()) // Changed from .ilike('email') to .eq('user_id')
         .single()
   
       if (error || !data) {
         setLoading(false)
-        return alert('Parent account not found. Please check your email.')
+        return alert('Parent ID not found. Please check your credentials.')
       }
 
       // 2. Check the auto-generated password (temp_password)
@@ -43,7 +44,7 @@ export default function ParentLoginPage() {
       localStorage.setItem('userRole', 'parent');
       localStorage.setItem('parentId', data.id);
       localStorage.setItem('parentName', data.full_name);
-      localStorage.setItem('parentEmail', data.email);
+      localStorage.setItem('parentUserId', data.user_id); // Save user_id instead of email
       
       if (data.students) {
         localStorage.setItem('childId', data.child_id);
@@ -62,7 +63,6 @@ export default function ParentLoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Decorative background blurs - Updated to brand color */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand/5 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand/10 blur-[120px] rounded-full" />
 
@@ -82,7 +82,6 @@ export default function ParentLoginPage() {
         </div>
 
         <div className="space-y-5">
-          {/* Identity Tag - Switched to brand styling */}
           <div className="flex items-center gap-3 p-4 bg-brand/5 rounded-2xl border border-brand/10">
             <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand/20">
               <FiUsers size={20} />
@@ -93,19 +92,19 @@ export default function ParentLoginPage() {
             </div>
           </div>
 
-          {/* Email Input */}
+          {/* User ID Input */}
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">
-              Registered Email
+              Parent ID (User ID)
             </label>
             <div className="relative">
-                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
-                    type="email"
-                    placeholder="parent@example.com"
+                    type="text"
+                    placeholder="e.g. jv13vv"
                     className="w-full border-2 border-slate-100 rounded-2xl px-12 py-3.5 focus:outline-none focus:border-brand transition-all font-medium text-slate-800"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
                 />
             </div>
           </div>
@@ -146,8 +145,8 @@ export default function ParentLoginPage() {
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                 Official School Parent Access
             </p>
-            <p className="text-[10px] text-slate-400 font-medium">
-                Forgot password? Contact school office.
+            <p className="text-[10px] text-slate-400 font-medium text-center px-4">
+                Enter the User ID and Password provided by the school.
             </p>
           </div>
         </div>

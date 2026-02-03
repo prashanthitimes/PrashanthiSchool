@@ -2,9 +2,9 @@
 import * as XLSX from "xlsx";
 import { 
   Plus, Search, Edit2, Trash2, X, GraduationCap, 
-  Users, Building2, Phone, Mail, Download, Layers, Lock, AlertCircle
+  Users, Building2, Phone, Mail, Download, Layers, Lock, AlertCircle, Upload, FileText
 } from "lucide-react";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Toaster, toast } from "sonner";
 
@@ -17,6 +17,7 @@ export default function TeacherManagement() {
   const [editTeacher, setEditTeacher] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const initialForm = {
     full_name: "",
@@ -28,6 +29,12 @@ export default function TeacherManagement() {
   };
 
   const [formData, setFormData] = useState(initialForm);
+
+  // Helper: Generate Password
+  const generatePassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
 
   // Fetch Data
   const fetchData = useCallback(async () => {
@@ -48,6 +55,84 @@ export default function TeacherManagement() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Handle Excel Import
+ const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    try {
+      const bstr = evt.target?.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawData: any[] = XLSX.utils.sheet_to_json(ws);
+
+      if (rawData.length === 0) throw new Error("The file is empty.");
+
+      // 1. CHECK FOR COMPULSORY FIELDS
+      const validData: any[] = [];
+      const emailsToImport: string[] = [];
+
+      for (const [index, item] of rawData.entries()) {
+        const name = item["Full Name"] || item.FullName;
+        const email = item.Email;
+        const phone = item.Phone;
+        const rowNum = index + 2; // Offset for header and 0-index
+
+        if (!name || !email || !phone) {
+          throw new Error(`Row ${rowNum} is missing required data (Name, Email, or Phone).`);
+        }
+
+        validData.push({
+          full_name: name,
+          email: email.toLowerCase().trim(),
+          phone: phone.toString(),
+          department: item.Department || "Unassigned",
+          teacher_id: `TEA-${Math.floor(1000 + Math.random() * 9000)}`,
+          password: generatePassword(), 
+        });
+        emailsToImport.push(email.toLowerCase().trim());
+      }
+
+      // 2. CHECK FOR DUPLICATES IN DATABASE
+      const { data: existingStaff } = await supabase
+        .from("teachers")
+        .select("email")
+        .in("email", emailsToImport);
+
+      if (existingStaff && existingStaff.length > 0) {
+        const dups = existingStaff.map(s => s.email).join(", ");
+        throw new Error(`Import blocked. The following emails already exist: ${dups}`);
+      }
+
+      // 3. INSERT DATA
+      const { error } = await supabase.from("teachers").insert(validData);
+      if (error) throw error;
+
+      toast.success(`${validData.length} Staff members imported successfully.`);
+      fetchData();
+    } catch (err: any) {
+      // SHOW ERROR MODAL/TOAST
+      toast.error(err.message, { duration: 5000 });
+    }
+  };
+  reader.readAsBinaryString(file);
+  if (fileInputRef.current) fileInputRef.current.value = "";
+};
+
+  // Download Sample File
+  const downloadSample = () => {
+    const sampleData = [
+      { "Full Name": "John Doe", "Email": "john@school.com", "Department": "Mathematics", "Phone": "1234567890" },
+      { "Full Name": "Jane Smith", "Email": "jane@school.com", "Department": "Science", "Phone": "0987654321" }
+    ];
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "teacher_import_sample.xlsx");
+  };
+
   const filtered = useMemo(() => {
     return teachers.filter(t => {
       const matchesSearch = [t.full_name, t.email, t.department, t.teacher_id].some(field => 
@@ -67,7 +152,7 @@ export default function TeacherManagement() {
       "Department": t.department || "Unassigned",
       "Email": t.email,
       "Phone": t.phone || "N/A",
-      "Notes": t.description || ""
+      "Portal Password": t.password || "N/A", // PASSWORD INCLUDED IN EXPORT
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
@@ -75,11 +160,6 @@ export default function TeacherManagement() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Teachers");
     XLSX.writeFile(workbook, `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`);
     toast.success("Excel file downloaded");
-  };
-
-  const generatePassword = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
   };
 
   const openModal = (t: any = null) => {
@@ -139,27 +219,36 @@ export default function TeacherManagement() {
         </div>
 
         <div className="flex items-center gap-3">
-            {/* EXPORT DROPDOWN */}
-            <div className="relative group">
-                <button className="bg-slate-800 text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg flex items-center gap-2 hover:bg-slate-700 transition-all">
-                    <Download size={18}/> Export
-                </button>
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                    <button 
-                        onClick={() => exportToExcel(teachers, 'all_teachers')}
-                        className="w-full text-left px-5 py-3 text-[10px] font-black uppercase text-slate-600 hover:bg-brand-soft/20 hover:text-brand transition-colors border-b border-slate-50"
-                    >
-                        All Faculty ({teachers.length})
-                    </button>
-                    <button 
-                        onClick={() => exportToExcel(filtered, `dept_${selectedDept}`)}
-                        className="w-full text-left px-5 py-3 text-[10px] font-black uppercase text-slate-600 hover:bg-brand-soft/20 hover:text-brand transition-colors"
-                    >
-                        Current View ({filtered.length})
-                    </button>
-                </div>
-            </div>
+            {/* IMPORT HIDDEN INPUT */}
+            <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx, .xls, .csv" className="hidden" />
+            
+           <div className="flex items-center gap-3">
+    {/* NEW: Standalone Sample Button */}
+    <button 
+        onClick={downloadSample}
+        className="bg-emerald-50 text-emerald-600 border-2 border-emerald-100 px-4 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-100 transition-all"
+    >
+        <FileText size={18}/> Sample File
+    </button>
 
+    {/* IMPORT HIDDEN INPUT */}
+    <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx, .xls, .csv" className="hidden" />
+    
+    <button 
+        onClick={() => fileInputRef.current?.click()}
+        className="bg-white border-2 border-slate-100 text-slate-600 px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all"
+    >
+        <Upload size={18}/> Import
+    </button>
+
+    {/* EXPORT BUTTON */}
+    <button 
+        onClick={() => exportToExcel(teachers, 'all_teachers')}
+        className="bg-slate-800 text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg flex items-center gap-2 hover:bg-slate-700 transition-all"
+    >
+        <Download size={18}/> Export
+    </button>
+</div>
           <button
             onClick={() => openModal()}
             className="bg-brand text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-brand-soft hover:brightness-110 transition-all flex items-center gap-2"
@@ -168,7 +257,10 @@ export default function TeacherManagement() {
           </button>
         </div>
       </header>
-
+      
+      {/* ... Rest of your search, table, and modal code remains the same ... */}
+      {/* Ensure the table mapping and search logic are kept as per your original file */}
+      
       {/* SEARCH & DEPT FILTER */}
       <div className="space-y-4">
         <div className="bg-white p-4 rounded-[2.5rem] border border-brand-soft flex flex-col lg:flex-row gap-4 items-center shadow-sm">

@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast, Toaster } from "sonner";
 import {
-  Trash2, Download, BookOpen, Plus, X ,  
-  GraduationCap, AlertTriangle, Filter, 
+  Trash2, Download, BookOpen, Plus, X,
+  GraduationCap, AlertTriangle, Filter,
   CheckCircle2, UserCheck, ShieldAlert
 } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -23,7 +23,7 @@ export default function SubjectAllotmentPage() {
   const [newSub, setNewSub] = useState("");
   const [teacherId, setTeacherId] = useState("");
   const [allotments, setAllotments] = useState([{ subject_id: "", class_name: "10th", section: "A" }]);
-  
+
   // Class Teacher States
   const [ctTeacherId, setCtTeacherId] = useState("");
   const [ctClass, setCtClass] = useState("10th");
@@ -34,7 +34,7 @@ export default function SubjectAllotmentPage() {
     setLoading(true);
     const { data: sub } = await supabase.from("subjects").select("*").order("name");
     const { data: tea } = await supabase.from("teachers").select("id, full_name").order("full_name");
-    
+
     // Fetch Subject Assignments
     const { data: ass } = await supabase.from("subject_assignments")
       .select(`id, academic_year, class_name, section, teachers(full_name), subjects(name)`)
@@ -56,10 +56,10 @@ export default function SubjectAllotmentPage() {
 
   // ---------------- DUPLICATE CHECK LOGIC ----------------
   const isDuplicate = (teacher_id: string, subject_id: string, class_name: string, section: string) => {
-    return assignments.some(a => 
-      a.teacher_id === teacher_id && 
-      a.subject_id === subject_id && 
-      a.class_name === class_name && 
+    return assignments.some(a =>
+      a.teacher_id === teacher_id &&
+      a.subject_id === subject_id &&
+      a.class_name === class_name &&
       a.section === section
     );
   };
@@ -67,21 +67,21 @@ export default function SubjectAllotmentPage() {
   // ---------------- HANDLERS ----------------
   const handleAllot = async () => {
     if (!teacherId) return toast.error("Selection Required", { description: "Please select a faculty member." });
-    
+
     // Check for duplicates within the current entry or database
     for (const allot of allotments) {
       if (!allot.subject_id) return toast.error("Missing Subject", { description: "Please select subjects for all rows." });
-      
-      const exists = assignments.some(a => 
-        a.teachers.full_name === teachers.find(t => t.id === teacherId)?.full_name && 
-        a.subjects.name === subjects.find(s => s.id === allot.subject_id)?.name && 
-        a.class_name === allot.class_name && 
+
+      const exists = assignments.some(a =>
+        a.teachers.full_name === teachers.find(t => t.id === teacherId)?.full_name &&
+        a.subjects.name === subjects.find(s => s.id === allot.subject_id)?.name &&
+        a.class_name === allot.class_name &&
         a.section === allot.section
       );
 
       if (exists) {
-        return toast.error("Duplicate Found", { 
-          description: `This teacher is already assigned to ${allot.class_name}-${allot.section} for this subject.` 
+        return toast.error("Duplicate Found", {
+          description: `This teacher is already assigned to ${allot.class_name}-${allot.section} for this subject.`
         });
       }
     }
@@ -160,9 +160,8 @@ export default function SubjectAllotmentPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
-              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                activeTab === tab ? "bg-brand-light text-white shadow-lg" : "text-brand-light hover:bg-brand-soft/50"
-              }`}
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? "bg-brand-light text-white shadow-lg" : "text-brand-light hover:bg-brand-soft/50"
+                }`}
             >
               {tab.replace("_", " ")}
             </button>
@@ -181,7 +180,7 @@ export default function SubjectAllotmentPage() {
               placeholder="Enter Subject Name"
               className="soft-input mb-4"
             />
-            <button onClick={() => {}} className="w-full bg-brand-light text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest">Add Subject</button>
+            <button onClick={() => { }} className="w-full bg-brand-light text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest">Add Subject</button>
           </div>
           <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-brand-soft overflow-hidden">
             <div className="p-6 bg-brand-soft/20 border-b border-brand-soft font-black text-[10px] text-brand-light uppercase tracking-widest">Available Subjects</div>
@@ -189,7 +188,7 @@ export default function SubjectAllotmentPage() {
               {subjects.map(s => (
                 <div key={s.id} className="p-5 flex justify-between items-center hover:bg-brand-soft/5">
                   <span className="font-bold text-slate-700">{s.name}</span>
-                  <button onClick={() => deleteItem("subjects", s.id)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                  <button onClick={() => deleteItem("subjects", s.id)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
                 </div>
               ))}
             </div>
@@ -202,7 +201,7 @@ export default function SubjectAllotmentPage() {
         <div className="space-y-8 animate-in slide-in-from-bottom-4">
           <div className="bg-white p-10 rounded-[3rem] border border-brand-soft shadow-sm">
             <h3 className="text-[11px] font-black text-brand-light uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
-                <CheckCircle2 size={18}/> Subject-Faculty Mapping
+              <CheckCircle2 size={18} /> Subject-Faculty Mapping
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               <div className="relative">
@@ -213,7 +212,7 @@ export default function SubjectAllotmentPage() {
                 </select>
               </div>
               <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100 flex items-center gap-3">
-                <ShieldAlert className="text-amber-500" size={20}/>
+                <ShieldAlert className="text-amber-500" size={20} />
                 <p className="text-[10px] font-bold text-amber-700 uppercase">System will auto-block duplicate class assignments.</p>
               </div>
             </div>
@@ -221,55 +220,55 @@ export default function SubjectAllotmentPage() {
             {allotments.map((row, i) => (
               <div key={i} className="grid grid-cols-1 md:grid-cols-10 gap-3 mb-3 p-3 bg-brand-soft/5 rounded-2xl border border-brand-soft">
                 <div className="md:col-span-4">
-                    <select value={row.subject_id} onChange={e => {
-                        const copy = [...allotments];
-                        copy[i].subject_id = e.target.value;
-                        setAllotments(copy);
-                    }} className="soft-input !py-3 !text-xs">
-                        <option value="">Select Subject</option>
-                        {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
+                  <select value={row.subject_id} onChange={e => {
+                    const copy = [...allotments];
+                    copy[i].subject_id = e.target.value;
+                    setAllotments(copy);
+                  }} className="soft-input !py-3 !text-xs">
+                    <option value="">Select Subject</option>
+                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
                 </div>
                 <div className="md:col-span-3">
-                    <select value={row.class_name} onChange={e => {
-                        const copy = [...allotments];
-                        copy[i].class_name = e.target.value;
-                        setAllotments(copy);
-                    }} className="soft-input !py-3 !text-xs">
-                        {["1st","2nd","3rd","4th","5th","6th","7th","8th","9th","10th"].map(c => <option key={c}>{c}</option>)}
-                    </select>
+                  <select value={row.class_name} onChange={e => {
+                    const copy = [...allotments];
+                    copy[i].class_name = e.target.value;
+                    setAllotments(copy);
+                  }} className="soft-input !py-3 !text-xs">
+                    {["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"].map(c => <option key={c}>{c}</option>)}
+                  </select>
                 </div>
                 <div className="md:col-span-2">
-                    <select value={row.section} onChange={e => {
-                        const copy = [...allotments];
-                        copy[i].section = e.target.value;
-                        setAllotments(copy);
-                    }} className="soft-input !py-3 !text-xs">
-                        {["A","B","C","D"].map(s => <option key={s}>{s}</option>)}
-                    </select>
+                  <select value={row.section} onChange={e => {
+                    const copy = [...allotments];
+                    copy[i].section = e.target.value;
+                    setAllotments(copy);
+                  }} className="soft-input !py-3 !text-xs">
+                    {["A", "B", "C", "D"].map(s => <option key={s}>{s}</option>)}
+                  </select>
                 </div>
                 <div className="md:col-span-1 flex justify-center">
-                    <button onClick={() => setAllotments(allotments.filter((_, idx) => idx !== i))} className="text-red-400 hover:bg-red-50 p-2 rounded-xl"><X size={18}/></button>
+                  <button onClick={() => setAllotments(allotments.filter((_, idx) => idx !== i))} className="text-red-400 hover:bg-red-50 p-2 rounded-xl"><X size={18} /></button>
                 </div>
               </div>
             ))}
             <div className="flex gap-4 mt-6">
-                <button onClick={() => setAllotments([...allotments, { subject_id: "", class_name: "10th", section: "A" }])} className="flex-1 py-4 border-2 border-dashed border-brand-soft rounded-2xl font-black text-[10px] text-brand-light uppercase">+ Add Row</button>
-                <button onClick={handleAllot} className="flex-1 py-4 bg-brand-dark text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-brand-light transition-all">Confirm Allotment</button>
+              <button onClick={() => setAllotments([...allotments, { subject_id: "", class_name: "10th", section: "A" }])} className="flex-1 py-4 border-2 border-dashed border-brand-soft rounded-2xl font-black text-[10px] text-brand-light uppercase">+ Add Row</button>
+              <button onClick={handleAllot} className="flex-1 py-4 bg-brand-dark text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-brand-light transition-all">Confirm Allotment</button>
             </div>
           </div>
-          
+
           {/* List of current assignments */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {assignments.map(a => (
-                <div key={a.id} className="bg-white p-6 rounded-[2rem] border border-brand-soft shadow-sm group">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="w-10 h-10 bg-brand-soft rounded-xl flex items-center justify-center text-brand-light"><GraduationCap size={20}/></div>
-                        <button onClick={() => deleteItem("subject_assignments", a.id)} className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={14}/></button>
-                    </div>
-                    <p className="font-black text-slate-800 uppercase text-xs mb-1">{a.teachers?.full_name}</p>
-                    <p className="text-[10px] font-bold text-brand-light uppercase tracking-widest">{a.subjects?.name} • {a.class_name}-{a.section}</p>
+              <div key={a.id} className="bg-white p-6 rounded-[2rem] border border-brand-soft shadow-sm group">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-10 h-10 bg-brand-soft rounded-xl flex items-center justify-center text-brand-light"><GraduationCap size={20} /></div>
+                  <button onClick={() => deleteItem("subject_assignments", a.id)} className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={14} /></button>
                 </div>
+                <p className="font-black text-slate-800 uppercase text-xs mb-1">{a.teachers?.full_name}</p>
+                <p className="text-[10px] font-bold text-brand-light uppercase tracking-widest">{a.subjects?.name} • {a.class_name}-{a.section}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -278,50 +277,50 @@ export default function SubjectAllotmentPage() {
       {/* TAB 3: CLASS TEACHER ALLOTMENT */}
       {activeTab === "class_teacher" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4">
-           <div className="bg-white p-10 rounded-[3rem] border border-brand-soft shadow-sm h-fit">
+          <div className="bg-white p-10 rounded-[3rem] border border-brand-soft shadow-sm h-fit">
             <h3 className="text-[11px] font-black text-brand-light uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
-                <UserCheck size={18}/> Assign Class Teacher
+              <UserCheck size={18} /> Assign Class Teacher
             </h3>
             <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-black text-brand-light/60 uppercase ml-4 mb-2 block">Teacher</label>
+                <select value={ctTeacherId} onChange={e => setCtTeacherId(e.target.value)} className="soft-input">
+                  <option value="">Select Teacher</option>
+                  {teachers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="text-[10px] font-black text-brand-light/60 uppercase ml-4 mb-2 block">Teacher</label>
-                    <select value={ctTeacherId} onChange={e => setCtTeacherId(e.target.value)} className="soft-input">
-                        <option value="">Select Teacher</option>
-                        {teachers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
-                    </select>
+                  <label className="text-[10px] font-black text-brand-light/60 uppercase ml-4 mb-2 block">Class</label>
+                  <select value={ctClass} onChange={e => setCtClass(e.target.value)} className="soft-input">
+                    {["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-[10px] font-black text-brand-light/60 uppercase ml-4 mb-2 block">Class</label>
-                        <select value={ctClass} onChange={e => setCtClass(e.target.value)} className="soft-input">
-                            {["1st","2nd","3rd","4th","5th","6th","7th","8th","9th","10th"].map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-[10px] font-black text-brand-light/60 uppercase ml-4 mb-2 block">Section</label>
-                        <select value={ctSection} onChange={e => setCtSection(e.target.value)} className="soft-input">
-                            {["A","B","C","D"].map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                    </div>
+                <div>
+                  <label className="text-[10px] font-black text-brand-light/60 uppercase ml-4 mb-2 block">Section</label>
+                  <select value={ctSection} onChange={e => setCtSection(e.target.value)} className="soft-input">
+                    {["A", "B", "C", "D"].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
                 </div>
-                <button onClick={handleClassTeacherAllot} className="w-full bg-brand-light text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">Assign as Head</button>
+              </div>
+              <button onClick={handleClassTeacherAllot} className="w-full bg-brand-light text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">Assign as Head</button>
             </div>
-           </div>
+          </div>
 
-           <div className="bg-white rounded-[3rem] border border-brand-soft overflow-hidden shadow-sm">
-                <div className="p-6 bg-brand-soft/20 border-b border-brand-soft font-black text-[10px] text-brand-light uppercase">Active Class Teachers</div>
-                <div className="divide-y divide-brand-soft/30">
-                    {classTeachers.map(ct => (
-                        <div key={ct.id} className="p-6 flex justify-between items-center hover:bg-brand-soft/5">
-                            <div>
-                                <p className="font-black text-slate-800 text-sm uppercase">{ct.class_name} - {ct.section}</p>
-                                <p className="text-[10px] font-bold text-brand-light uppercase">{ct.teachers?.full_name}</p>
-                            </div>
-                            <button onClick={() => deleteItem("class_teacher_allotment", ct.id)} className="text-red-300 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
-                        </div>
-                    ))}
+          <div className="bg-white rounded-[3rem] border border-brand-soft overflow-hidden shadow-sm">
+            <div className="p-6 bg-brand-soft/20 border-b border-brand-soft font-black text-[10px] text-brand-light uppercase">Active Class Teachers</div>
+            <div className="divide-y divide-brand-soft/30">
+              {classTeachers.map(ct => (
+                <div key={ct.id} className="p-6 flex justify-between items-center hover:bg-brand-soft/5">
+                  <div>
+                    <p className="font-black text-slate-800 text-sm uppercase">{ct.class_name} - {ct.section}</p>
+                    <p className="text-[10px] font-bold text-brand-light uppercase">{ct.teachers?.full_name}</p>
+                  </div>
+                  <button onClick={() => deleteItem("class_teacher_allotment", ct.id)} className="text-red-300 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                 </div>
-           </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

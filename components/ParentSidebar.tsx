@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { 
   FiHome, FiUser, FiEdit3, FiActivity, FiCheckSquare, 
-  FiCalendar, FiCreditCard, FiBell, FiTruck, FiPhoneCall, FiLogOut 
+  FiCalendar, FiCreditCard, FiBell, FiTruck, FiPhoneCall, 
+  FiBookOpen, FiClock, FiMap, FiMenu, FiX 
 } from 'react-icons/fi'
 
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
 
 export default function ParentSidebar({ activeMenu, setActiveMenu }: Props) {
   const [childName, setChildName] = useState<string | null>(null)
+  const [isOpen, setIsOpen] = useState(false) // Toggle for mobile drawer
 
   useEffect(() => {
     const savedChildName = localStorage.getItem('childName')
@@ -22,25 +24,24 @@ export default function ParentSidebar({ activeMenu, setActiveMenu }: Props) {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <FiHome />, path: '/parent', group: 'Overview' },
-    
     { id: 'student-profile', label: 'Student Profile', icon: <FiUser />, path: '/parent/profile', group: 'Personal' },
-    
     { id: 'homework', label: 'Homework', icon: <FiEdit3 />, path: '/parent/homework', group: 'Academic' },
     { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/parent/attendance', group: 'Academic' },
+    { id: 'class-timetable', label: 'Class Timetable', icon: <FiClock />, path: '/parent/timetable', group: 'Academic' },
+    { id: 'syllabus', label: 'Exam Syllabus', icon: <FiBookOpen />, path: '/parent/syllabus', group: 'Academic' },
+    { id: 'exam-calendar', label: 'Exam Timetable', icon: <FiCalendar />, path: '/parent/exams', group: 'Academic' },
     { id: 'marks', label: 'Exam Marks', icon: <FiCheckSquare />, path: '/parent/marks', group: 'Academic' },
-    { id: 'exam-calendar', label: 'Exam Calendar', icon: <FiCalendar />, path: '/parent/exams', group: 'Academic' },
-    
+    { id: 'annual-calendar', label: 'Annual Calendar', icon: <FiMap />, path: '/parent/calendar', group: 'Academic' },
     { id: 'fees', label: 'Fee Details', icon: <FiCreditCard />, path: '/parent/fees', group: 'Finance' },
     { id: 'transport', label: 'Transport', icon: <FiTruck />, path: '/parent/transport', group: 'Services' },
-    
     { id: 'notices', label: 'Notices', icon: <FiBell />, path: '/parent/notices', group: 'Communication' },
     { id: 'contact', label: 'Contact School', icon: <FiPhoneCall />, path: '/parent/contact', group: 'Communication' },
   ]
 
   const groups = ['Overview', 'Personal', 'Academic', 'Finance', 'Services', 'Communication']
 
-  return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-brand text-white flex flex-col shadow-2xl z-50 overflow-hidden">
+  const SidebarContent = () => (
+    <>
       {/* BRANDING */}
       <div className="p-6 flex flex-col items-center border-b border-white/10 bg-black/20">
         <div className="w-16 h-16 relative mb-3 bg-white rounded-2xl p-2 overflow-hidden shadow-lg shadow-black/20">
@@ -51,11 +52,11 @@ export default function ParentSidebar({ activeMenu, setActiveMenu }: Props) {
           Parent Portal
         </span>
         {childName && (
-            <div className="mt-3 px-3 py-1 bg-white/10 rounded-full border border-white/10">
-                <p className="text-[10px] font-black text-brand-soft truncate max-w-[140px]">
-                   {childName}
-                </p>
-            </div>
+          <div className="mt-3 px-3 py-1 bg-white/10 rounded-full border border-white/10">
+            <p className="text-[10px] font-black text-brand-soft truncate max-w-[140px]">
+              {childName}
+            </p>
+          </div>
         )}
       </div>
 
@@ -72,7 +73,7 @@ export default function ParentSidebar({ activeMenu, setActiveMenu }: Props) {
               </h3>
               <div className="flex flex-col gap-1">
                 {groupItems.map(({ id, label, icon, path }) => (
-                  <Link key={id} href={path} className="w-full">
+                  <Link key={id} href={path} className="w-full" onClick={() => setIsOpen(false)}>
                     <button
                       onClick={() => setActiveMenu(id)}
                       className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 group w-full ${
@@ -92,9 +93,8 @@ export default function ParentSidebar({ activeMenu, setActiveMenu }: Props) {
             </div>
           );
         })}
-
       </nav>
-      
+
       {/* FOOTER */}
       <div className="p-4 border-t border-white/10 bg-black/10">
         <div className="text-[8px] text-center text-white/20 font-bold tracking-widest uppercase mb-1">
@@ -104,6 +104,43 @@ export default function ParentSidebar({ activeMenu, setActiveMenu }: Props) {
           © 2026 Parent Connect
         </div>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* MOBILE HEADER - Only visible on small screens */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-brand text-white flex items-center justify-between px-4 z-[60] shadow-md">
+        <div className="flex items-center gap-3">
+          <img src="/Schoollogo.jpg" alt="Logo" className="w-8 h-8 rounded-lg bg-white p-1" />
+          <span className="font-black text-sm uppercase tracking-wider">Prashanthi</span>
+        </div>
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-2 bg-white/10 rounded-lg text-2xl"
+        >
+          {isOpen ? <FiX /> : <FiMenu />}
+        </button>
+      </div>
+
+      {/* MOBILE OVERLAY (Backdrop) */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[51] lg:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* SIDEBAR - Fixed on desktop, Animated Drawer on mobile */}
+      <aside className={`
+        fixed left-0 top-0 h-screen w-64 bg-brand text-white flex flex-col shadow-2xl z-[55] transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <SidebarContent />
+      </aside>
+
+      {/* SPACER for main content to prevent being hidden under mobile header */}
+      <div className="h-16 lg:hidden" />
+    </>
   )
 }

@@ -30,7 +30,9 @@ const PERMISSION_STRUCTURE = [
     category: "Operations",
     items: [
       { id: 'attendance', label: 'Attendance', icon: <CheckCircle size={14} /> },
-      { id: 'exams-marks', label: 'Exams & Marks', icon: <Edit2 size={14} /> },
+      { id: 'exam-registry', label: 'Exam Registry', icon: <ClipboardList size={14} /> },
+      { id: 'exam-schedule', label: 'Exam Timetable', icon: <Clock size={14} /> },
+      { id: 'marks-entry', label: 'Marks Ledger', icon: <Edit2 size={14} /> }, 
       { id: 'fee-management', label: 'Fee Management', icon: <Wallet size={14} /> },
     ]
   },
@@ -61,7 +63,7 @@ export default function AdminManagement() {
   const [targetAdmin, setTargetAdmin] = useState<any>(null);
   const [editAdmin, setEditAdmin] = useState<any>(null);
   const [counts, setCounts] = useState({ total: 0, super: 0, sub: 0 });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: "", email: "", phone: "", role: "sub_admin", description: ""
@@ -92,7 +94,7 @@ export default function AdminManagement() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Invalid email format";
     }
-    
+
     const activePermsCount = Object.values(selectedPerms).filter(Boolean).length;
     if (activePermsCount === 0) newErrors.perms = "Select at least one permission";
 
@@ -104,9 +106,9 @@ export default function AdminManagement() {
     setErrors({});
     if (admin) {
       setEditAdmin(admin);
-      setFormData({ 
-        name: admin.full_name || admin.name || "", 
-        email: admin.email || "", 
+      setFormData({
+        name: admin.full_name || admin.name || "",
+        email: admin.email || "",
         phone: admin.phone || "",
         role: admin.role || "sub_admin",
         description: admin.description || ""
@@ -126,17 +128,17 @@ export default function AdminManagement() {
       return;
     }
 
-    const payload = { 
+    const payload = {
       full_name: formData.name, // FIX: Resolves the not-null constraint error
-      name: formData.name, 
+      name: formData.name,
       email: formData.email,
       phone: formData.phone,
       role: formData.role,
       description: formData.description,
-      permissions: selectedPerms, 
-      status: "active" 
+      permissions: selectedPerms,
+      status: "active"
     };
-    
+
     const { error } = editAdmin
       ? await supabase.from("admin_users").update(payload).eq("id", editAdmin.id)
       : await supabase.from("admin_users").insert([payload]);
@@ -154,7 +156,7 @@ export default function AdminManagement() {
   const handleDelete = async () => {
     if (!targetAdmin) return;
     const { error } = await supabase.from("admin_users").delete().eq("id", targetAdmin.id);
-    
+
     if (error) {
       toast.error("Could not delete", { description: error.message });
     } else {
@@ -225,9 +227,9 @@ export default function AdminManagement() {
                       {admin.role?.replace('_', ' ')}
                     </span>
                     {Object.keys(admin.permissions || {}).filter(k => admin.permissions[k]).slice(0, 3).map(k => (
-                       <span key={k} className="px-2 py-1 bg-slate-100 text-slate-500 rounded-lg text-[9px] font-bold uppercase border border-slate-200">
+                      <span key={k} className="px-2 py-1 bg-slate-100 text-slate-500 rounded-lg text-[9px] font-bold uppercase border border-slate-200">
                         {k.replace('-', ' ')}
-                       </span>
+                      </span>
                     ))}
                   </div>
                 </td>
@@ -248,7 +250,7 @@ export default function AdminManagement() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-md" onClick={() => setShowModal(false)} />
           <div className="relative bg-white rounded-[3rem] w-full max-w-5xl shadow-2xl overflow-hidden border border-brand-soft flex flex-col max-h-[90vh]">
-            
+
             <div className="p-8 border-b border-brand-soft flex justify-between items-center bg-brand-soft/20">
               <div>
                 <h2 className="text-2xl font-black text-slate-800 tracking-tight">{editAdmin ? "Modify Access" : "Create Access Profile"}</h2>
@@ -278,8 +280,8 @@ export default function AdminManagement() {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-brand-light/60 uppercase tracking-widest ml-4">Administrative Purpose</label>
-                <textarea 
-                  value={formData.description} 
+                <textarea
+                  value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Note the reason for granting access..."
                   className="soft-input min-h-[80px] pt-3 resize-none"
@@ -306,8 +308,8 @@ export default function AdminManagement() {
                               type="button"
                               onClick={() => setSelectedPerms(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
                               className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl border transition-all duration-200 
-                                ${active 
-                                  ? 'bg-brand-soft/30 border-brand-light text-brand-dark shadow-sm' 
+                                ${active
+                                  ? 'bg-brand-soft/30 border-brand-light text-brand-dark shadow-sm'
                                   : 'bg-white border-brand-soft text-slate-500 hover:border-brand-light/50'
                                 }`}
                             >
