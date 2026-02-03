@@ -91,14 +91,12 @@ export default function AdminParentsPage() {
   .slice(0, 3)
   .toLowerCase()
 
-const studentInitials = student
-  ? student.full_name
-      .split(' ')
-      .map((n: string) => n[0])
-      .join('')
-      .slice(0, 3)
-      .toLowerCase()
-  : ''
+const studentInitials = student.full_name
+  .split(' ')
+  .map((n: string) => n[0])
+  .join('')
+  .slice(0, 3)
+  .toLowerCase()
 const userId = parentInitials + studentInitials + Math.random().toString(36).slice(-4).toLowerCase()
         const password = Math.random().toString(36).slice(-4).toUpperCase() + "!" + Math.floor(1000 + Math.random() * 9000)
         
@@ -175,9 +173,20 @@ const userId = parentInitials + studentInitials + Math.random().toString(36).sli
                     }
 
                     // Generate creds
-                    const parentInitials = parentName.split(' ').map(n => n[0]).join('').slice(0, 3).toLowerCase()
-                    const studentInitials = student.full_name.split(' ').map(n => n[0]).join('').slice(0, 3).toLowerCase()
-                    const userId = parentInitials + studentInitials + Math.random().toString(36).slice(-4).toLowerCase()
+                    const parentInitials = parentName
+  .split(' ')
+  .map((n: string) => n[0])
+  .join('')
+  .slice(0, 3)
+  .toLowerCase()
+
+const studentInitials = student.full_name
+  .split(' ')
+  .map((n: string) => n[0])
+  .join('')
+  .slice(0, 3)
+  .toLowerCase()
+const userId = parentInitials + studentInitials + Math.random().toString(36).slice(-4).toLowerCase()
                     const password = Math.random().toString(36).slice(-4).toUpperCase() + "!" + Math.floor(1000 + Math.random() * 9000)
 
                     parentsToInsert.push({
