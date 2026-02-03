@@ -84,9 +84,22 @@ export default function AdminParentsPage() {
         if (!parentName || !studentId) return;
         const student = students.find(s => s.id === studentId)
         // Shorten user_id: Use first 3 letters of parent name + first 3 of student name + random 4 chars
-        const parentInitials = parentName.split(' ').map(n => n[0]).join('').slice(0, 3).toLowerCase()
-        const studentInitials = student ? student.full_name.split(' ').map(n => n[0]).join('').slice(0, 3).toLowerCase() : ''
-        const userId = parentInitials + studentInitials + Math.random().toString(36).slice(-4).toLowerCase()
+       const parentInitials = parentName
+  .split(' ')
+  .map((n: string) => n[0])
+  .join('')
+  .slice(0, 3)
+  .toLowerCase()
+
+const studentInitials = student
+  ? student.full_name
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .slice(0, 3)
+      .toLowerCase()
+  : ''
+const userId = parentInitials + studentInitials + Math.random().toString(36).slice(-4).toLowerCase()
         const password = Math.random().toString(36).slice(-4).toUpperCase() + "!" + Math.floor(1000 + Math.random() * 9000)
         
         setFormData(prev => ({ 
