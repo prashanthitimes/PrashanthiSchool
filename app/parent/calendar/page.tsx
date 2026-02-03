@@ -125,8 +125,8 @@ export default function AcademicCalendar() {
                                     const isSelected = selectedDate === currentFullDate
 
                                     return (
-                                        <div 
-                                            key={idx} 
+                                        <div
+                                            key={idx}
                                             onClick={() => setSelectedDate(currentFullDate)}
                                             className={`
                                                 aspect-square md:aspect-auto md:min-h-[110px] p-1 md:p-3 rounded-xl md:rounded-2xl border cursor-pointer transition-all flex flex-col
@@ -137,18 +137,18 @@ export default function AcademicCalendar() {
                                             <span className={`text-[10px] md:text-sm font-black ${isSelected ? 'text-white' : isToday ? 'text-[#722366]' : 'text-slate-400'}`}>
                                                 {day}
                                             </span>
-                                            
+
                                             {/* Event Indicators (Dots on Mobile, Full on Desktop) */}
                                             <div className="mt-auto flex flex-wrap justify-center md:justify-start gap-0.5 md:space-y-1">
                                                 {dayEvents.map(ev => (
-                                                    <React.Fragment key={ev.id}>
+                                                    <Fragment key={ev.id}>
                                                         {/* Desktop: Text Bar */}
                                                         <div className={`hidden md:block w-full text-[8px] font-black p-1 rounded-md truncate ${isSelected ? 'bg-white/20 text-white' : typeColors[ev.event_type]}`}>
                                                             {ev.title}
                                                         </div>
                                                         {/* Mobile: Simple Dot */}
                                                         <div className={`md:hidden w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-[#722366]'}`}></div>
-                                                    </React.Fragment>
+                                                    </Fragment>
                                                 ))}
                                             </div>
                                         </div>
