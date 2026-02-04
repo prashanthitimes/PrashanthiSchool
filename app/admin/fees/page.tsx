@@ -272,24 +272,24 @@ student_id: student.id, // ✅ store students.id (UUID)
       });
       setIsClassModalOpen(true);
     } else {
-      setStudentForm({
-        student_id: "",  // ✅ reset
-        student_name: "",
-        father_name: "",
-        roll_no: "",
-        class: "",
-        section: "",
-        fee_type: "",
-        total_amount: "",
-        paid_amount: "",
-        payment_method: "",
-        utr_number: "",
-      });
+  setStudentForm({
+    student_id: item.student_id || "",  // ✅ if stored in table
+    student_name: item.student_name || "",
+    father_name: item.father_name || "",
+    roll_no: item.roll_no?.toString() || "",
+    class: item.class || "",
+    section: item.section || "",
+    fee_type: item.fee_type || "",
+    total_amount: item.total_amount?.toString() || "",
+    paid_amount: item.paid_amount?.toString() || "",
+    payment_method: item.payment_method || "",
+    utr_number: item.utr_number || "",
+  });
 
+  setStudentSearch(item.student_name);
+  setIsStudentModalOpen(true);
+}
 
-      setStudentSearch(item.student_name);
-      setIsStudentModalOpen(true);
-    }
   };
 
   const closeModals = () => {
@@ -299,18 +299,20 @@ student_id: student.id, // ✅ store students.id (UUID)
 
     setClassForm({ class: "", fee_type: "", amount: "" });
 
-    setStudentForm({
-      student_name: "",
-      father_name: "",
-      roll_no: "",
-      class: "",
-      section: "",
-      fee_type: "",
-      total_amount: "",
-      paid_amount: "",
-      payment_method: "",
-      utr_number: "",
-    });
+setStudentForm({
+  student_id: "",   // ✅ ADD THIS
+  student_name: "",
+  father_name: "",
+  roll_no: "",
+  class: "",
+  section: "",
+  fee_type: "",
+  total_amount: "",
+  paid_amount: "",
+  payment_method: "",
+  utr_number: "",
+});
+
 
     setStudentSearch("");
     setStudentSuggestions([]);

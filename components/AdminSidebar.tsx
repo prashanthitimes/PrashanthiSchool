@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { 
   FiUsers, FiShield, FiBook, FiClipboard, FiCalendar, FiSettings, 
   FiDollarSign, FiTruck, FiFileText, FiHome, FiUserCheck, FiUser,
-  FiUserPlus, FiBookOpen, FiActivity, FiLayers, FiImage // Added FiImage
+  FiUserPlus, FiBookOpen, FiActivity, FiLayers, FiImage, FiCreditCard // Added FiCreditCard for Online Payments
 } from 'react-icons/fi'
 import { FiClock } from 'react-icons/fi'
 
@@ -33,17 +33,20 @@ export default function AdminSidebar({ activeMenu, setActiveMenu }: Props) {
     { id: 'parents', label: 'Parents', icon: <FiUserCheck />, path: '/admin/parents', group: 'Academics' },
     { id: 'classes-sections', label: 'Classes & Sections', icon: <FiLayers />, path: '/admin/classes', group: 'Academics' },
     { id: 'subjects', label: 'Subjects', icon: <FiBook />, path: '/admin/subjects', group: 'Academics' },
- { id: 'time-table', label: 'Time Table', icon: <FiClock />, path: '/admin/timetable', group: 'Academics' },
+    { id: 'time-table', label: 'Time Table', icon: <FiClock />, path: '/admin/timetable', group: 'Academics' },
     { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/admin/attendance', group: 'Operations' },
-// Add these to your menuItems array
-{ id: 'exam-setup', label: 'Exam Setup', icon: <FiSettings />, path: '/admin/exams', group: 'Operations' },
-{ id: 'exam-timetable', label: 'Exam Time Table', icon: <FiCalendar />, path: '/admin/examtimetable', group: 'Operations' },
-{ id: 'marks-ledger', label: 'Marks Ledger', icon: <FiClipboard />, path: '/admin/examsmarks', group: 'Operations' },    { id: 'fee-management', label: 'Fee Management', icon: <FiDollarSign />, path: '/admin/fees', group: 'Operations' },
+    { id: 'exam-setup', label: 'Exam Setup', icon: <FiSettings />, path: '/admin/exams', group: 'Operations' },
+    { id: 'exam-timetable', label: 'Exam Time Table', icon: <FiCalendar />, path: '/admin/examtimetable', group: 'Operations' },
+    { id: 'marks-ledger', label: 'Marks Ledger', icon: <FiClipboard />, path: '/admin/examsmarks', group: 'Operations' },
+    { id: 'fee-management', label: 'Fee Management', icon: <FiDollarSign />, path: '/admin/fees', group: 'Operations' },
+    
+    // NEW ONLINE PAYMENTS TAB
+    { id: 'online-payments', label: 'Online Payments', icon: <FiCreditCard />, path: '/admin/online-payments', group: 'Operations' },
+    
     { id: 'transport', label: 'Transport', icon: <FiTruck />, path: '/admin/transport', group: 'Logistics' },
     { id: 'notices-circulars', label: 'Notices & Circulars', icon: <FiFileText />, path: '/admin/notices', group: 'Communication' },
     { id: 'calendar', label: 'Calendar', icon: <FiCalendar />, path: '/admin/calendar', group: 'Communication' },
     { id: 'photo-gallery', label: 'Photo Gallery', icon: <FiImage />, path: '/admin/gallery', group: 'Communication' },
-//    { id: 'admissions-exit', label: 'Admissions & Exit', icon: <FiUserPlus />, path: '/admin/admissions', group: 'Entry/Exit' },
     { id: 'settings', label: 'Settings', icon: <FiSettings />, path: '/admin/settings', group: 'System' },
   ]
 
@@ -53,7 +56,6 @@ export default function AdminSidebar({ activeMenu, setActiveMenu }: Props) {
     return permissions[item.id] === true
   })
 
-  // Logical groups for the sidebar
   const groups = ['Overview', 'Academics', 'Operations', 'Logistics', 'Communication', 'Entry/Exit', 'System']
 
   return (
