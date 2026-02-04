@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
-    FiUsers, FiSearch, FiBook, FiChevronRight, 
-    FiUser, FiPhone, FiMail, FiInfo, FiLayers, FiShield
+    FiUsers, FiSearch, FiChevronRight, 
+    FiHome, FiMapPin, FiUser
 } from 'react-icons/fi'
+import { RiParentLine } from 'react-icons/ri' // Optional: if you have remix-icons, otherwise FiUser is fine
 
 export default function TeacherClassList() {
     const [allocations, setAllocations] = useState<any[]>([])
@@ -59,15 +60,16 @@ export default function TeacherClassList() {
 
     const filteredStudents = students.filter(s => 
         s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.student_id.toLowerCase().includes(searchTerm.toLowerCase())
+        s.student_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.father_name?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     return (
         <div className="min-h-screen bg-[#FDFCFD] pb-32">
             
-            {/* --- HEADER (Same as Assignment Desk) --- */}
+            {/* --- HEADER --- */}
             <div className="px-6 pt-6">
-                <div className="relative overflow-hidden bg-brand-soft p-10 rounded-[3rem] border border-brand-light/10 shadow-sm shadow-brand-soft/20">
+                <div className="relative overflow-hidden bg-brand-soft p-10 rounded-[3rem] border border-brand-light/10 shadow-sm">
                     <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
                         <div className="flex items-center gap-6">
                             <div className="p-5 bg-white rounded-[2rem] shadow-sm text-brand-light border border-brand-soft">
@@ -75,25 +77,22 @@ export default function TeacherClassList() {
                             </div>
                             <div>
                                 <h1 className="text-3xl font-black text-brand-dark tracking-tight">Class Directory</h1>
-                                <p className="text-brand-light font-bold text-sm mt-1 opacity-90">Access student records and parent contact info.</p>
+                                <p className="text-brand-light font-bold text-sm mt-1 opacity-90">Student profiles and family background records.</p>
                             </div>
                         </div>
                         <div className="bg-white/60 backdrop-blur-md px-10 py-4 rounded-[2rem] border border-white shadow-sm min-w-[160px]">
-                            <p className="text-[10px] font-black text-brand-light uppercase tracking-widest text-center mb-1">Total Students</p>
+                            <p className="text-[10px] font-black text-brand-light uppercase tracking-widest text-center mb-1">Total Enrolled</p>
                             <p className="text-4xl font-black text-brand-dark text-center">{students.length}</p>
                         </div>
                     </div>
-                    {/* Decorative blobs */}
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-2xl"></div>
-                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-brand-light/10 rounded-full blur-2xl"></div>
                 </div>
             </div>
 
             <div className="px-6 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
-                {/* --- LEFT: ALLOCATIONS --- */}
+                {/* --- LEFT: CLASS SELECTOR --- */}
                 <div className="lg:col-span-3 space-y-4">
-                    <h2 className="text-[10px] font-black text-brand uppercase tracking-[0.2em] px-2 opacity-60">Allocated Classes</h2>
+                    <h2 className="text-[10px] font-black text-brand uppercase tracking-[0.2em] px-2 opacity-60">Your Assignments</h2>
                     <div className="grid gap-3">
                         {allocations.map((item) => (
                             <button 
@@ -101,7 +100,7 @@ export default function TeacherClassList() {
                                 onClick={() => handleClassSelect(item)}
                                 className={`p-5 rounded-[2rem] border-2 transition-all text-left flex items-center justify-between
                                     ${selectedAllocation?.id === item.id 
-                                        ? 'bg-brand text-white border-brand shadow-lg shadow-brand-soft' 
+                                        ? 'bg-brand text-white border-brand shadow-lg' 
                                         : 'bg-white text-slate-600 border-transparent shadow-sm hover:border-brand-soft'}`}
                             >
                                 <div>
@@ -116,14 +115,13 @@ export default function TeacherClassList() {
                     </div>
                 </div>
 
-                {/* --- RIGHT: DETAILED STUDENT TABLE --- */}
+                {/* --- RIGHT: STUDENT DIRECTORY --- */}
                 <div className="lg:col-span-9 space-y-6">
-                    {/* Search Bar */}
                     <div className="relative">
                         <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-brand-light opacity-60" />
                         <input 
                             type="text" 
-                            placeholder="Search by student name or ID..."
+                            placeholder="Search by student, ID, or father's name..."
                             className="w-full bg-white p-5 pl-16 rounded-[2rem] border-none shadow-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand transition-all"
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -136,8 +134,8 @@ export default function TeacherClassList() {
                                     <tr className="bg-brand-accent text-[10px] font-black text-brand-light uppercase tracking-[0.2em] border-b border-brand-soft">
                                         <th className="px-8 py-6">Roll</th>
                                         <th className="px-8 py-6">Student Identity</th>
-                                        <th className="px-8 py-6">Parent Phone</th>
-                                        <th className="px-8 py-6">Institutional Email</th>
+                                        <th className="px-8 py-6">Parents Information</th>
+                                        <th className="px-8 py-6">Residential Area</th>
                                         <th className="px-8 py-6 text-right">Status</th>
                                     </tr>
                                 </thead>
@@ -145,63 +143,57 @@ export default function TeacherClassList() {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={5} className="p-20 text-center">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
-                                                    <p className="font-black text-brand-light text-xs uppercase tracking-widest">Synchronizing Records...</p>
-                                                </div>
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand mx-auto mb-4"></div>
+                                                <p className="font-black text-brand-light text-xs uppercase tracking-widest">Loading Records...</p>
                                             </td>
                                         </tr>
                                     ) : filteredStudents.map((stu) => (
-                                        <tr key={stu.id} className="hover:bg-brand-soft/10 transition-colors group">
+                                        <tr key={stu.id} className="hover:bg-brand-soft/5 transition-colors group">
                                             <td className="px-8 py-6">
-                                                <span className="bg-brand-soft text-brand-dark px-3 py-1.5 rounded-xl text-[10px] font-black border border-brand-soft">
-                                                    #{stu.roll_number}
+                                                <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl text-[10px] font-black">
+                                                    #{stu.roll_number || '00'}
                                                 </span>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div>
                                                     <p className="font-black text-slate-700 text-sm">{stu.full_name}</p>
-                                                    <p className="text-[10px] font-bold text-brand-light uppercase tracking-tighter opacity-70">{stu.student_id}</p>
+                                                    <p className="text-[10px] font-bold text-brand-light uppercase">{stu.student_id}</p>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <div className="flex items-center gap-2 text-slate-600 font-black text-xs">
-                                                    <div className="w-7 h-7 bg-emerald-50 text-emerald-500 rounded-lg flex items-center justify-center">
-                                                        <FiPhone size={12}/>
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2 text-slate-600 font-bold text-xs">
+                                                        <FiUser size={12} className="text-brand-light" />
+                                                        <span className="opacity-60 text-[10px]">F:</span> {stu.father_name || '—'}
                                                     </div>
-                                                    {stu.parent_phone || 'N/A'}
+                                                    <div className="flex items-center gap-2 text-slate-600 font-bold text-xs">
+                                                        <FiUser size={12} className="text-brand-light" />
+                                                        <span className="opacity-60 text-[10px]">M:</span> {stu.mother_name || '—'}
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <div className="flex items-center gap-2 text-slate-500 font-bold text-xs italic">
-                                                    <FiMail className="text-brand-light opacity-40" size={14}/>
-                                                    {stu.email || '—'}
+                                                <div className="flex items-center gap-2 text-slate-500 font-bold text-xs capitalize">
+                                                    <FiHome className="text-brand-light opacity-50" size={14}/>
+                                                    {stu.village || 'No Address Provided'}
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-right">
                                                 <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                                                     stu.status === 'active' 
-                                                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
-                                                        : 'bg-rose-50 text-rose-600 border border-rose-100'
+                                                        ? 'bg-emerald-100 text-emerald-700' 
+                                                        : 'bg-rose-50 text-rose-600'
                                                 }`}>
                                                     {stu.status}
                                                 </span>
                                             </td>
                                         </tr>
                                     ))}
-                                    {!loading && filteredStudents.length === 0 && (
-                                        <tr>
-                                            <td colSpan={5} className="p-20 text-center">
-                                                <p className="font-black text-slate-400 text-sm italic">No students found matching your search.</p>
-                                            </td>
-                                        </tr>
-                                    )}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     )
