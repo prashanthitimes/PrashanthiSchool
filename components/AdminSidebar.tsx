@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { 
-  FiUsers, FiShield, FiBook, FiClipboard, FiCalendar, FiSettings, 
-  FiDollarSign, FiTruck, FiFileText, FiHome, FiUserCheck, FiUser,
-  FiUserPlus, FiBookOpen, FiActivity, FiLayers, FiImage, FiCreditCard // Added FiCreditCard for Online Payments
+import {
+  FiUsers, FiShield, FiBook, FiClipboard, FiCalendar, FiSettings,
+  FiTruck, FiFileText, FiHome, FiUserCheck, FiUser,
+  FiActivity, FiLayers, FiImage, FiCreditCard, FiCamera // Added FiCamera for Scanner Setup
 } from 'react-icons/fi'
 import { FiClock } from 'react-icons/fi'
+import { IndianRupee } from 'lucide-react'
 
 type Props = {
   activeMenu: string
@@ -38,11 +39,25 @@ export default function AdminSidebar({ activeMenu, setActiveMenu }: Props) {
     { id: 'exam-setup', label: 'Exam Setup', icon: <FiSettings />, path: '/admin/exams', group: 'Operations' },
     { id: 'exam-timetable', label: 'Exam Time Table', icon: <FiCalendar />, path: '/admin/examtimetable', group: 'Operations' },
     { id: 'marks-ledger', label: 'Marks Ledger', icon: <FiClipboard />, path: '/admin/examsmarks', group: 'Operations' },
-    { id: 'fee-management', label: 'Fee Management', icon: <FiDollarSign />, path: '/admin/fees', group: 'Operations' },
     
-    // NEW ONLINE PAYMENTS TAB
-    { id: 'online-payments', label: 'Online Payments', icon: <FiCreditCard />, path: '/admin/online-payments', group: 'Operations' },
-    
+    // --- FEES SECTION ---
+    { id: 'fee-management', label: 'Fee Management', icon: <IndianRupee />, path: '/admin/fees', group: 'Operations' },
+    {
+      id: 'fee-ledger',
+      label: 'Fee Ledger',
+      icon: <FiCreditCard size={18} />,
+      path: '/admin/viewfeesdeatils',
+      group: 'Operations'
+    },
+    { 
+      id: 'payment-scanner', // ✅ NEW SCANNER SETUP TAB
+      label: 'Payment Scanner Setup', 
+      icon: <FiCamera size={18} />, 
+      path: '/admin/scanner', // Ensure this matches your file path
+      group: 'Operations' 
+    },
+    // --------------------
+
     { id: 'transport', label: 'Transport', icon: <FiTruck />, path: '/admin/transport', group: 'Logistics' },
     { id: 'notices-circulars', label: 'Notices & Circulars', icon: <FiFileText />, path: '/admin/notices', group: 'Communication' },
     { id: 'calendar', label: 'Calendar', icon: <FiCalendar />, path: '/admin/calendar', group: 'Communication' },
@@ -87,11 +102,10 @@ export default function AdminSidebar({ activeMenu, setActiveMenu }: Props) {
                   <Link key={id} href={path} className="w-full">
                     <button
                       onClick={() => setActiveMenu(id)}
-                      className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 group w-full ${
-                        activeMenu === id 
-                          ? 'bg-white text-brand shadow-xl font-black scale-[1.02]' 
-                          : 'text-white/80 hover:bg-white/10'
-                      }`}
+                      className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 group w-full ${activeMenu === id
+                        ? 'bg-white text-brand shadow-xl font-black scale-[1.02]'
+                        : 'text-white/80 hover:bg-white/10'
+                        }`}
                     >
                       <span className={`text-xl ${activeMenu === id ? 'text-brand' : 'text-white/40 group-hover:text-white'}`}>
                         {icon}
@@ -105,7 +119,7 @@ export default function AdminSidebar({ activeMenu, setActiveMenu }: Props) {
           );
         })}
       </nav>
-      
+
       <div className="p-4 border-t border-white/10 text-[10px] text-center text-white/30 font-bold bg-black/10 tracking-widest">
         © 2026 PRASHANTHI SCHOOL
       </div>

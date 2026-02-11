@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import ParentSidebar from '@/components/ParentSidebar'
 import { FiUser, FiLogOut, FiBell, FiChevronDown, FiSettings, FiHeart } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
+import Link from "next/link";
 
 export default function ParentLayout({
   children,
@@ -51,13 +52,13 @@ export default function ParentLayout({
 
       {/* MAIN WRAPPER - Changed ml-64 to lg:ml-64 to remove margin on mobile */}
       <div className="flex-1 flex flex-col min-h-screen relative lg:ml-64 transition-all duration-300">
-        
+
         {/* TOP BAR - Adjusted padding for mobile (px-4 vs px-8) */}
-        <header 
+        <header
           className={`sticky top-0 z-40 transition-all duration-300 px-4 md:px-8 h-16 md:h-20 flex items-center justify-between
-          ${isScrolled 
-            ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200 !h-16' 
-            : 'bg-transparent'}`}
+          ${isScrolled
+              ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200 !h-16'
+              : 'bg-transparent'}`}
         >
           {/* Breadcrumbs - Hidden on very small screens to save space */}
           <div className="flex flex-col overflow-hidden">
@@ -74,23 +75,19 @@ export default function ParentLayout({
           <div className="flex items-center gap-2 md:gap-4">
             {/* Child Info Tag - Hidden on mobile, only shown from md upwards */}
             <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 md:px-4 md:py-2 bg-brand/5 border border-brand/10 rounded-2xl">
-                <div className="w-7 h-7 md:w-8 md:h-8 bg-brand rounded-lg flex items-center justify-center text-white shadow-sm shadow-brand/20">
-                    <FiHeart size={12} className="md:size-[14px]" />
-                </div>
-                <div className="hidden md:block">
-                    <p className="text-[9px] font-black text-brand uppercase tracking-widest opacity-60 leading-none mb-1">Studying</p>
-                    <p className="text-xs font-black text-slate-800">{childName}</p>
-                </div>
+              <div className="w-7 h-7 md:w-8 md:h-8 bg-brand rounded-lg flex items-center justify-center text-white shadow-sm shadow-brand/20">
+                <FiHeart size={12} className="md:size-[14px]" />
+              </div>
+              <div className="hidden md:block">
+                <p className="text-[9px] font-black text-brand uppercase tracking-widest opacity-60 leading-none mb-1">Studying</p>
+                <p className="text-xs font-black text-slate-800">{childName}</p>
+              </div>
             </div>
 
-            {/* Notifications */}
-            <button className="p-2 md:p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-brand transition-all shadow-sm">
-              <FiBell size={18} className="md:size-[20px]" />
-            </button>
 
             {/* Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
-              <button 
+              <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center gap-2 p-1 md:p-1.5 md:pr-3 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all"
               >
@@ -112,22 +109,22 @@ export default function ParentLayout({
                     <p className="text-xs font-black text-slate-800 truncate">{parentName}</p>
                     <p className="text-[9px] text-brand font-bold uppercase">{childName}'s Parent</p>
                   </div>
-                  
-                  <button className="flex items-center gap-3 w-full px-5 py-3 text-sm font-bold text-slate-600 hover:bg-brand/5 hover:text-brand transition-colors">
-                    <FiUser size={14} /> Profile Settings
-                  </button>
-                  <button className="flex items-center gap-3 w-full px-5 py-3 text-sm font-bold text-slate-600 hover:bg-brand/5 hover:text-brand transition-colors">
-                    <FiSettings size={14} /> App Preferences
-                  </button>
-                  
+                  <Link href="/parent/profile" className="w-full">
+                    <button className="flex items-center gap-3 w-full px-5 py-3 text-sm font-bold text-slate-600 hover:bg-brand/5 hover:text-brand transition-colors">
+                      <FiUser size={14} /> Profile Settings
+                    </button>
+                  </Link>
+                 
+
                   <div className="border-t border-slate-50 my-1 mx-2"></div>
-                  
-                  <button 
+                  <Link href="/parentlogin" className="w-full">
+                  <button
                     onClick={handleLogout}
                     className="flex items-center gap-3 w-full px-5 py-3 text-sm text-rose-500 hover:bg-rose-50 transition-colors font-bold"
                   >
                     <FiLogOut size={14} /> Logout
                   </button>
+                  </Link>
                 </div>
               )}
             </div>
@@ -138,7 +135,7 @@ export default function ParentLayout({
         <main className="px-4 md:px-8 pb-12 pt-4 flex-1">
           <div className="max-w-7xl mx-auto">
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                {children}
+              {children}
             </div>
           </div>
         </main>

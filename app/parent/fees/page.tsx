@@ -1,359 +1,331 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FiCreditCard, FiFileText, FiInfo, FiCheckCircle, FiShield, FiArrowRight } from "react-icons/fi";
+import { CreditCard, History, CheckCircle, Clock, Upload, Bus, Calendar, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
+import { toast, Toaster } from "sonner";
 
 export default function ParentFees() {
-  const [fees, setFees] = useState<any[]>([]);
-  const [studentInfo, setStudentInfo] = useState<any>(null);
-
+  const [activeTab, setActiveTab] = useState<"pay" | "history">("pay");
   const [loading, setLoading] = useState(true);
-
-  const [paidAmount, setPaidAmount] = useState(0);
-  const [balanceAmount, setBalanceAmount] = useState(0);
-
-  const academicYear = "2026-27";
+  const [studentInfo, setStudentInfo] = useState<any>(null);
+  const [paymentConfig, setPaymentConfig] = useState<any>(null);
+  const [classFees, setClassFees] = useState<any[]>([]);
+  
+  const [verifiedFees, setVerifiedFees] = useState<any[]>([]);
+  const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([]);
+  
+  const [selectedFeeTypes, setSelectedFeeTypes] = useState<string[]>([]);
+  const [utr, setUtr] = useState("");
+  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    fetchFeeDetails();
+    fetchData();
   }, []);
 
-  async function fetchFeeDetails() {
+  async function fetchData() {
     setLoading(true);
     try {
       const childId = localStorage.getItem("childId");
       if (!childId) return;
 
-      // Fetch student info
-      const { data: student, error: studentError } = await supabase
-        .from("students")
-        .select("class_name, full_name")
-        .eq("id", childId)
-        .single();
-
-      if (studentError) throw studentError;
+      const { data: student } = await supabase.from("students").select("*").eq("id", childId).single();
       setStudentInfo(student);
 
-      const cleanedClass = student.class_name.replace(/(st|nd|rd|th)$/i, "").trim();
+      const normalizedClass = student.class_name.replace(/(st|nd|rd|th)$/i, "");
 
-      // Fetch class fees
-      const { data: feeData, error: feeError } = await supabase
-        .from("class_fees")
-        .select("*")
-        .or(`class.eq."${student.class_name}",class.eq."${cleanedClass}"`);
+      const { data: config } = await supabase.from("payment_configs")
+        .select("*").or(`class_name.cs.{"${student.class_name}"},class_name.cs.{"${normalizedClass}"}`).maybeSingle();
+      setPaymentConfig(config);
 
-      if (feeError) throw feeError;
-      setFees(feeData || []);
+      const { data: cFees } = await supabase.from("class_fees").select("*").eq("class", student.class_name);
+      let combinedFees = cFees || [];
 
-      // Total fees
-      const totalAmount = (feeData || []).reduce((sum, item) => sum + Number(item.amount), 0);
-
-      // Fetch student payment record
-      const { data: paymentData, error: paymentError } = await supabase
-        .from("student_payments")
-        .select("*")
+      const { data: transport } = await supabase
+        .from("transport_assignments")
+        .select("monthly_fare, status")
         .eq("student_id", childId)
-        .eq("academic_year", academicYear)
-        .single();
+        .eq("status", "active")
+        .maybeSingle();
 
-      if (paymentError && paymentError.code !== "PGRST116") {
-        throw paymentError;
+      if (transport) {
+        combinedFees.push({
+          id: 'transport-fee-id',
+          fee_type: "Transport Fee",
+          amount: transport.monthly_fare,
+          is_transport: true
+        });
       }
 
-      if (paymentData) {
-        setPaidAmount(Number(paymentData.paid_amount));
-        setBalanceAmount(Number(paymentData.balance_amount));
-      } else {
-        // If no record exists, create initial record
-        await supabase.from("student_payments").insert([
-          {
-            student_id: childId,
-            academic_year: academicYear,
-            total_amount: totalAmount,
-            paid_amount: 0,
-            balance_amount: totalAmount,
-            payment_status: "pending",
-            payment_method: "razorpay",
-          },
-        ]);
+      setClassFees(combinedFees);
+      const { data: verified } = await supabase.from("student_fees").select("*").eq("student_id", childId);
+      setVerifiedFees(verified || []);
+      const { data: pending } = await supabase.from("fee_submissions").select("*").eq("student_id", childId).eq("status", "pending");
+      setPendingSubmissions(pending || []);
 
-        setPaidAmount(0);
-        setBalanceAmount(totalAmount);
-      }
-    } catch (err) {
-      console.error("Fee Fetch Error:", err);
-    } finally {
-      setLoading(false);
+    } catch (err) { 
+      console.error(err); 
+      toast.error("Failed to load fee data");
+    } finally { 
+      setLoading(false); 
     }
   }
 
-  const totalAmount = fees.reduce((sum, item) => sum + Number(item.amount), 0);
+  const getFeeStatus = (feeType: string) => {
+    const isVerified = verifiedFees.some(item => item.fee_type.toLowerCase().includes(feeType.toLowerCase()));
+    if (isVerified) return "verified";
+    const isPending = pendingSubmissions.some(item => item.fee_types?.toLowerCase().includes(feeType.toLowerCase()));
+    if (isPending) return "pending";
+    return "available";
+  };
 
-  async function loadRazorpayScript() {
-    return new Promise((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  }
+  const calculatedTotal = classFees
+    .filter(f => selectedFeeTypes.includes(f.fee_type))
+    .reduce((sum, f) => sum + Number(f.amount), 0);
 
-  async function handlePayment() {
+  async function handlePaymentSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!file || !utr || selectedFeeTypes.length === 0) return toast.error("Complete all fields");
+
+    setUploading(true);
     try {
       const childId = localStorage.getItem("childId");
-      if (!childId) return;
+      const { data: dupPending } = await supabase.from("fee_submissions").select("id").eq("utr_number", utr).maybeSingle();
+      const { data: dupVerified } = await supabase.from("student_fees").select("id").eq("utr_number", utr).maybeSingle();
 
-      const res = await loadRazorpayScript();
-      if (!res) {
-        alert("Razorpay SDK failed to load. Check Internet.");
-        return;
+      if (dupPending || dupVerified) {
+        setUploading(false);
+        return toast.error("UTR already exists");
       }
 
-      // Create order in backend
-   const orderRes = await fetch("/api/create-order", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ amount: balanceAmount }),
-});
+      const fileName = `${childId}-${Date.now()}`;
+      const { error: upErr } = await supabase.storage.from('payments').upload(`proofs/${fileName}`, file);
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from('payments').getPublicUrl(`proofs/${fileName}`);
 
-const orderData = await orderRes.json();
+      const { error: dbErr } = await supabase.from("fee_submissions").insert([{
+        student_id: childId,
+        amount_paid: calculatedTotal,
+        utr_number: utr,
+        payment_date: payDate,
+        proof_url: publicUrl,
+        fee_types: selectedFeeTypes.join(", "),
+        status: 'pending'
+      }]);
 
-console.log("ORDER RESPONSE:", orderData);
-
-if (!orderRes.ok) {
-  alert("Order API failed. Check console.");
-  return;
-}
-
-if (!orderData?.id) {
-  alert("Order ID not received from server.");
-  return;
-}
-
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: orderData.amount,
-        currency: "INR",
-        name: "School Fee Payment",
-        description: `Fee Payment ${academicYear}`,
-        order_id: orderData.id,
-
-        handler: async function (response: any) {
-          const razorpay_payment_id = response.razorpay_payment_id;
-          const razorpay_order_id = response.razorpay_order_id;
-
-          // Insert transaction record
-          await supabase.from("payment_transactions").insert([
-            {
-              student_id: childId,
-              academic_year: academicYear,
-              amount: balanceAmount,
-              status: "success",
-              razorpay_payment_id,
-              razorpay_order_id,
-            },
-          ]);
-
-          const newPaid = paidAmount + balanceAmount;
-          const newBalance = totalAmount - newPaid;
-
-          // Update student_payments table
-          await supabase
-            .from("student_payments")
-            .update({
-              paid_amount: newPaid,
-              balance_amount: newBalance,
-              payment_status: newBalance <= 0 ? "paid" : "partial",
-              razorpay_payment_id,
-              razorpay_order_id,
-            })
-            .eq("student_id", childId)
-            .eq("academic_year", academicYear);
-
-          alert("Payment Successful ✅");
-          fetchFeeDetails();
-        },
-
-        prefill: {
-          name: studentInfo?.full_name,
-        },
-
-        theme: {
-          color: "#2563eb",
-        },
-      };
-
-      const paymentObject = new window.Razorpay(options);
-      paymentObject.open();
-    } catch (err) {
-      console.error("Payment Error:", err);
-      alert("Payment Failed ❌");
+      if (dbErr) throw dbErr;
+      toast.success("Submitted!");
+      setUtr(""); setFile(null); setSelectedFeeTypes([]);
+      fetchData(); 
+    } catch (err: any) { 
+      toast.error("Submission failed"); 
+    } finally { 
+      setUploading(false); 
     }
   }
 
+  if (loading) return <div className="p-10 text-center font-black animate-pulse text-slate-400">LOADING...</div>;
+
   return (
-    <div className="space-y-8 p-6 bg-white min-h-screen animate-in fade-in duration-700">
-      
-      {/* --- HEADER --- */}
-      <header className="bg-brand-soft/40 rounded-[2rem] p-6 border border-brand-soft flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-brand-light rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand-soft">
-            <FiShield size={20} />
+    <div className="max-w-7xl mx-auto px-4 md:px-6 pt-2 pb-10 space-y-6 bg-transparent">
+      <Toaster position="top-center" richColors />
+
+      {/* --- HEADER (RESPONSIVE) --- */}
+      <header className="flex flex-col md:flex-row items-center justify-between bg-white/80 backdrop-blur-md p-4 md:px-8 md:py-6 rounded-3xl md:rounded-[2rem] border border-brand-soft shadow-sm gap-4">
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-soft text-brand-light rounded-xl md:rounded-2xl flex items-center justify-center">
+            <CreditCard size={20} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-brand-light tracking-tighter uppercase font-sans">
-              Fee Ledger
-            </h1>
-            <p className="text-[10px] font-bold text-brand-light/60 uppercase tracking-[0.2em]">
+            <h1 className="text-lg md:text-xl font-black text-slate-800 uppercase leading-none">Fee Portal</h1>
+            <p className="text-[9px] md:text-[10px] font-bold text-brand-light tracking-widest uppercase mt-1">
               {studentInfo?.full_name} • Class {studentInfo?.class_name}
             </p>
           </div>
         </div>
 
-        <div className="flex gap-2 font-sans">
-          <div className="bg-white/60 px-4 py-2 rounded-xl border border-brand-soft text-[10px] font-black text-brand-light uppercase tracking-widest">
-            {academicYear}
-          </div>
-          <div className="bg-brand-light px-4 py-2 rounded-xl text-[10px] font-black text-white uppercase tracking-widest">
-            Active
-          </div>
+        <div className="flex w-full md:w-auto items-center bg-brand-soft/30 p-1 rounded-xl border border-brand-soft">
+          <TabButton active={activeTab === "pay"} onClick={() => setActiveTab("pay")} label="Pay" icon={<CreditCard size={12}/>} />
+          <TabButton active={activeTab === "history"} onClick={() => setActiveTab("history")} label="History" icon={<History size={12}/>} />
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* --- BILLING LIST --- */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center gap-3 px-2 mb-2">
-            <FiFileText className="text-brand-light" size={18} />
-            <h3 className="text-[11px] font-black text-brand-light uppercase tracking-[0.2em]">
-              Bill Breakdown
-            </h3>
-          </div>
-
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 bg-brand-soft/10 animate-pulse rounded-[2rem] border border-brand-soft/20"></div>
-              ))}
-            </div>
-          ) : fees.length > 0 ? (
-            fees.map((fee) => (
-              <div
-                key={fee.id}
-                className="group bg-white p-6 rounded-[2.5rem] border border-brand-soft flex items-center justify-between hover:bg-brand-accent/20 transition-all"
-              >
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 bg-brand-soft/40 rounded-[1.5rem] flex items-center justify-center text-brand-light transition-colors group-hover:bg-brand-light group-hover:text-white">
-                    <span className="text-xl font-black">₹</span>
-                  </div>
-                  <div>
-                    <h4 className="font-black text-brand-light uppercase tracking-tight text-lg leading-tight">
-                      {fee.fee_type}
-                    </h4>
-                    <p className="text-[9px] font-black text-brand-light/40 uppercase tracking-widest">
-                      Tuition & Operations
-                    </p>
-                  </div>
+      {activeTab === "pay" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            {/* BANK INFO (ACCORDION STYLE ON MOBILE HINT) */}
+            <div className="bg-white border border-brand-soft rounded-3xl p-6 md:p-8 h-fit">
+                <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Payment Destination</h3>
+                {paymentConfig?.qr_url && (
+                    <div className="flex justify-center md:block">
+                        <img src={paymentConfig.qr_url} className="w-48 md:w-full rounded-2xl border-4 border-brand-soft mb-6 p-2" alt="QR" />
+                    </div>
+                )}
+                <div className="grid grid-cols-1 gap-2 text-[11px]">
+                    <BankRow label="Bank" value={paymentConfig?.bank_name} />
+                    <BankRow label="A/C" value={paymentConfig?.account_number} />
+                    <BankRow label="IFSC" value={paymentConfig?.ifsc_code} />
                 </div>
-                <div className="text-right">
-                  <p className="text-xl font-black text-brand-light tracking-tighter">
-                    ₹{Number(fee.amount).toLocaleString("en-IN")}
-                  </p>
-                  <span className="text-[9px] font-black text-brand-light/40 uppercase tracking-tighter">
-                    Due This Term
-                  </span>
+            </div>
+
+            {/* FORM */}
+            <div className="lg:col-span-2 bg-slate-900 rounded-3xl md:rounded-[3rem] p-6 md:p-10 text-white shadow-2xl">
+                <h2 className="text-xl md:text-2xl font-black italic mb-6">Make a Payment</h2>
+                
+                <div className="mb-8">
+                    <label className="text-[10px] font-black uppercase opacity-40 mb-4 block">Select Fee Type</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {classFees.map(f => {
+                            const status = getFeeStatus(f.fee_type);
+                            const isDisabled = status !== "available";
+                            return (
+                                <button
+                                    key={f.id}
+                                    type="button"
+                                    disabled={isDisabled}
+                                    onClick={() => setSelectedFeeTypes(prev => prev.includes(f.fee_type) ? prev.filter(t => t !== f.fee_type) : [...prev, f.fee_type])}
+                                    className={`relative p-4 md:p-5 rounded-2xl border-2 text-left transition-all ${
+                                        isDisabled ? 'opacity-30 grayscale cursor-not-allowed bg-white/5 border-transparent' :
+                                        selectedFeeTypes.includes(f.fee_type) ? 'bg-brand-light border-brand-light scale-[0.98]' : 'bg-white/5 border-white/10'
+                                    }`}
+                                >
+                                    <div className="flex justify-between items-start mb-1">
+                                        <div className="flex items-center gap-2 max-w-[70%]">
+                                          {f.is_transport && <Bus size={12} className="shrink-0 text-brand-light" />}
+                                          <span className="text-[9px] md:text-[10px] font-black uppercase truncate">{f.fee_type}</span>
+                                        </div>
+                                        {status !== "available" && (
+                                            <span className={`text-[8px] px-2 py-0.5 rounded font-black text-white ${status === 'verified' ? 'bg-green-500' : 'bg-amber-500'}`}>
+                                                {status.toUpperCase()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-lg md:text-xl font-black">₹{Number(f.amount).toLocaleString()}</p>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
-              </div>
-            ))
-          ) : (
-            <div className="bg-white p-20 rounded-[3rem] border-2 border-dashed border-brand-soft text-center">
-              <FiInfo size={40} className="mx-auto text-brand-light/20 mb-4" />
-              <p className="text-brand-light/40 font-black text-[10px] uppercase tracking-widest">
-                No fee data found
-              </p>
+
+                {/* INPUTS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black opacity-40 uppercase">UTR Number</label>
+                        <input value={utr} onChange={e => setUtr(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-sm outline-none focus:border-brand-light" placeholder="12 Digit ID" />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black opacity-40 uppercase">Payment Date</label>
+                        <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-sm outline-none focus:border-brand-light" />
+                    </div>
+                </div>
+
+                {/* UPLOAD */}
+                <div className="mb-8 border-2 border-dashed border-white/10 rounded-2xl p-6 text-center hover:bg-white/5 active:bg-white/10 transition-colors">
+                    <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="hidden" id="fileUp" accept="image/*" />
+                    <label htmlFor="fileUp" className="cursor-pointer flex flex-col items-center gap-2">
+                        <Upload size={24} className="text-brand-light" />
+                        <span className="text-xs font-bold opacity-70 break-all">{file ? file.name : "Tap to Upload Screenshot"}</span>
+                    </label>
+                </div>
+
+                {/* BOTTOM BAR (STICKY HINT FOR MOBILE) */}
+                <div className="flex flex-col md:flex-row justify-between items-center border-t border-white/10 pt-6 gap-4">
+                    <div className="text-center md:text-left">
+                        <p className="text-[10px] font-black opacity-40 uppercase">Total Amount</p>
+                        <p className="text-3xl md:text-4xl font-black text-brand-light italic">₹{calculatedTotal.toLocaleString()}</p>
+                    </div>
+                    <button 
+                      disabled={uploading || calculatedTotal === 0} 
+                      onClick={handlePaymentSubmit} 
+                      className="w-full md:w-auto bg-white text-slate-900 px-10 py-4 rounded-xl font-black uppercase text-[11px] shadow-xl active:scale-95 transition-all disabled:opacity-50"
+                    >
+                        {uploading ? "SUBMITTING..." : "CONFIRM PAYMENT"}
+                    </button>
+                </div>
             </div>
-          )}
         </div>
+      ) : (
+        /* --- HISTORY TAB (MOBILE OPTIMIZED CARDS) --- */
+        <div className="space-y-8">
+            {/* PENDING SECTION */}
+            <section>
+                <div className="flex items-center gap-2 mb-4 px-2">
+                    <Clock size={16} className="text-amber-500" />
+                    <h3 className="text-xs font-black uppercase text-slate-500 tracking-widest">Pending Verification</h3>
+                </div>
+                <div className="space-y-3">
+                    {pendingSubmissions.map(item => <HistoryCard key={item.id} item={item} status="pending" />)}
+                    {pendingSubmissions.length === 0 && <EmptyState msg="No pending requests" />}
+                </div>
+            </section>
 
-        {/* --- SUMMARY --- */}
-        <div className="space-y-6">
-          
-          {/* TOTAL CARD */}
-          <div className="bg-brand-light rounded-[2.5rem] p-8 text-white shadow-xl shadow-brand-soft/50 relative overflow-hidden">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-2">
-              Total Fee Amount
-            </p>
-            <h2 className="text-4xl font-black tracking-tighter italic font-sans">
-              ₹{totalAmount.toLocaleString("en-IN")}
-            </h2>
-
-            <div className="mt-6 space-y-3 pt-6 border-t border-white/10">
-              <div className="flex justify-between">
-                <span className="text-[10px] font-bold uppercase opacity-80">Paid</span>
-                <span className="text-[10px] font-black">
-                  ₹{paidAmount.toLocaleString("en-IN")}
-                </span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-[10px] font-bold uppercase opacity-80">Balance</span>
-                <span className="text-[10px] font-black text-yellow-200">
-                  ₹{balanceAmount.toLocaleString("en-IN")}
-                </span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-[10px] font-bold uppercase opacity-80">Status</span>
-                <span className="text-[10px] font-black bg-white/20 px-3 py-1 rounded-full">
-                  {balanceAmount <= 0 ? "Paid" : paidAmount > 0 ? "Partial" : "Pending"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* PAY BUTTON */}
-          <button
-            disabled={balanceAmount <= 0}
-            onClick={handlePayment}
-            className={`w-full p-6 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all shadow-lg 
-              ${
-                balanceAmount <= 0
-                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  : "bg-brand-soft border border-brand-light/20 text-brand-light hover:bg-brand-light hover:text-white"
-              }`}
-          >
-            <FiCreditCard size={18} />
-            {balanceAmount <= 0 ? "Already Paid" : `Pay ₹${balanceAmount.toLocaleString("en-IN")} via Razorpay`}
-          </button>
-
-          {/* INFO BOX */}
-          <div className="p-8 bg-white border border-brand-soft rounded-[2.5rem] space-y-4">
-            <div className="flex items-center gap-3 text-brand-light">
-              <FiCheckCircle size={18} />
-              <h4 className="text-[10px] font-black uppercase tracking-widest">
-                Transaction Info
-              </h4>
-            </div>
-            <p className="text-[11px] font-medium text-brand-light/60 leading-relaxed font-sans">
-              Payment is secured using Razorpay. Receipt will be generated automatically after successful payment.
-            </p>
-            <div className="flex items-center gap-2 text-[9px] font-black text-brand-light uppercase group cursor-pointer pt-2">
-              <span>View Payment History</span>
-              <FiArrowRight className="group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
+            {/* VERIFIED SECTION */}
+            <section>
+                <div className="flex items-center gap-2 mb-4 px-2">
+                    <CheckCircle size={16} className="text-green-500" />
+                    <h3 className="text-xs font-black uppercase text-slate-500 tracking-widest">Payment Ledger</h3>
+                </div>
+                <div className="space-y-3">
+                    {verifiedFees.map(item => <HistoryCard key={item.id} item={item} status="verified" />)}
+                    {verifiedFees.length === 0 && <EmptyState msg="No verified records found" />}
+                </div>
+            </section>
         </div>
-
-      </div>
+      )}
     </div>
   );
+}
+
+/** HELPER COMPONENTS **/
+
+function TabButton({ active, onClick, label, icon }: any) {
+    return (
+        <button
+            onClick={onClick}
+            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2 rounded-lg md:rounded-xl text-[10px] font-black uppercase transition-all ${active ? "bg-brand-light text-white shadow-md" : "text-brand-light"}`}
+        >
+            {icon} {label}
+        </button>
+    );
+}
+
+function BankRow({ label, value }: { label: string, value: string }) {
+    return (
+        <div className="flex justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+            <span className="text-slate-400 font-bold">{label}</span>
+            <span className="text-slate-900 font-black">{value || '---'}</span>
+        </div>
+    );
+}
+
+function HistoryCard({ item, status }: { item: any, status: 'pending' | 'verified' }) {
+    const isPending = status === 'pending';
+    return (
+        <div className="bg-white border border-brand-soft p-4 rounded-2xl shadow-sm flex flex-col gap-3">
+            <div className="flex justify-between items-start">
+                <div className="max-w-[70%]">
+                    <p className="text-[10px] font-black text-slate-800 uppercase leading-tight mb-1">{isPending ? item.fee_types : item.fee_type}</p>
+                    <p className="text-[9px] font-bold text-slate-400">{isPending ? item.payment_date : new Date(item.created_at).toLocaleDateString()}</p>
+                </div>
+                <p className={`text-sm font-black ${isPending ? 'text-amber-600' : 'text-slate-900'}`}>
+                    ₹{Number(isPending ? item.amount_paid : item.paid_amount).toLocaleString()}
+                </p>
+            </div>
+            <div className="flex justify-between items-center pt-3 border-t border-slate-50">
+                <code className="text-[9px] text-slate-400 font-mono">UTR: {item.utr_number}</code>
+                <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-full ${isPending ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                    {isPending ? 'Pending Approval' : 'Verified'}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+function EmptyState({ msg }: { msg: string }) {
+    return (
+        <div className="py-8 text-center bg-white/40 rounded-2xl border border-dashed border-slate-200">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{msg}</p>
+        </div>
+    );
 }

@@ -20,7 +20,8 @@ export default function AcademicCalendar() {
     const [events, setEvents] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [viewDate, setViewDate] = useState(new Date())
-    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+    // Initialize selectedDate with local YYYY-MM-DD to match database format
+    const [selectedDate, setSelectedDate] = useState<string>(new Date().toLocaleDateString('en-CA'))
 
     useEffect(() => {
         fetchEvents()
@@ -71,13 +72,17 @@ export default function AcademicCalendar() {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-10">
 
-                {/* --- LEFT: UPCOMING (Horizontal Scroll on Mobile) --- */}
+                {/* --- LEFT: UPCOMING --- */}
                 <div className="lg:col-span-1 space-y-4 md:space-y-6">
                     <h2 className="text-sm md:text-lg font-black text-slate-800 uppercase flex items-center gap-2">
                         <FiTag className="text-[#722366]" /> Upcoming
                     </h2>
                     <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto gap-4 pb-4 lg:pb-0 scrollbar-hide">
-                        {events.filter(e => new Date(e.start_date) >= new Date()).slice(0, 5).map(event => (
+                        {events
+                            .filter(e => e.start_date >= new Date().toLocaleDateString('en-CA'))
+                            .sort((a, b) => a.start_date.localeCompare(b.start_date))
+                            .slice(0, 5)
+                            .map(event => (
                             <div key={event.id} className="min-w-[250px] lg:min-w-full bg-white p-5 rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 shadow-sm hover:border-[#722366] transition-all flex-shrink-0">
                                 <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${typeColors[event.event_type] || 'bg-slate-100'}`}>
                                     {event.event_type}
@@ -85,7 +90,7 @@ export default function AcademicCalendar() {
                                 <h4 className="text-xs md:text-sm font-black text-slate-800 mt-2 uppercase">{event.title}</h4>
                                 <div className="flex items-center gap-2 text-slate-400 mt-2">
                                     <FiCalendar size={12} />
-                                    <p className="text-[10px] font-bold">{new Date(event.start_date).toLocaleDateString()}</p>
+                                    <p className="text-[10px] font-bold">{new Date(event.start_date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                                 </div>
                             </div>
                         ))}
@@ -102,7 +107,11 @@ export default function AcademicCalendar() {
                             </h2>
                             <div className="flex gap-1 md:gap-2">
                                 <button onClick={prevMonth} className="p-2 md:p-3 hover:bg-[#722366] hover:text-white rounded-lg md:rounded-xl border border-slate-200 transition-all"><FiChevronLeft /></button>
-                                <button onClick={() => setViewDate(new Date())} className="px-3 md:px-4 py-2 text-[9px] md:text-[10px] font-black uppercase border border-slate-200 rounded-lg md:rounded-xl hover:bg-white">Today</button>
+                                <button onClick={() => {
+                                    const today = new Date();
+                                    setViewDate(today);
+                                    setSelectedDate(today.toLocaleDateString('en-CA'));
+                                }} className="px-3 md:px-4 py-2 text-[9px] md:text-[10px] font-black uppercase border border-slate-200 rounded-lg md:rounded-xl hover:bg-white">Today</button>
                                 <button onClick={nextMonth} className="p-2 md:p-3 hover:bg-[#722366] hover:text-white rounded-lg md:rounded-xl border border-slate-200 transition-all"><FiChevronRight /></button>
                             </div>
                         </div>
@@ -119,10 +128,15 @@ export default function AcademicCalendar() {
                                 {calendarDays.map((day, idx) => {
                                     if (day === null) return <div key={idx} className="aspect-square md:min-h-[100px] bg-slate-50/30 rounded-lg md:rounded-2xl"></div>
 
-                                    const currentFullDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day).toISOString().split('T')[0]
-                                    const dayEvents = events.filter(e => e.start_date === currentFullDate)
-                                    const isToday = new Date().toISOString().split('T')[0] === currentFullDate
-                                    const isSelected = selectedDate === currentFullDate
+                                    // Timezone-safe string construction
+                                    const year = viewDate.getFullYear();
+                                    const month = String(viewDate.getMonth() + 1).padStart(2, '0');
+                                    const dateStr = String(day).padStart(2, '0');
+                                    const currentFullDate = `${year}-${month}-${dateStr}`;
+
+                                    const dayEvents = events.filter(e => e.start_date === currentFullDate);
+                                    const isToday = new Date().toLocaleDateString('en-CA') === currentFullDate;
+                                    const isSelected = selectedDate === currentFullDate;
 
                                     return (
                                         <div
@@ -138,7 +152,7 @@ export default function AcademicCalendar() {
                                                 {day}
                                             </span>
 
-                                            {/* Event Indicators (Dots on Mobile, Full on Desktop) */}
+                                            {/* Event Indicators */}
                                             <div className="mt-auto flex flex-wrap justify-center md:justify-start gap-0.5 md:space-y-1">
                                                 {dayEvents.map(ev => (
                                                     <Fragment key={ev.id}>
@@ -159,12 +173,14 @@ export default function AcademicCalendar() {
 
                         {/* MOBILE: SELECTED DAY EVENTS LIST */}
                         <div className="md:hidden p-5 bg-slate-50 border-t border-slate-100">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Events for {new Date(selectedDate).toLocaleDateString()}</h3>
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                                Events for {new Date(selectedDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
+                            </h3>
                             {selectedDayEvents.length > 0 ? (
                                 <div className="space-y-3">
                                     {selectedDayEvents.map(ev => (
                                         <div key={ev.id} className="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-3">
-                                            <div className={`w-2 h-10 rounded-full ${typeColors[ev.event_type]?.split(' ')[0]}`}></div>
+                                            <div className={`w-2 h-10 rounded-full ${typeColors[ev.event_type]?.split(' ')[0] || 'bg-slate-200'}`}></div>
                                             <div>
                                                 <p className="text-xs font-black text-slate-800 uppercase">{ev.title}</p>
                                                 <p className="text-[9px] font-bold text-slate-400 uppercase">{ev.event_type}</p>

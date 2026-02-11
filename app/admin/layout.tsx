@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import AdminSidebar from '@/components/AdminSidebar'
 import { FiUser, FiLogOut, FiSearch, FiChevronDown, FiSettings, FiBell } from 'react-icons/fi'
+import Link from "next/link";
 
 export default function AdminLayout({
   children,
@@ -103,16 +104,17 @@ export default function AdminLayout({
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Account Manager</p>
                   </div>
 
-                  <button className="flex items-center gap-3 w-full px-5 py-3 text-sm font-bold text-slate-600 hover:bg-brand/5 hover:text-brand transition-colors">
-                    <FiUser size={14} />
-                    My Profile
-                  </button>
-                  <button className="flex items-center gap-3 w-full px-5 py-3 text-sm font-bold text-slate-600 hover:bg-brand/5 hover:text-brand transition-colors">
-                    <FiSettings size={14} />
-                    Settings
-                  </button>
+                  
+                <Link href="/admin/settings" className="w-full">
+  <button className="flex items-center gap-3 w-full px-5 py-3 text-sm font-bold text-slate-600 hover:bg-brand/5 hover:text-brand transition-colors">
+    <FiSettings size={14} />
+    Settings
+  </button>
+</Link>
+
 
                   <div className="border-t border-slate-50 my-1 mx-2"></div>
+                <Link href="/adminlogin" className="w-full">
 
                   <button
                     onClick={handleLogout}
@@ -121,6 +123,7 @@ export default function AdminLayout({
                     <FiLogOut size={14} />
                     Logout
                   </button>
+                  </Link>
                 </div>
               )}
             </div>

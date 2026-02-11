@@ -4,7 +4,7 @@ import {
   Shield, Plus, Edit2, CheckCircle, X, Trash2, Mail,
   User, Users, ShieldCheck, LayoutDashboard, GraduationCap, Briefcase,
   ClipboardList, Wallet, Truck, Bell, Calendar, Key, Settings,
-  Image as ImageIcon, Clock, AlertTriangle, Phone, FileText
+  Image as ImageIcon, Clock, AlertTriangle, Phone, FileText, Camera
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -34,6 +34,8 @@ const PERMISSION_STRUCTURE = [
       { id: 'exam-schedule', label: 'Exam Timetable', icon: <Clock size={14} /> },
       { id: 'marks-entry', label: 'Marks Ledger', icon: <Edit2 size={14} /> }, 
       { id: 'fee-management', label: 'Fee Management', icon: <Wallet size={14} /> },
+      { id: 'fee-ledger', label: 'Fee Ledger', icon: <Wallet size={14} /> },
+      { id: 'payment-scanner', label: 'Payment Scanner', icon: <Camera size={14} /> },
     ]
   },
   {
