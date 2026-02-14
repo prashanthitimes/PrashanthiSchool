@@ -30,7 +30,7 @@ export default function ParentSidebar({ activeMenu, setActiveMenu }: Props) {
     { id: 'class-timetable', label: 'Class Timetable', icon: <FiClock />, path: '/parent/timetable', group: 'Academic' },
     { id: 'syllabus', label: 'Exam Syllabus', icon: <FiBookOpen />, path: '/parent/syllabus', group: 'Academic' },
     { id: 'exam-calendar', label: 'Exam Timetable', icon: <FiCalendar />, path: '/parent/exams', group: 'Academic' },
-    { id: 'marks', label: 'Exam Marks', icon: <FiCheckSquare />, path: '/parent/marks', group: 'Academic' },
+    { id: 'marks', label: 'Exam Marks Card', icon: <FiCheckSquare />, path: '/parent/marks', group: 'Academic' },
     { id: 'annual-calendar', label: 'Annual Calendar', icon: <FiMap />, path: '/parent/calendar', group: 'Academic' },
     { id: 'fees', label: 'Fee Details', icon: <FiCreditCard />, path: '/parent/fees', group: 'Finance' },
     { id: 'transport', label: 'Transport', icon: <FiTruck />, path: '/parent/transport', group: 'Services' },

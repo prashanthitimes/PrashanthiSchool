@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { FiAward, FiBookOpen, FiBarChart, FiCheckCircle, FiStar } from "react-icons/fi";
+import React, { useState, useEffect, useMemo } from "react";
+import { FiPrinter, FiAward, FiFileText } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 
 export default function ParentMarks() {
   const [marks, setMarks] = useState<any[]>([]);
+  const [student, setStudent] = useState<any>(null);
+  const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,124 +20,189 @@ export default function ParentMarks() {
       const childId = localStorage.getItem('childId');
       if (!childId) return;
 
-      const { data, error } = await supabase
-        .from("exam_marks")
-        .select(`
-          *,
-          subjects (name),
-          exam_syllabus (exam_name)
-        `)
-        .eq("student_id", childId)
-        .order('created_at', { ascending: false });
+      const { data: studentData } = await supabase
+        .from("students")
+        .select("*")
+        .eq("id", childId)
+        .maybeSingle();
 
-      if (error) throw error;
-      setMarks(data || []);
+      setStudent(studentData);
+
+      if (studentData) {
+        const { data: asgn } = await supabase
+          .from("subject_assignments")
+          .select(`*, subjects (id, name)`)
+          .eq("class_name", studentData.class_name)
+          .eq("section", studentData.section);
+        setAssignments(asgn || []);
+      }
+
+      const { data: marksData } = await supabase
+        .from("exam_marks")
+        .select(`*, subjects (id, name), exam_syllabus (exam_name)`)
+        .eq("student_id", childId);
+
+      setMarks(marksData || []);
     } catch (err) {
-      console.error("Marks Fetch Error:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   }
 
-  const getGrade = (obtained: number, total: number) => {
-    const percent = (obtained / total) * 100;
-    if (percent >= 90) return { label: 'A+', color: 'text-emerald-600 bg-emerald-50 border-emerald-100', bar: 'bg-emerald-500' };
-    if (percent >= 80) return { label: 'A', color: 'text-brand-light bg-brand-soft border-brand-soft', bar: 'bg-brand-light' };
-    if (percent >= 40) return { label: 'B', color: 'text-amber-600 bg-amber-50 border-amber-100', bar: 'bg-amber-500' };
-    return { label: 'F', color: 'text-rose-600 bg-rose-50 border-rose-100', bar: 'bg-rose-500' };
+  const examNames = useMemo(() => {
+    const exams = marks.map(m => m.exam_syllabus?.exam_name).filter(Boolean);
+    return Array.from(new Set(exams)).sort();
+  }, [marks]);
+
+  const marksMap = useMemo(() => {
+    const map: any = {};
+    marks.forEach(m => {
+      if (!map[m.subject_id]) map[m.subject_id] = {};
+      map[m.subject_id][m.exam_syllabus?.exam_name] = m;
+    });
+    return map;
+  }, [marks]);
+
+  const calculateGrade = (obtained: number, total: number) => {
+    if (!total || total === 0) return "-";
+    const p = (obtained / total) * 100;
+    if (p >= 90) return "A+";
+    if (p >= 80) return "A";
+    if (p >= 65) return "B";
+    if (p >= 45) return "C";
+    return "D";
   };
 
+  if (loading) return <div className="h-screen flex items-center justify-center font-bold text-brand animate-pulse">GENERATING MARKS CARD...</div>;
+
   return (
-    <div className="space-y-8 p-6 bg-white min-h-screen animate-in fade-in duration-700">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-10 print:bg-white print:p-0">
       
-      {/* --- COMPACT SMALL HEADER --- */}
-      <header className="bg-brand-soft/40 rounded-[2rem] p-6 border border-brand-soft flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-brand-light rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand-soft">
-            <FiAward size={20} />
+      {/* --- ACTION BAR (Hidden on Print) --- */}
+      <div className="max-w-5xl mx-auto mb-8 flex justify-between items-center print:hidden">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-brand/10 rounded-lg text-brand">
+            <FiFileText size={24} />
           </div>
-          <div>
-            <h1 className="text-2xl font-black text-brand-light tracking-tighter uppercase">Exam Results</h1>
-            <p className="text-[10px] font-bold text-brand-light/60 uppercase tracking-[0.2em]">Academic Session 2026-27</p>
-          </div>
+          <h2 className="text-slate-800 font-black uppercase tracking-tight text-xl">Academic Transcript</h2>
         </div>
-        <div className="flex gap-2">
-            <div className="bg-white/60 px-4 py-2 rounded-xl border border-brand-soft text-[10px] font-black text-brand-light uppercase tracking-widest">
-                {marks.length} Subjects
-            </div>
-            <div className="bg-brand-light px-4 py-2 rounded-xl text-[10px] font-black text-white uppercase tracking-widest">
-                Released
-            </div>
+        <button 
+          onClick={() => window.print()}
+          className="flex items-center gap-2 bg-brand text-white px-8 py-3 rounded-xl font-black uppercase text-xs hover:bg-brand-dark transition-all shadow-xl shadow-brand/20"
+        >
+          <FiPrinter /> Print Document
+        </button>
+      </div>
+
+      {/* --- MARKS CARD CONTENT (Printable Container) --- */}
+      <div className="max-w-5xl mx-auto bg-white border border-slate-200 shadow-2xl print:shadow-none print:border-none rounded-[2rem] print:rounded-none overflow-hidden print:w-full print:max-w-none">
+        
+        {/* TOP HEADER (Hidden on Print) */}
+        <div className="bg-brand text-white p-10 text-center border-b-[6px] border-brand-light print:hidden">
+          <h1 className="text-3xl font-black uppercase tracking-[0.2em] mb-1">Marks Statement</h1>
+          <p className="text-brand-soft text-[10px] font-black uppercase tracking-[0.4em] opacity-80">Academic Session 2026 - 2027</p>
         </div>
-      </header>
 
-      {/* --- MARKS 3-IN-ROW GRID --- */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => <div key={i} className="h-48 bg-brand-soft/10 animate-pulse rounded-[2.5rem] border border-brand-soft/20"></div>)}
-        </div>
-      ) : marks.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {marks.map((item) => {
-            const grade = getGrade(item.marks_obtained, item.total_marks);
-            const percentage = Math.round((item.marks_obtained / item.total_marks) * 100);
-
-            return (
-              <div key={item.id} className="group bg-white border border-brand-soft p-6 rounded-[2.5rem] hover:bg-brand-accent/20 transition-all flex flex-col h-full">
-                
-                {/* Grade and Exam Header */}
-                <div className="flex justify-between items-start mb-6">
-                  <div className={`px-4 py-2 rounded-2xl border text-sm font-black uppercase tracking-tighter ${grade.color}`}>
-                    Grade {grade.label}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black text-brand-light/40 uppercase tracking-widest leading-none mb-1">Score</p>
-                    <p className="text-xl font-black text-brand-light leading-none">{percentage}%</p>
-                  </div>
-                </div>
-
-                {/* Subject Info */}
-                <div className="flex-1 mb-6">
-                  <p className="text-[9px] font-black text-brand-light/40 uppercase tracking-widest mb-1">
-                    {item.exam_syllabus?.exam_name || 'Internal Test'}
-                  </p>
-                  <h3 className="text-xl font-black text-brand-light uppercase tracking-tight leading-tight">
-                    {item.subjects?.name}
-                  </h3>
-                  {item.remarks && (
-                    <p className="mt-2 text-[11px] font-medium italic text-brand-light/60 line-clamp-2">
-                      "{item.remarks}"
-                    </p>
-                  )}
-                </div>
-
-                {/* Score Bar & Fraction */}
-                <div className="pt-5 border-t border-brand-soft/40">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] font-black text-brand-light uppercase tracking-widest">
-                            {item.marks_obtained} / {item.total_marks}
-                        </span>
-                        <FiStar size={12} className="text-brand-light/30" />
-                    </div>
-                    <div className="w-full bg-brand-soft/30 h-1.5 rounded-full overflow-hidden">
-                        <div 
-                            className={`h-full rounded-full transition-all duration-1000 ${grade.bar}`} 
-                            style={{ width: `${percentage}%` }}
-                        ></div>
-                    </div>
-                </div>
-
+        <div className="p-8 md:p-12 print:p-4">
+          
+          {/* STUDENT INFO - Always Visible */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 print:mb-6">
+            {[
+              { label: "Student Name", value: student?.full_name },
+              { label: "Class & Section", value: `${student?.class_name} - ${student?.section}` },
+              { label: "Roll Number", value: `#${student?.roll_number}` },
+              { label: "Student ID", value: student?.student_id }
+            ].map((item, i) => (
+              <div key={i} className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 print:bg-transparent print:border-slate-200">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">{item.label}</span>
+                <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{item.value || 'N/A'}</p>
               </div>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* THE TABLE - The core print content */}
+          <div className="overflow-hidden border-2 border-slate-900 rounded-xl print:rounded-none">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-slate-900 text-white print:bg-black">
+                  <th className="p-5 text-left text-[10px] font-black uppercase tracking-widest border-r border-white/10">Subject</th>
+                  {examNames.map(exam => (
+                    <th key={exam} className="p-5 text-center text-[10px] font-black uppercase tracking-widest border-r border-white/10">{exam}</th>
+                  ))}
+                  <th className="p-5 text-center text-[10px] font-black uppercase bg-brand text-white print:bg-black">Total & Grade</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {assignments.map((asgn) => {
+                  const subId = asgn.subjects?.id;
+                  let subObt = 0;
+                  let subMax = 0;
+
+                  return (
+                    <tr key={subId} className="group hover:bg-brand-soft/5 transition-colors">
+                      <td className="p-5 font-black text-slate-700 text-xs border-r-2 border-slate-900 uppercase bg-slate-50/50">
+                        {asgn.subjects?.name}
+                      </td>
+                      {examNames.map(exam => {
+                        const m = marksMap[subId]?.[exam];
+                        if (m) { subObt += m.marks_obtained; subMax += m.total_marks; }
+                        return (
+                          <td key={exam} className="p-5 text-center border-r border-slate-100">
+                            <span className="font-black text-slate-800 text-sm">{m ? m.marks_obtained : '--'}</span>
+                          </td>
+                        );
+                      })}
+                      {/* Unified Marks and Grade Column */}
+                      <td className="p-5 text-center font-black bg-brand/5 text-brand text-sm print:bg-transparent">
+                        <div className="flex flex-col items-center">
+                          <span>{subObt} <span className="text-slate-400 font-medium text-[10px]">/ {subMax}</span></span>
+                          <span className="text-[10px] text-red-600 italic mt-1">Grade: {calculateGrade(subObt, subMax)}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot className="bg-slate-900 text-white font-black border-t-2 border-slate-900 print:bg-black">
+                <tr>
+                  <td className="p-5 text-[10px] uppercase tracking-widest">Grand Totals</td>
+                  {examNames.map(exam => {
+                    const examTotal = marks
+                      .filter(m => m.exam_syllabus?.exam_name === exam)
+                      .reduce((sum, m) => sum + m.marks_obtained, 0);
+                    return (
+                      <td key={exam} className="p-5 text-center text-sm">{examTotal}</td>
+                    );
+                  })}
+                  <td className="p-5 text-center bg-brand text-white text-lg print:bg-black">
+                    {marks.reduce((sum, m) => sum + m.marks_obtained, 0)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* SIGNATURES (Only visible on print for official look) */}
+          <div className="hidden print:grid grid-cols-3 gap-16 mt-20 px-4">
+            {["Class Teacher", "Parent Signature", "Principal"].map((sig, i) => (
+              <div key={i} className="text-center border-t border-black pt-2">
+                <p className="text-[9px] font-black uppercase text-black">{sig}</p>
+              </div>
+            ))}
+          </div>
+          
         </div>
-      ) : (
-        <div className="bg-white border-2 border-dashed border-brand-soft rounded-[3rem] py-20 text-center">
-          <FiAward size={40} className="mx-auto text-brand-light/20 mb-4" />
-          <h3 className="text-xl font-black text-brand-light uppercase tracking-tight">No Marks Found</h3>
-          <p className="text-brand-light/50 text-[10px] font-bold uppercase tracking-widest mt-2">Scorecards will appear once published.</p>
-        </div>
-      )}
+
+        {/* BOTTOM ACCENT (Hidden on Print) */}
+        <div className="h-3 bg-brand print:hidden"></div>
+      </div>
+
+      <div className="mt-8 text-center print:hidden">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
+          <FiAward className="text-brand" /> Official School Management System Document
+        </p>
+      </div>
     </div>
   );
 }

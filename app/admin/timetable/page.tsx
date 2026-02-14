@@ -1,16 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { FiDownload, FiEdit, FiCheckCircle, FiCalendar, FiPlus, FiClock } from 'react-icons/fi'
+import { FiDownload, FiEdit, FiCheckCircle, FiCalendar, FiPlus, FiClock, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-
-const classOptions = Array.from({ length: 10 }, (_, i) => [
-  { label: `Class ${i + 1}-A`, class: i + 1, section: 'A' },
-  { label: `Class ${i + 1}-B`, class: i + 1, section: 'B' },
-]).flat();
-
+import { useEffect, useState, useRef } from 'react' // Add useRef here
+const classOptions = [
+  'Pre-KG', 'LKG', 'UKG', 
+  ...Array.from({ length: 10 }, (_, i) => `${i + 1}`)
+].flatMap(cls => [
+  { label: `Class ${cls}-A`, class: cls, section: 'A' },
+  { label: `Class ${cls}-B`, class: cls, section: 'B' },
+  { label: `Class ${cls}-C`, class: cls, section: 'C' },
+  { label: `Class ${cls}-D`, class: cls, section: 'D' },
+]);
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 // Subject color mapping
@@ -90,6 +93,18 @@ export default function TimeTablePage() {
     }
     getSubjects()
   }, [])
+  
+const scrollRef = useRef<HTMLDivElement>(null);
+const scroll = (direction: 'left' | 'right') => {
+  if (scrollRef.current) {
+    const { scrollLeft, clientWidth } = scrollRef.current;
+    const scrollTo = direction === 'left' 
+      ? scrollLeft - 300 
+      : scrollLeft + 300;
+    scrollRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
+  }
+};
+
 
   async function fetchTimetable() {
     setLoading(true)
@@ -205,6 +220,7 @@ export default function TimeTablePage() {
     fetchTimetable()
   }
 
+
   return (
 <div className="max-w-6xl mx-auto mt-10 px-3 py-2 space-y-4">
 
@@ -236,13 +252,39 @@ export default function TimeTablePage() {
       </header>
 
       {/* CLASS SELECTOR */}
-      <nav className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
-        {classOptions.map(opt => (
-          <button key={opt.label} onClick={() => setActive(opt)} className={`px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] transition-all whitespace-nowrap border ${active.label === opt.label ? 'bg-brand-soft border-brand text-brand-dark' : 'bg-white border-slate-100 text-slate-400'}`}>
-            {opt.label}
-          </button>
-        ))}
-      </nav>
+     {/* CLASS SELECTOR WITH NAVIGATION */}
+<div className="relative group">
+  {/* Left Button */}
+  <button 
+    onClick={() => scroll('left')}
+    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 shadow-md border border-slate-200 p-2 rounded-full text-brand hover:bg-brand hover:text-white transition-all opacity-0 group-hover:opacity-100"
+  >
+    <FiChevronLeft size={20} />
+  </button>
+
+  <nav 
+    ref={scrollRef}
+    className="flex gap-2 overflow-x-auto pb-4 no-scrollbar scroll-smooth px-2"
+  >
+    {classOptions.map(opt => (
+      <button 
+        key={opt.label} 
+        onClick={() => setActive(opt)} 
+        className={`px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] transition-all whitespace-nowrap border ${active.label === opt.label ? 'bg-brand-soft border-brand text-brand-dark' : 'bg-white border-slate-100 text-slate-400'}`}
+      >
+        {opt.label}
+      </button>
+    ))}
+  </nav>
+
+  {/* Right Button */}
+  <button 
+    onClick={() => scroll('right')}
+    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 shadow-md border border-slate-200 p-2 rounded-full text-brand hover:bg-brand hover:text-white transition-all opacity-0 group-hover:opacity-100"
+  >
+    <FiChevronRight size={20} />
+  </button>
+</div>
 
       {/* TABLE GRID */}
       <div className="bg-white rounded-[2.5rem] shadow-xl shadow-brand/5 border border-brand-soft/30 overflow-hidden relative">

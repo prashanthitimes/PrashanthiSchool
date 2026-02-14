@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { FiActivity, FiChevronLeft, FiChevronRight, FiCheckCircle, FiXCircle, FiFileText, FiCalendar } from "react-icons/fi";
+import { FiActivity, FiChevronLeft, FiChevronRight, FiCheckCircle, FiXCircle, FiCalendar, FiInfo } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import {
   format,
@@ -47,17 +47,34 @@ export default function ParentAttendance() {
     }
   }
 
+  // 1. Filter logs based on subject
   const filteredLogs = useMemo(() => {
     if (selectedSubject === "all") return attendanceLog;
     return attendanceLog.filter(log => log.subjects?.id === selectedSubject);
   }, [attendanceLog, selectedSubject]);
 
+  // 2. Stats Calculation (Counts every period recorded)
   const stats = useMemo(() => {
-    // Totals for the selected subject (Academic Year)
     const p = filteredLogs.filter(l => l.status === 'present').length;
-    const l = filteredLogs.filter(l => l.status === 'leave').length;
     const a = filteredLogs.filter(l => l.status === 'absent').length;
-    return { present: p, leave: l, totalAbsent: a + l };
+    const l = filteredLogs.filter(l => l.status === 'late').length;
+    return { present: p, absent: a, late: l, total: filteredLogs.length };
+  }, [filteredLogs]);
+
+  // 3. Calendar Aggregation (Groups multiple periods into one day view)
+  const dailyAttendance = useMemo(() => {
+    const groups: Record<string, any> = {};
+
+    filteredLogs.forEach(log => {
+      const dateStr = log.date;
+      if (!groups[dateStr]) {
+        groups[dateStr] = { present: 0, absent: 0, late: 0, periods: [] };
+      }
+      groups[dateStr][log.status]++;
+      groups[dateStr].periods.push(log);
+    });
+
+    return groups;
   }, [filteredLogs]);
 
   const monthStart = startOfMonth(currentMonth);
@@ -66,164 +83,138 @@ export default function ParentAttendance() {
   const endDate = endOfWeek(monthEnd);
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
-  const getDayData = (day: Date) => {
-    return filteredLogs.find(log => isSameDay(new Date(log.date), day));
-  };
-
   if (loading) return <div className="min-h-screen flex items-center justify-center text-brand">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-brand-accent/30 pb-12 font-sans">
-
-      {/* --- MINIMAL HEADER --- */}
-      <div className="bg-brand p-6 md:p-10 rounded-b-[2rem] md:rounded-b-[3rem] shadow-lg shadow-brand/20">
+    <div className="min-h-screen bg-[#f8fafc] pb-12 font-sans">
+      {/* --- HEADER --- */}
+      <div className="bg-slate-900 p-6 md:p-10 rounded-b-[3rem] shadow-xl">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
-              <FiActivity className="text-white text-xl" />
+            <div className="p-2 bg-white/10 rounded-xl">
+              <FiActivity className="text-emerald-400 text-xl" />
             </div>
-            <h1 className="text-white font-bold text-lg md:text-xl uppercase tracking-wider">Attendance</h1>
+            <h1 className="text-white font-bold text-lg md:text-xl uppercase tracking-tighter">Student Portal</h1>
           </div>
-          <div className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-2xl border border-white/10">
-            <span className="text-white/80 text-xs font-medium">Vyshnavi</span>
-            <div className="w-8 h-8 bg-brand-soft text-brand-dark rounded-full flex items-center justify-center font-bold text-sm">V</div>
+          <div className="text-right">
+             <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">Attendance Tracking</p>
+             <p className="text-white font-bold text-sm">Academic Year 2025-26</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 mt-6">
-
-        {/* --- DESKTOP/MOBILE RESPONSIVE GRID --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-          {/* LEFT SIDE: SUBJECT & STATS (4 Cols) */}
+      <div className="max-w-6xl mx-auto px-4 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* LEFT SIDE: SUBJECT & STATS */}
           <div className="lg:col-span-4 space-y-6">
-
-            {/* Subject Selector Card */}
-            <div className="bg-white p-5 rounded-3xl shadow-sm border border-brand-soft">
-              <label className="text-[10px] font-black text-brand uppercase tracking-widest block mb-3 opacity-60 px-1">Subject Analysis</label>
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">Subject Filter</label>
               <select
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full p-4 bg-brand-soft/30 rounded-2xl font-bold text-brand-dark border-none outline-none appearance-none"
+                className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-800 border-2 border-transparent focus:border-slate-900 outline-none transition-all cursor-pointer"
               >
-                <option value="all">All Subjects</option>
+                <option value="all">Total School Attendance</option>
                 {subjects.map(sub => (
                   <option key={sub.id} value={sub.id}>{sub.name}</option>
                 ))}
               </select>
             </div>
 
-            {/* Overall Stats */}
-            <div className="grid grid-cols-3 lg:grid-cols-1 gap-4">
-              <StatTile label="Present" value={stats.present} color="text-slate-800" icon={<FiCheckCircle />} />
-              <StatTile label="Absent" value={stats.totalAbsent} color="text-red-500" icon={<FiXCircle />} />
+            <div className="grid grid-cols-1 gap-4">
+              <StatTile label="Total Periods" value={stats.total} color="text-slate-400" bgColor="bg-slate-50" />
+              <div className="grid grid-cols-2 gap-4">
+                <StatTile label="Present" value={stats.present} color="text-emerald-600" bgColor="bg-emerald-50" icon={<FiCheckCircle />} />
+                <StatTile label="Absent" value={stats.absent} color="text-red-600" bgColor="bg-red-50" icon={<FiXCircle />} />
+              </div>
             </div>
 
-            {/* Legend for Holidays */}
-            <div className="hidden lg:block bg-brand-soft/20 p-5 rounded-3xl border border-brand-soft/50">
-              <h4 className="text-[10px] font-black text-brand uppercase mb-3">Calendar Guide</h4>
-              <div className="space-y-2">
-                <LegendRow color="bg-red-500" label="Absent/Leave" />
-                <LegendRow color="bg-slate-800" label="Present" />
+            <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
+              <div className="flex items-center gap-2 text-blue-600 mb-2">
+                <FiInfo />
+                <span className="text-xs font-black uppercase">Note</span>
               </div>
+              <p className="text-xs text-blue-800 leading-relaxed font-medium">
+                Counts represent total periods attended. The calendar displays summarized daily status.
+              </p>
             </div>
           </div>
 
-          {/* RIGHT SIDE: CALENDAR (8 Cols) */}
+          {/* RIGHT SIDE: CALENDAR */}
           <div className="lg:col-span-8">
-            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-brand/5 border border-brand-soft overflow-hidden">
-
-              {/* Calendar Header */}
-              <div className="bg-brand-soft/30 p-6 flex justify-between items-center border-b border-brand-soft/50">
-                <div className="flex items-center gap-3">
-                  <FiCalendar className="text-brand-light" />
-                  <h2 className="text-xl font-bold text-brand-dark">{format(currentMonth, "MMMM yyyy")}</h2>
-                </div>
+            <div className="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 p-8 flex justify-between items-center border-b border-slate-100">
+                <h2 className="text-2xl font-black text-slate-800">{format(currentMonth, "MMMM yyyy")}</h2>
                 <div className="flex gap-2">
-                  <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 bg-white rounded-xl hover:bg-brand-light hover:text-white transition-colors"><FiChevronLeft /></button>
-                  <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 bg-white rounded-xl hover:bg-brand-light hover:text-white transition-colors"><FiChevronRight /></button>
+                  <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-3 bg-white rounded-xl shadow-sm hover:bg-slate-900 hover:text-white transition-all"><FiChevronLeft /></button>
+                  <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-3 bg-white rounded-xl shadow-sm hover:bg-slate-900 hover:text-white transition-all"><FiChevronRight /></button>
                 </div>
               </div>
 
-              {/* Day Names */}
-              <div className="grid grid-cols-7 text-center pt-6 pb-2">
+              <div className="grid grid-cols-7 text-center py-4 bg-slate-50/50">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                  <span key={d} className="text-[10px] font-black text-brand/40 uppercase tracking-widest">{d}</span>
+                  <span key={d} className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{d}</span>
                 ))}
               </div>
 
-              {/* Calendar Days */}
-           {/* Calendar Days */}
-<div className="grid grid-cols-7 gap-3 p-6 pt-2">
-  {calendarDays.map((day, idx) => {
-    const record = getDayData(day);
-    const isCurrentMonth = isSameMonth(day, monthStart);
+              <div className="grid grid-cols-7 gap-2 p-4 md:p-8">
+                {calendarDays.map((day, idx) => {
+                  const dateStr = format(day, "yyyy-MM-dd");
+                  const dayData = dailyAttendance[dateStr];
+                  const isCurrentMonth = isSameMonth(day, monthStart);
 
-    const getBgColor = () => {
-      if (!isCurrentMonth) return "bg-transparent";
+                  // Logic for visual indicator
+                  // If absent for ANY period, we mark it red to alert the parent
+                  const isAbsent = dayData?.absent > 0;
+                  const isPresent = dayData?.present > 0 && dayData?.absent === 0;
 
-      if (record?.status === "present") return "bg-emerald-500/20 border-emerald-500";
-      if (record?.status === "absent") return "bg-red-500/20 border-red-500";
-      if (record?.status === "leave") return "bg-yellow-500/20 border-yellow-500";
-      if (record?.status === "holiday") return "bg-slate-500/20 border-slate-400";
-
-      return "bg-white border-brand-soft/50";
-    };
-
-    const getTextColor = () => {
-      if (!isCurrentMonth) return "text-slate-300";
-      if (record?.status === "absent") return "text-red-600";
-      if (record?.status === "present") return "text-emerald-700";
-      if (record?.status === "leave") return "text-yellow-700";
-      if (record?.status === "holiday") return "text-slate-600";
-      return "text-slate-800";
-    };
-
-    return (
-      <div
-        key={idx}
-        className={`h-14 md:h-20 rounded-2xl flex flex-col items-center justify-center border shadow-sm transition-all hover:scale-[1.03] ${getBgColor()}`}
-      >
-        <span className={`text-base md:text-xl font-bold ${getTextColor()}`}>
-          {format(day, "d")}
-        </span>
-
-        {isCurrentMonth && record?.status && (
-          <span className="text-[9px] font-black uppercase tracking-widest mt-1 opacity-70">
-            {record.status}
-          </span>
-        )}
-      </div>
-    );
-  })}
-</div>
-
+                  return (
+                    <div
+                      key={idx}
+                      className={`relative h-16 md:h-24 rounded-2xl flex flex-col items-center justify-center border transition-all ${
+                        !isCurrentMonth ? "opacity-0 pointer-events-none" : "hover:shadow-md"
+                      } ${
+                        isAbsent ? "bg-red-50 border-red-200" : 
+                        isPresent ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-100"
+                      }`}
+                    >
+                      <span className={`text-lg md:text-xl font-black ${
+                        isAbsent ? "text-red-600" : isPresent ? "text-emerald-700" : "text-slate-300"
+                      }`}>
+                        {format(day, "d")}
+                      </span>
+                      
+                      {dayData && (
+                        <div className="flex gap-1 mt-1">
+                          {/* Tiny dots representing periods */}
+                          {dayData.periods.map((p: any, i: number) => (
+                            <div 
+                              key={i} 
+                              title={`Period ${p.period}: ${p.status}`}
+                              className={`w-1.5 h-1.5 rounded-full ${p.status === 'present' ? 'bg-emerald-500' : 'bg-red-500'}`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
   );
 }
 
-// Sub-components to maintain code cleanliness
-function StatTile({ label, value, color, icon }: any) {
+function StatTile({ label, value, color, bgColor, icon }: any) {
   return (
-    <div className="bg-white p-4 md:p-6 rounded-3xl border border-brand-soft shadow-sm flex flex-col items-center justify-center text-center">
-      <div className={`text-lg mb-1 ${color}`}>{icon}</div>
-      <span className={`text-2xl font-bold ${color}`}>{value}</span>
-      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
-    </div>
-  );
-}
-
-function LegendRow({ color, label }: any) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-[10px] font-bold text-brand/60 uppercase">{label}</span>
-      <div className={`w-2 h-2 rounded-full ${color}`}></div>
+    <div className={`${bgColor} p-6 rounded-[2rem] border border-black/5 flex flex-col items-center justify-center text-center`}>
+      {icon && <div className={`text-xl mb-2 ${color}`}>{icon}</div>}
+      <span className={`text-3xl font-black ${color}`}>{value}</span>
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{label}</span>
     </div>
   );
 }

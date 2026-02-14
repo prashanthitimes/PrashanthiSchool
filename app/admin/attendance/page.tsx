@@ -13,7 +13,10 @@ const statusStyles: Record<string, string> = {
     late: "bg-amber-50 text-amber-700 border-amber-100",
 }
 
-const classOptions = Array.from({ length: 10 }, (_, i) => [`${i + 1}-A`, `${i + 1}-B`]).flat();
+const classOptions = [
+    'Pre-KG', 'LKG', 'UKG',
+    ...Array.from({ length: 10 }, (_, i) => `${i + 1}`)
+].flatMap(cls => ['A', 'B', 'C', 'D'].map(sec => `${cls}-${sec}`));
 
 export default function AttendanceAdminPage() {
     const [attendance, setAttendance] = useState<any[]>([])
