@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [main] # Runs every time you push to the main branch
+    branches: [main]
 
 jobs:
   build:
@@ -14,13 +14,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22 # Updated to version 22 to satisfy Capacitor CLI
+          node-version: 22
 
       - name: Install Dependencies
         run: npm install
 
       - name: Create Dummy Web Assets
-        # This prevents the "webDir does not exist" error during the first build
         run: mkdir -p out && touch out/index.html
 
       - name: Setup Java
@@ -35,6 +34,10 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      # --- IMPORTANT: GENERATE ICONS BEFORE BUILDING ---
+      - name: Generate Assets
+        run: npx @capacitor/assets generate --android --assetPath public
+
       - name: Build APK
         run: |
           cd android
@@ -44,9 +47,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: prashanthi-school-apk
+          name: prashanthi-school
           path: android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Generate Assets
-        # We use the full package name @capacitor/assets
-        run: npx @capacitor/assets generate --android --assetPath public
