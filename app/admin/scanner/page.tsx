@@ -200,7 +200,7 @@ export default function PaymentConfiguration() {
                                         <tr key={conf.id} className="text-xs font-bold text-slate-600 hover:bg-slate-50">
                                             <td className="p-6">
                                                 <div className="flex flex-wrap gap-1 max-w-xs">
-                                                    {conf.class_name?.map((c) => (
+                                                   {conf.class_name?.map((c: string) => (
                                                         <span key={c} className="bg-brand-soft text-brand text-[9px] px-2 py-1 rounded font-black">{c}</span>
                                                     ))}
                                                 </div>
