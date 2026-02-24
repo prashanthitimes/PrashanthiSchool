@@ -152,73 +152,68 @@ const handleDelete = async (id: string) => {
 
 
 
-    return (
-        <div className="max-w-7xl mx-auto px-6 py-10 space-y-8 bg-[#fffcfd] min-h-screen">
-            <Toaster position="top-center" richColors />
+  return (
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-6 md:space-y-8 bg-[#fffcfd] min-h-screen">
+        <Toaster position="top-center" richColors />
 
-            <header className="flex flex-col lg:flex-row justify-between items-center gap-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-brand-soft rounded-3xl flex items-center justify-center text-brand-light border border-brand-soft shadow-sm">
-                        <FiUser size={30} />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-black text-slate-800 tracking-tight uppercase">Student Registry</h1>
-                        <p className="text-brand-light font-bold text-[10px] tracking-[0.2em] uppercase opacity-70">Enrollment Management System</p>
-                    </div>
+        {/* HEADER & EXPORT */}
+        <header className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-4 self-start">
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-brand-soft rounded-2xl md:rounded-3xl flex items-center justify-center text-brand-light border border-brand-soft shadow-sm">
+                    <FiUser size={24} />
                 </div>
-
-                <div className="flex items-center gap-3">
-                    {/* EXPORT DROPDOWN */}
-                    <div className="relative group">
-                        <button className="bg-slate-800 text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg flex items-center gap-2 hover:bg-slate-700 transition-all">
-                            <FiDownload size={18} /> Export
-                        </button>
-                        <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                            <button
-                                onClick={() => exportToCSV(students, 'all_students')}
-                                className="w-full text-left px-5 py-3 text-[10px] font-black uppercase text-slate-600 hover:bg-brand-soft/20 hover:text-brand-light transition-colors border-b border-slate-50"
-                            >
-                                All Students ({students.length})
-                            </button>
-                            <button
-                                onClick={() => exportToCSV(filteredStudents, `grade_${selectedClass}`)}
-                                className="w-full text-left px-5 py-3 text-[10px] font-black uppercase text-slate-600 hover:bg-brand-soft/20 hover:text-brand-light transition-colors"
-                            >
-                                Current View ({filteredStudents.length})
-                            </button>
-                        </div>
-                    </div>
-
-
-                </div>
-            </header>
-
-            {/* FILTERS */}
-            <div className="bg-white p-4 rounded-[2.5rem] border border-brand-soft flex flex-col lg:flex-row gap-4 items-center shadow-sm">
-                <div className="relative flex-1 w-full">
-                    <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-brand-light" />
-                    <input
-                        type="text"
-                        placeholder="Search student name or ID..."
-                        className="w-full pl-14 pr-6 py-4 bg-brand-soft/20 border-none rounded-2xl font-bold text-sm outline-none focus:ring-2 ring-brand-light"
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div className="flex items-center bg-brand-soft/30 px-4 rounded-2xl w-full lg:w-auto">
-                    <FiFilter className="text-brand-light mr-2" size={14} />
-                    <select
-                        value={selectedClass}
-                        className="w-full bg-transparent border-none py-4 font-black text-slate-700 text-[11px] uppercase cursor-pointer outline-none"
-                        onChange={(e) => setSelectedClass(e.target.value)}
-                    >
-                        <option value="All">All Grades</option>
-                        {grades.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
+                <div>
+                    <h1 className="text-xl md:text-3xl font-black text-slate-800 tracking-tight uppercase leading-none">Student Registry</h1>
+                    <p className="text-brand-light font-bold text-[8px] md:text-[10px] tracking-[0.2em] uppercase opacity-70 mt-1">Enrollment Management System</p>
                 </div>
             </div>
 
-            {/* DATA TABLE */}
-            <div className="bg-white rounded-[3rem] border border-brand-soft overflow-hidden shadow-sm">
+            <div className="w-full md:w-auto">
+                <div className="relative group">
+                    <button className="w-full md:w-auto bg-slate-800 text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 hover:bg-slate-700 transition-all">
+                        <FiDownload size={18} /> Export
+                    </button>
+                    {/* Dropdown - Adjusted for mobile centering if needed */}
+                    <div className="absolute right-0 mt-2 w-full md:w-48 bg-white border border-slate-100 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                        <button onClick={() => exportToCSV(students, 'all_students')} className="w-full text-left px-5 py-3 text-[10px] font-black uppercase text-slate-600 hover:bg-brand-soft/20 transition-colors border-b border-slate-50">
+                            All Students ({students.length})
+                        </button>
+                        <button onClick={() => exportToCSV(filteredStudents, `grade_${selectedClass}`)} className="w-full text-left px-5 py-3 text-[10px] font-black uppercase text-slate-600 hover:bg-brand-soft/20 transition-colors">
+                            Current View ({filteredStudents.length})
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        {/* FILTERS - Stack on mobile */}
+        <div className="bg-white p-3 md:p-4 rounded-[1.5rem] md:rounded-[2.5rem] border border-brand-soft flex flex-col md:flex-row gap-3 items-center shadow-sm">
+            <div className="relative flex-1 w-full">
+                <FiSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-brand-light" />
+                <input
+                    type="text"
+                    placeholder="Search name or ID..."
+                    className="w-full pl-12 pr-6 py-4 bg-brand-soft/20 border-none rounded-2xl font-bold text-sm outline-none focus:ring-2 ring-brand-light"
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+            <div className="flex items-center bg-brand-soft/30 px-4 rounded-2xl w-full md:w-auto">
+                <FiFilter className="text-brand-light mr-2" size={14} />
+                <select
+                    value={selectedClass}
+                    className="w-full bg-transparent border-none py-4 font-black text-slate-700 text-[11px] uppercase cursor-pointer outline-none"
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                >
+                    <option value="All">All Grades</option>
+                    {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+            </div>
+        </div>
+
+        {/* DATA CONTAINER */}
+        <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-brand-soft overflow-hidden shadow-sm">
+            {/* DESKTOP TABLE */}
+            <div className="hidden md:block">
                 <table className="w-full text-left">
                     <thead>
                         <tr className="bg-brand-soft/10 text-[10px] font-black text-brand-light uppercase tracking-widest border-b border-brand-soft">
@@ -230,14 +225,12 @@ const handleDelete = async (id: string) => {
                     </thead>
                     <tbody className="divide-y divide-brand-soft/10">
                         {loading ? (
-                            <tr><td colSpan={4} className="p-32 text-center animate-pulse text-brand-light font-black tracking-widest">LOADING...</td></tr>
+                             <tr><td colSpan={4} className="p-32 text-center animate-pulse text-brand-light font-black tracking-widest">LOADING...</td></tr>
                         ) : filteredStudents.map((stu) => (
                             <tr key={stu.id} className="hover:bg-brand-soft/5 transition-all group">
                                 <td className="px-10 py-6">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-brand-soft text-brand-light rounded-xl flex items-center justify-center font-black">
-                                            {stu.full_name.charAt(0)}
-                                        </div>
+                                        <div className="w-10 h-10 bg-brand-soft text-brand-light rounded-xl flex items-center justify-center font-black">{stu.full_name.charAt(0)}</div>
                                         <div>
                                             <p className="font-black text-slate-800 uppercase text-sm">{stu.full_name}</p>
                                             <p className="text-[10px] font-bold text-slate-400">{stu.student_id}</p>
@@ -250,32 +243,19 @@ const handleDelete = async (id: string) => {
                                         <span className="text-[10px] font-bold text-brand-light">#{stu.roll_number}</span>
                                     </div>
                                 </td>
-                               <td className="px-8 py-6">
-    {/* Check if parents exists and handle both Object and Array formats */}
-    { (Array.isArray(stu.parents) ? stu.parents.length > 0 : !!stu.parents) ? (
-        <div className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> 
-            Account Active
-        </div>
-    ) : (
-        <div className="text-slate-400 font-bold text-[10px] uppercase tracking-tighter italic">
-            No Parent Linked
-        </div>
-    )}
-</td>
+                                <td className="px-8 py-6">
+                                    {(Array.isArray(stu.parents) ? stu.parents.length > 0 : !!stu.parents) ? (
+                                        <div className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase">
+                                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Account Active
+                                        </div>
+                                    ) : (
+                                        <div className="text-slate-400 font-bold text-[10px] uppercase tracking-tighter italic">No Parent Linked</div>
+                                    )}
+                                </td>
                                 <td className="px-10 py-6">
                                     <div className="flex justify-center gap-2">
                                         <button onClick={() => setViewingStudent(stu)} className="p-3 bg-brand-soft/50 text-brand-light rounded-xl hover:bg-brand-light hover:text-white transition-all"><FiEye size={16} /></button>
-                                        <button
-onClick={() => handleDelete(stu.id)}
-                                            title={stu.attendance_count > 0 ? "Attendance exists" : "Delete student"}
-                                            className={`p-3 rounded-xl transition-all ${stu.attendance_count > 0
-                                                ? "bg-gray-100 text-gray-300 cursor-not-allowed"
-                                                : "bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white"
-                                                }`}
-                                        >
-                                            <FiTrash2 size={16} />
-                                        </button>
+                                        <button onClick={() => handleDelete(stu.id)} className={`p-3 rounded-xl transition-all ${stu.attendance_count > 0 ? "bg-gray-100 text-gray-300 cursor-not-allowed" : "bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white"}`}><FiTrash2 size={16} /></button>
                                     </div>
                                 </td>
                             </tr>
@@ -284,59 +264,91 @@ onClick={() => handleDelete(stu.id)}
                 </table>
             </div>
 
-            {/* HORIZONTAL VIEW MODAL */}
-            {viewingStudent && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-                    <div className="bg-white w-full max-w-4xl rounded-[3.5rem] shadow-2xl overflow-hidden relative animate-in zoom-in-95 duration-300">
-                        <button onClick={() => setViewingStudent(null)} className="absolute right-8 top-8 z-10 p-2 bg-slate-100 text-slate-400 hover:text-rose-500 rounded-full transition-all"><FiX size={24} /></button>
-                        <div className="flex flex-col md:flex-row">
-                            <div className="w-full md:w-1/3 bg-brand-soft/20 p-12 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-brand-soft/30">
-                                <div className="w-32 h-32 bg-white rounded-[3rem] flex items-center justify-center text-brand-light mb-6 font-black text-4xl shadow-xl border-4 border-white">{viewingStudent.full_name.charAt(0)}</div>
-                                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight text-center leading-tight">{viewingStudent.full_name}</h3>
-                                <div className="mt-4 px-4 py-2 bg-brand-light text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em]">{viewingStudent.student_id}</div>
-                            </div>
-                            <div className="w-full md:w-2/3 p-12 space-y-8">
+            {/* MOBILE LIST VIEW */}
+            <div className="md:hidden divide-y divide-brand-soft/10">
+                {loading ? (
+                    <div className="p-20 text-center animate-pulse text-brand-light font-black text-[10px] uppercase tracking-widest">Loading Students...</div>
+                ) : filteredStudents.map((stu) => (
+                    <div key={stu.id} className="p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-brand-soft text-brand-light rounded-xl flex items-center justify-center font-black text-sm">{stu.full_name.charAt(0)}</div>
                                 <div>
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest flex items-center gap-2"><FiLayers className="text-brand-light" /> Academic Profile</h4>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <InfoBox label="Grade / Class" value={viewingStudent.class_name} />
-                                        <InfoBox label="Section" value={viewingStudent.section} />
-                                        <InfoBox label="Roll Number" value={`#${viewingStudent.roll_number}`} />
-                                        <InfoBox label="Parent Contact" value={viewingStudent.parent_phone} />
-                                    </div>
+                                    <p className="font-black text-slate-800 uppercase text-xs">{stu.full_name}</p>
+                                    <p className="text-[9px] font-bold text-slate-400">{stu.student_id}</p>
                                 </div>
-                                <div className="pt-6 border-t border-slate-100">
-                                    <h4 className="text-[10px] font-black text-brand-light uppercase mb-4 tracking-widest flex items-center gap-2"><FiLock /> Parent Portal</h4>
-                                    {(() => {
-                                        const parent = Array.isArray(viewingStudent.parents) ? viewingStudent.parents[0] : viewingStudent.parents;
-                                        if (parent) return (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                                    <p className="text-[9px] text-slate-400 font-bold uppercase mb-1">Login Email</p>
-                                                    <p className="text-sm font-black text-slate-700 truncate">{parent.email}</p>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-[10px] font-black text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100">{stu.class_name}-{stu.section}</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                             {(Array.isArray(stu.parents) ? stu.parents.length > 0 : !!stu.parents) ? (
+                                <div className="flex items-center gap-2 text-emerald-600 font-black text-[9px] uppercase">
+                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Active
+                                </div>
+                            ) : (
+                                <div className="text-slate-400 font-bold text-[9px] uppercase">No Parent</div>
+                            )}
+                            <div className="flex gap-2">
+                                <button onClick={() => setViewingStudent(stu)} className="p-2.5 bg-brand-soft/50 text-brand-light rounded-lg"><FiEye size={14} /></button>
+                                <button onClick={() => handleDelete(stu.id)} className={`p-2.5 rounded-lg ${stu.attendance_count > 0 ? "bg-gray-100 text-gray-200" : "bg-rose-50 text-rose-400"}`}><FiTrash2 size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* MODAL - Fully Responsive */}
+        {viewingStudent && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] flex items-end md:items-center justify-center p-0 md:p-4">
+                <div className="bg-white w-full max-w-4xl rounded-t-[2.5rem] md:rounded-[3.5rem] shadow-2xl overflow-hidden relative animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+                    <button onClick={() => setViewingStudent(null)} className="absolute right-6 top-6 md:right-8 md:top-8 z-10 p-2 bg-slate-100 text-slate-400 rounded-full"><FiX size={20} /></button>
+                    
+                    <div className="flex flex-col md:flex-row">
+                        <div className="w-full md:w-1/3 bg-brand-soft/20 p-8 md:p-12 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-brand-soft/30">
+                            <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-[2rem] md:rounded-[3rem] flex items-center justify-center text-brand-light mb-4 md:mb-6 font-black text-3xl md:text-4xl shadow-xl border-4 border-white">{viewingStudent.full_name.charAt(0)}</div>
+                            <h3 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight text-center leading-tight">{viewingStudent.full_name}</h3>
+                            <div className="mt-3 px-4 py-1.5 bg-brand-light text-white rounded-xl text-[9px] font-black uppercase tracking-widest">{viewingStudent.student_id}</div>
+                        </div>
+                        
+                        <div className="w-full md:w-2/3 p-8 md:p-12 space-y-6 md:space-y-8">
+                            <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                <InfoBox label="Grade" value={viewingStudent.class_name} />
+                                <InfoBox label="Section" value={viewingStudent.section} />
+                                <InfoBox label="Roll No" value={`#${viewingStudent.roll_number}`} />
+                                <InfoBox label="Phone" value={viewingStudent.parent_phone} />
+                            </div>
+                            
+                            <div className="pt-6 border-t border-slate-100">
+                                <h4 className="text-[10px] font-black text-brand-light uppercase mb-4 tracking-widest flex items-center gap-2"><FiLock /> Credentials</h4>
+                                {(() => {
+                                    const parent = Array.isArray(viewingStudent.parents) ? viewingStudent.parents[0] : viewingStudent.parents;
+                                    if (parent) return (
+                                        <div className="space-y-3">
+                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-between items-center">
+                                                <div>
+                                                    <p className="text-[8px] text-slate-400 font-bold uppercase">Email</p>
+                                                    <p className="text-xs font-black text-slate-700 truncate max-w-[150px] sm:max-w-none">{parent.email}</p>
                                                 </div>
-                                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                                    <p className="text-[9px] text-slate-400 font-bold uppercase mb-1">Temp Password</p>
-                                                    <p className="text-sm font-mono font-black text-brand-light">{parent.temp_password}</p>
+                                                <div className="text-right">
+                                                    <p className="text-[8px] text-slate-400 font-bold uppercase">Password</p>
+                                                    <p className="text-xs font-mono font-black text-brand-light">{parent.temp_password}</p>
                                                 </div>
                                             </div>
-                                        )
-                                        return (
-                                            <div className="flex items-center gap-4 p-6 bg-amber-50 rounded-3xl border border-amber-100">
-                                                <FiAlertCircle className="text-amber-500" size={24} /><p className="text-[10px] font-black text-amber-700 uppercase">Parent Not Found</p>
-                                            </div>
-                                        )
-                                    })()}
-                                </div>
+                                        </div>
+                                    )
+                                    return <p className="text-[10px] font-black text-amber-600 bg-amber-50 p-4 rounded-xl text-center">PARENT PORTAL NOT LINKED</p>
+                                })()}
                             </div>
                         </div>
                     </div>
                 </div>
-            )}
-
-
-        </div>
-    )
+            </div>
+        )}
+    </div>
+);
 }
 
 function InfoBox({ label, value }: { label: string, value: string }) {

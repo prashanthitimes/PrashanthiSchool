@@ -56,10 +56,10 @@ export default function TransportPage() {
 
   const filteredSearchStudents = useMemo(() => {
     if (studentSearchTerm.length < 2 || selectedStudent) return [];
-    return students.filter(s => 
+    return students.filter(s =>
       s.full_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
       (s.father_name && s.father_name.toLowerCase().includes(studentSearchTerm.toLowerCase()))
-    ).slice(0, 6); 
+    ).slice(0, 6);
   }, [studentSearchTerm, students, selectedStudent]);
 
   // --- Handlers ---
@@ -161,7 +161,7 @@ export default function TransportPage() {
     const routeStudents = students.filter(s => s.transport_route_id === route.id);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-    
+
     const html = `
       <html>
         <body style="font-family:sans-serif; padding: 20px;">
@@ -177,13 +177,13 @@ export default function TransportPage() {
             </thead>
             <tbody>
               ${routeStudents.map(s => {
-                const price = assignments.find(a => a.student_id === s.id)?.monthly_fare || 0;
-                return `<tr>
+      const price = assignments.find(a => a.student_id === s.id)?.monthly_fare || 0;
+      return `<tr>
                   <td style="padding: 10px;">${s.full_name}</td>
                   <td style="padding: 10px;">${s.class_name}</td>
                   <td style="padding: 10px;">₹${price}</td>
                 </tr>`;
-              }).join('')}
+    }).join('')}
             </tbody>
           </table>
         </body>
@@ -193,36 +193,43 @@ export default function TransportPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-8 space-y-8">
+    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8 bg-[#fffcfd] min-h-screen">
       <Toaster />
 
       {/* HEADER */}
-      <header className="flex items-center justify-between bg-white/80 backdrop-blur-md px-8 py-6 rounded-[2.5rem] border border-[#f3e8f1] shadow-sm">
+      <header className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between bg-white/80 backdrop-blur-md px-6 py-5 md:px-8 md:py-6 rounded-[2rem] md:rounded-[2.5rem] border border-[#f3e8f1] shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#8f1e7a] text-white rounded-2xl flex items-center justify-center shadow-lg shadow-[#8f1e7a]/20">
-            <Bus size={24} />
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-[#8f1e7a] text-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-[#8f1e7a]/20 shrink-0">
+            <Bus size={20} className="md:w-6 md:h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-[#6b165c] uppercase tracking-tight">Transport Registry</h1>
-            <p className="text-[10px] font-bold text-[#a63d93] tracking-[0.2em] uppercase mt-1">Fleet & Logistics Hub</p>
+            <h1 className="text-lg md:text-xl font-black text-[#6b165c] uppercase tracking-tight leading-none">Transport Registry</h1>
+            <p className="text-[8px] md:text-[10px] font-bold text-[#a63d93] tracking-[0.2em] uppercase mt-1">Fleet & Logistics Hub</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => setAssignModal(true)} className="bg-[#e9d1e4] text-[#8f1e7a] px-6 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-[#8f1e7a] hover:text-white transition-all">
-            Assign Passenger
+
+        <div className="flex gap-2 w-full lg:w-auto">
+          <button
+            onClick={() => setAssignModal(true)}
+            className="flex-1 lg:flex-none bg-[#e9d1e4] text-[#8f1e7a] px-4 py-3.5 rounded-xl font-black text-[9px] md:text-[11px] uppercase tracking-widest hover:bg-[#8f1e7a] hover:text-white transition-all"
+          >
+            Assign
           </button>
-          <button onClick={() => { setEditingId(null); resetForm(); setRouteModal(true); }} className="bg-[#8f1e7a] text-white px-6 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-[#8f1e7a]/30">
-            <Plus size={16} className="inline mr-2" /> New Route
+          <button
+            onClick={() => { setEditingId(null); resetForm(); setRouteModal(true); }}
+            className="flex-1 lg:flex-none bg-[#8f1e7a] text-white px-4 py-3.5 rounded-xl font-black text-[9px] md:text-[11px] uppercase tracking-widest shadow-lg shadow-[#8f1e7a]/30 flex items-center justify-center"
+          >
+            <Plus size={14} className="mr-1" /> New Route
           </button>
         </div>
       </header>
 
-      {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard label="Total Routes" value={routes.length} icon={<MapPin />} />
-        <StatCard label="Live Fleet" value={new Set(routes.map(r => r.bus_number)).size} icon={<Bus />} />
-        <StatCard label="Passengers" value={students.filter(s => s.transport_route_id).length} icon={<Users />} />
-        <StatCard label="Total Revenue" value={`₹${assignments.reduce((sum, a) => sum + Number(a.monthly_fare), 0)}`} icon={<IndianRupee />} />
+      {/* STATS - 2 columns on mobile, 4 on desktop */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+        <StatCard label="Routes" value={routes.length} icon={<MapPin size={18} />} />
+        <StatCard label="Fleet" value={new Set(routes.map(r => r.bus_number)).size} icon={<Bus size={18} />} />
+        <StatCard label="Users" value={students.filter(s => s.transport_route_id).length} icon={<Users size={18} />} />
+        <StatCard label="Revenue" value={`₹${assignments.reduce((sum, a) => sum + Number(a.monthly_fare), 0)}`} icon={<IndianRupee size={18} />} />
       </div>
 
       {/* ROUTES GRID */}

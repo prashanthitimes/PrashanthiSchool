@@ -117,7 +117,7 @@ export default function ParentLayout({
                  
 
                   <div className="border-t border-slate-50 my-1 mx-2"></div>
-                  <Link href="/parentlogin" className="w-full">
+                  <Link href="/login" className="w-full">
                   <button
                     onClick={handleLogout}
                     className="flex items-center gap-3 w-full px-5 py-3 text-sm text-rose-500 hover:bg-rose-50 transition-colors font-bold"

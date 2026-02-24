@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
     FiEdit3, FiSave, FiAward, FiRefreshCw,
-    FiCheckCircle, FiAlertCircle, FiSearch, FiBookOpen,
+    FiCheckCircle, FiAlertCircle, FiSearch, FiBookOpen,FiMessageSquare,
     FiUserX 
 } from 'react-icons/fi'
 
@@ -263,74 +263,138 @@ export default function MarksEntryPage() {
                             
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-brand-accent/20 text-[10px] font-black text-brand-light uppercase tracking-[0.2em] border-b border-brand-soft">
-                                        <th className="px-10 py-6">Student</th>
-                                        <th className="px-10 py-6 w-40 text-center">Score / {selectedExam.exams?.total_marks}</th>
-                                        <th className="px-10 py-6 w-32 text-center">Attendance</th>
-                                        <th className="px-10 py-6">Status & Remarks</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-brand-soft/30">
-                                    {filteredStudents.map(s => (
-                                        <tr key={s.id} className="hover:bg-brand-soft/5 transition-colors">
-                                            <td className="px-10 py-5">
-                                                <div className="flex items-center gap-4">
-                                                    <span className="bg-slate-50 text-slate-400 px-3 py-1.5 rounded-xl text-[10px] font-black border border-slate-100">#{s.roll_number}</span>
-                                                    <div>
-                                                        <p className="font-black text-slate-700 text-sm">{s.full_name}</p>
-                                                        <p className="text-[9px] font-bold text-brand-light opacity-60 uppercase">{s.student_id}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-10 py-5">
-                                                <input type="number" 
-                                                    disabled={marksData[s.id]?.status === 'Absent'}
-                                                    className={`w-full border-2 border-transparent focus:border-brand focus:bg-white rounded-xl py-3 text-center font-black transition-all outline-none ${
-                                                        marksData[s.id]?.status === 'Absent' ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand-accent/30 text-brand'
-                                                    }`}
-                                                    value={marksData[s.id]?.marks || ''}
-                                                    onChange={(e) => handleMarkInput(s.id, e.target.value)}
-                                                />
-                                            </td>
-                                            <td className="px-10 py-5 text-center">
-                                                <button 
-                                                    onClick={() => toggleAbsent(s.id)}
-                                                    className={`p-3 rounded-xl transition-all border-2 ${
-                                                        marksData[s.id]?.status === 'Absent' 
-                                                        ? 'bg-rose-500 text-white border-rose-500 shadow-md' 
-                                                        : 'bg-white text-slate-400 border-slate-100 hover:border-rose-200 hover:text-rose-400'
-                                                    }`}
-                                                    title="Mark as Absent"
-                                                >
-                                                    <FiUserX size={18} />
-                                                </button>
-                                            </td>
-                                            <td className="px-10 py-5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-24">
-                                                        {marksData[s.id]?.status === 'Absent' ? (
-                                                            <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg uppercase">ABSENT</span>
-                                                        ) : marksData[s.id]?.status === 'Pass' ? (
-                                                            <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg uppercase">PASSED</span>
-                                                        ) : marksData[s.id]?.status === 'Fail' ? (
-                                                            <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg uppercase">FAILED</span>
-                                                        ) : <span className="text-[9px] font-black text-slate-300 px-3 py-1.5 uppercase tracking-tighter">PENDING</span>}
-                                                    </div>
-                                                    <input type="text" placeholder="Add remarks..."
-                                                        className="flex-1 bg-transparent border-b border-brand-soft/30 py-2 px-2 text-xs font-bold text-slate-500 focus:border-brand outline-none transition-all"
-                                                        value={marksData[s.id]?.remarks || ''}
-                                                        onChange={(e) => setMarksData({...marksData, [s.id]: { ...marksData[s.id], remarks: e.target.value }})}
-                                                    />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                      <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-brand-soft/50 overflow-hidden">
+    {/* DESKTOP TABLE VIEW */}
+    <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-left">
+            <thead>
+                <tr className="bg-brand-accent/20 text-[10px] font-black text-brand-light uppercase tracking-[0.2em] border-b border-brand-soft">
+                    <th className="px-10 py-6">Student</th>
+                    <th className="px-10 py-6 w-40 text-center">Score / {selectedExam.exams?.total_marks}</th>
+                    <th className="px-10 py-6 w-32 text-center">Attendance</th>
+                    <th className="px-10 py-6">Status & Remarks</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-brand-soft/30">
+                {filteredStudents.map(s => (
+                    <tr key={s.id} className="hover:bg-brand-soft/5 transition-colors">
+                        <td className="px-10 py-5">
+                            <div className="flex items-center gap-4">
+                                <span className="bg-slate-50 text-slate-400 px-3 py-1.5 rounded-xl text-[10px] font-black border border-slate-100">#{s.roll_number}</span>
+                                <div>
+                                    <p className="font-black text-slate-700 text-sm">{s.full_name}</p>
+                                    <p className="text-[9px] font-bold text-brand-light opacity-60 uppercase">{s.student_id}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td className="px-10 py-5">
+                            <input type="number" 
+                                disabled={marksData[s.id]?.status === 'Absent'}
+                                className={`w-full border-2 border-transparent focus:border-brand focus:bg-white rounded-xl py-3 text-center font-black transition-all outline-none ${
+                                    marksData[s.id]?.status === 'Absent' ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand-accent/30 text-brand'
+                                }`}
+                                value={marksData[s.id]?.marks || ''}
+                                onChange={(e) => handleMarkInput(s.id, e.target.value)}
+                            />
+                        </td>
+                        <td className="px-10 py-5 text-center">
+                            <button onClick={() => toggleAbsent(s.id)}
+                                className={`p-3 rounded-xl transition-all border-2 ${
+                                    marksData[s.id]?.status === 'Absent' ? 'bg-rose-500 text-white border-rose-500 shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-rose-200'
+                                }`}>
+                                <FiUserX size={18} />
+                            </button>
+                        </td>
+                        <td className="px-10 py-5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-24">
+                                    {/* Status Badges */}
+                                    {marksData[s.id]?.status === 'Absent' ? (
+                                        <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg uppercase">ABSENT</span>
+                                    ) : marksData[s.id]?.status === 'Pass' ? (
+                                        <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg uppercase">PASSED</span>
+                                    ) : marksData[s.id]?.status === 'Fail' ? (
+                                        <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg uppercase">FAILED</span>
+                                    ) : <span className="text-[9px] font-black text-slate-300 px-3 py-1.5 uppercase tracking-tighter">PENDING</span>}
+                                </div>
+                                <input type="text" placeholder="Add remarks..."
+                                    className="flex-1 bg-transparent border-b border-brand-soft/30 py-2 px-2 text-xs font-bold text-slate-500 focus:border-brand outline-none transition-all"
+                                    value={marksData[s.id]?.remarks || ''}
+                                    onChange={(e) => setMarksData({...marksData, [s.id]: { ...marksData[s.id], remarks: e.target.value }})}
+                                />
+                            </div>
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
+
+    {/* MOBILE CARD VIEW */}
+    <div className="md:hidden divide-y divide-brand-soft/20 bg-slate-50/30">
+        {filteredStudents.map(s => (
+            <div key={s.id} className="p-5 space-y-4">
+                {/* Header: Student Identity & Absent Toggle */}
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <span className="bg-white text-slate-400 px-2 py-1 rounded-lg text-[10px] font-black border border-slate-200">#{s.roll_number}</span>
+                        <div>
+                            <p className="font-black text-slate-700 text-sm leading-tight">{s.full_name}</p>
+                            <p className="text-[9px] font-bold text-brand-light uppercase">{s.student_id}</p>
                         </div>
+                    </div>
+                    <button 
+                        onClick={() => toggleAbsent(s.id)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black transition-all border-2 ${
+                            marksData[s.id]?.status === 'Absent' 
+                            ? 'bg-rose-500 text-white border-rose-500' 
+                            : 'bg-white text-slate-400 border-slate-100'
+                        }`}>
+                        <FiUserX size={14} /> {marksData[s.id]?.status === 'Absent' ? 'ABSENT' : 'MARK ABSENT'}
+                    </button>
+                </div>
+
+                {/* Score and Status Inputs */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Score / {selectedExam.exams?.total_marks}</label>
+                        <input type="number" 
+                            disabled={marksData[s.id]?.status === 'Absent'}
+                            placeholder="00"
+                            className={`w-full border-2 border-transparent focus:border-brand rounded-xl py-3 text-center font-black transition-all outline-none text-lg ${
+                                marksData[s.id]?.status === 'Absent' ? 'bg-slate-100 text-slate-300' : 'bg-brand-accent/20 text-brand shadow-sm'
+                            }`}
+                            value={marksData[s.id]?.marks || ''}
+                            onChange={(e) => handleMarkInput(s.id, e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Current Status</label>
+                        <div className="h-[54px] flex items-center justify-center rounded-xl bg-white border border-brand-soft/50">
+                             {marksData[s.id]?.status === 'Absent' ? (
+                                <span className="text-[10px] font-black text-rose-600 uppercase">ABSENT</span>
+                            ) : marksData[s.id]?.status === 'Pass' ? (
+                                <span className="text-[10px] font-black text-emerald-600 uppercase">PASSED</span>
+                            ) : marksData[s.id]?.status === 'Fail' ? (
+                                <span className="text-[10px] font-black text-rose-600 uppercase">FAILED</span>
+                            ) : <span className="text-[10px] font-black text-slate-300 uppercase">PENDING</span>}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Remarks Input */}
+                <div className="bg-white p-2 rounded-xl border border-brand-soft/50 flex items-center gap-2">
+                    <FiMessageSquare size={14} className="text-brand-light ml-2" />
+                    <input type="text" placeholder="Add remarks for student..."
+                        className="flex-1 bg-transparent py-2 text-xs font-bold text-slate-500 outline-none"
+                        value={marksData[s.id]?.remarks || ''}
+                        onChange={(e) => setMarksData({...marksData, [s.id]: { ...marksData[s.id], remarks: e.target.value }})}
+                    />
+                </div>
+            </div>
+        ))}
+    </div>
+</div>
                     </div>
                 ) : (
                     <div className="h-64 flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-dashed border-brand-soft/50 p-10 text-center">

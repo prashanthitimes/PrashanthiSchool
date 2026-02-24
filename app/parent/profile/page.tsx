@@ -133,46 +133,7 @@ export default function StudentProfile() {
           </div>
         </div>
 
-        {/* --- PARENT/GUARDIAN DETAILS --- */}
-        <div className="bg-white rounded-[2.5rem] border border-brand-soft p-10 space-y-8">
-          <div className="flex items-center gap-3 text-brand-light">
-            <FiHeart size={20} />
-            <h3 className="font-black uppercase text-xs tracking-widest">Guardian Details</h3>
-          </div>
-
-          {parent ? (
-            <div className="space-y-4">
-              <div className="p-6 rounded-3xl bg-brand-accent/40 border border-brand-soft">
-                <p className="text-[10px] font-black text-brand-light/40 uppercase tracking-widest mb-1">Full Name & Relation</p>
-                <p className="text-lg font-black text-brand-light uppercase">{parent.full_name} <span className="text-[10px] opacity-60 ml-2">({parent.relation})</span></p>
-              </div>
-
-              <div className="flex items-center gap-6 p-5 rounded-3xl bg-brand-accent/40 border border-brand-soft">
-                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-brand-light shadow-sm">
-                  <FiPhone />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-brand-light/40 uppercase tracking-widest">Primary Phone</p>
-                  <p className="text-sm font-bold text-brand-light">{parent.phone_number || "N/A"}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6 p-5 rounded-3xl bg-brand-accent/40 border border-brand-soft">
-                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-brand-light shadow-sm">
-                  <FiActivity />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-brand-light/40 uppercase tracking-widest">Account Status</p>
-                  <p className="text-sm font-bold text-brand-light uppercase">{parent.is_account_active ? "Active" : "Inactive"}</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="p-10 text-center border-2 border-dashed border-brand-soft rounded-3xl">
-              <p className="text-brand-light/40 font-black text-[10px] uppercase tracking-widest">No Parent Record Found</p>
-            </div>
-          )}
-        </div>
+   
 
       </div>
 

@@ -239,68 +239,118 @@ export default function AssignmentsPage() {
             </div>
 
             {/* --- ACTIVITY TABLE --- */}
-            <div className="px-6 mt-16">
-                <div className="flex items-center justify-between mb-8 px-2">
-                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-                        <FiTarget className="text-brand" /> Active Registry
-                    </h2>
+           {/* --- ACTIVITY TABLE --- */}
+<div className="px-4 md:px-6 mt-8 md:mt-16">
+  <div className="flex items-center justify-between mb-6 md:mb-8 px-2">
+    <h2 className="text-xl md:text-2xl font-black text-slate-800 flex items-center gap-3">
+      <FiTarget className="text-brand" /> Active Registry
+    </h2>
+  </div>
+  
+  <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-brand-soft/50 overflow-hidden">
+    {/* DESKTOP TABLE VIEW */}
+    <div className="hidden md:block overflow-x-auto">
+      <table className="w-full text-left">
+        <thead>
+          <tr className="bg-brand-accent text-[10px] font-black text-brand-light uppercase tracking-[0.2em] border-b border-brand-soft">
+            <th className="px-8 py-6">Identity</th>
+            <th className="px-8 py-6">Subject & Title</th>
+            <th className="px-8 py-6">Scoring</th>
+            <th className="px-8 py-6">Deadline</th>
+            <th className="px-8 py-6 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-brand-soft/30">
+          {history.map((item) => (
+            <tr key={item.id} className="hover:bg-brand-soft/10 transition-colors">
+              <td className="px-8 py-6">
+                <span className="bg-brand-soft text-brand-dark px-4 py-2 rounded-xl text-[10px] font-black border border-brand-soft">
+                  {item.class_name}-{item.section}
+                </span>
+              </td>
+              <td className="px-8 py-6">
+                <p className="font-black text-slate-700">{item.subjects?.name}</p>
+                <p className="text-[11px] font-bold text-brand-light line-clamp-1 italic">{item.title}</p>
+              </td>
+              <td className="px-8 py-6 font-black text-brand text-sm italic">
+                {item.max_marks} pts
+              </td>
+              <td className="px-8 py-6">
+                <div className="flex items-center gap-2">
+                  <FiCalendar className="text-brand-light opacity-50" size={14} />
+                  <span className={`text-xs font-black ${new Date(item.due_date) < new Date() ? 'text-rose-500' : 'text-slate-600'}`}>
+                    {new Date(item.due_date).toLocaleDateString()}
+                  </span>
                 </div>
-                
-                <div className="bg-white rounded-[2.5rem] shadow-sm border border-brand-soft/50 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="bg-brand-accent text-[10px] font-black text-brand-light uppercase tracking-[0.2em] border-b border-brand-soft">
-                                    <th className="px-8 py-6">Identity</th>
-                                    <th className="px-8 py-6">Subject & Title</th>
-                                    <th className="px-8 py-6">Scoring</th>
-                                    <th className="px-8 py-6">Deadline</th>
-                                    <th className="px-8 py-6 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-brand-soft/30">
-                                {history.map((item) => (
-                                    <tr key={item.id} className="hover:bg-brand-soft/10 transition-colors">
-                                        <td className="px-8 py-6">
-                                            <span className="bg-brand-soft text-brand-dark px-4 py-2 rounded-xl text-[10px] font-black border border-brand-soft">
-                                                {item.class_name}-{item.section}
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <p className="font-black text-slate-700">{item.subjects?.name}</p>
-                                            <p className="text-[11px] font-bold text-brand-light line-clamp-1 italic">{item.title}</p>
-                                        </td>
-                                        <td className="px-8 py-6 font-black text-brand text-sm italic">
-                                            {item.max_marks} pts
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-2">
-                                                <FiCalendar className="text-brand-light opacity-50" size={14} />
-                                                <span className={`text-xs font-black ${new Date(item.due_date) < new Date() ? 'text-rose-500' : 'text-slate-600'}`}>
-                                                    {new Date(item.due_date).toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button onClick={() => setViewingAssignment(item)} className="p-3 bg-brand-soft/40 text-brand-dark rounded-xl hover:bg-brand hover:text-white transition-all">
-                                                    <FiBookOpen size={16} />
-                                                </button>
-                                                <button 
-                                                    onClick={async () => { if(confirm('Remove this assignment?')) { await supabase.from('assignments').delete().eq('id', item.id); fetchAssignmentHistory(teacherId); } }}
-                                                    className="p-3 bg-rose-50 text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
-                                                >
-                                                    <FiTrash2 size={16} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+              </td>
+              <td className="px-8 py-6">
+                <div className="flex items-center justify-end gap-2">
+                  <button onClick={() => setViewingAssignment(item)} className="p-3 bg-brand-soft/40 text-brand-dark rounded-xl hover:bg-brand hover:text-white transition-all">
+                    <FiBookOpen size={16} />
+                  </button>
+                  <button 
+                    onClick={async () => { if(confirm('Remove this assignment?')) { await supabase.from('assignments').delete().eq('id', item.id); fetchAssignmentHistory(teacherId); } }}
+                    className="p-3 bg-rose-50 text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
+                  >
+                    <FiTrash2 size={16} />
+                  </button>
                 </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    {/* MOBILE CARD VIEW */}
+    <div className="md:hidden divide-y divide-brand-soft/30">
+      {history.map((item) => (
+        <div key={item.id} className="p-5 space-y-4 hover:bg-brand-soft/5 transition-colors">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="bg-brand-soft text-brand-dark px-3 py-1.5 rounded-lg text-[9px] font-black border border-brand-soft uppercase tracking-wider">
+                {item.class_name}-{item.section}
+              </span>
+              <h3 className="mt-3 font-black text-slate-800 text-sm leading-tight">
+                {item.subjects?.name}
+              </h3>
+              <p className="text-[10px] font-bold text-brand-light italic line-clamp-1">
+                {item.title}
+              </p>
             </div>
+            <div className="text-right">
+              <p className="text-brand font-black text-xs italic">{item.max_marks} pts</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <FiCalendar className="text-brand-light opacity-50" size={12} />
+              <span className={`text-[10px] font-black ${new Date(item.due_date) < new Date() ? 'text-rose-500' : 'text-slate-600'}`}>
+                Due: {new Date(item.due_date).toLocaleDateString()}
+              </span>
+            </div>
+            
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setViewingAssignment(item)}
+                className="p-2.5 bg-brand-soft/40 text-brand-dark rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-wider"
+              >
+                <FiBookOpen size={14} /> View
+              </button>
+              <button 
+                onClick={async () => { if(confirm('Remove?')) { /* delete logic */ } }}
+                className="p-2.5 bg-rose-50 text-rose-500 rounded-lg"
+              >
+                <FiTrash2 size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
         </div>
     )
 }

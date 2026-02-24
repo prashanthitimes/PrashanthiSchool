@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Plus, Edit, Trash2, Search, X, Shield, CheckCircle, Info, BookOpen } from "lucide-react";
+import { Plus, Edit, Trash2, Search, X, Shield, CheckCircle, Info,Filter, BookOpen } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import * as XLSX from "xlsx";
 import React from 'react';
@@ -56,7 +56,7 @@ export default function FeesPage() {
   const [studentSuggestions, setStudentSuggestions] = useState<DBStudent[]>([]);
   const [fetchingStudents, setFetchingStudents] = useState(false);
   const [isSelectingStudent, setIsSelectingStudent] = useState(false);
-
+const [showSidebarMobile, setShowSidebarMobile] = useState(false);
   const [classForm, setClassForm] = useState({ class: "", fee_type: "", amount: "" });
 
   const [studentForm, setStudentForm] = useState({
@@ -82,10 +82,10 @@ export default function FeesPage() {
   const isFirstPayment =
     Number(studentForm.already_paid || 0) === 0;
 
- const remainingBalance =
-  Number(studentForm.total_amount || 0) -
-  Number(studentForm.already_paid || 0) -
-  Number(studentForm.paying_now || 0);
+  const remainingBalance =
+    Number(studentForm.total_amount || 0) -
+    Number(studentForm.already_paid || 0) -
+    Number(studentForm.paying_now || 0);
 
   const ACADEMIC_CLASSES = [
     "Pre-Nursery", "Nursery", "LKG", "UKG",
@@ -111,23 +111,23 @@ export default function FeesPage() {
       // 🔹 1️⃣ Get Standard Amount
       if (feeType === "Transport Fee") {
         const { data } = await supabase
-  .from("transport_assignments")
-  .select("monthly_fare")
-  .eq("student_id", studentId)
-  .eq("status", "active")
-  .maybeSingle();
+          .from("transport_assignments")
+          .select("monthly_fare")
+          .eq("student_id", studentId)
+          .eq("status", "active")
+          .maybeSingle();
 
 
         if (data) {
           standardAmount = Number(data.monthly_fare);
         }
       } else {
-       const { data } = await supabase
-  .from("class_fees")
-  .select("amount")
-  .eq("class", className)
-  .eq("fee_type", feeType)
-  .maybeSingle();
+        const { data } = await supabase
+          .from("class_fees")
+          .select("amount")
+          .eq("class", className)
+          .eq("fee_type", feeType)
+          .maybeSingle();
 
 
         if (data) {
@@ -139,8 +139,8 @@ export default function FeesPage() {
       const { data: payments } = await supabase
         .from("student_fees")
         .select("paid_amount")
-     .eq("student_id", studentId)
-.eq("fee_type", feeType);
+        .eq("student_id", studentId)
+        .eq("fee_type", feeType);
 
 
 
@@ -258,84 +258,84 @@ export default function FeesPage() {
     setLoading(false);
   };
 
- const handleSaveStudentFee = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
+  const handleSaveStudentFee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-  if (isFullyPaid) {
-    toast.error("This fee is already fully paid.");
-    setLoading(false);
-    return;
-  }
+    if (isFullyPaid) {
+      toast.error("This fee is already fully paid.");
+      setLoading(false);
+      return;
+    }
 
-  const remaining =
-    Number(studentForm.total_amount || 0) -
-    Number(studentForm.already_paid || 0);
+    const remaining =
+      Number(studentForm.total_amount || 0) -
+      Number(studentForm.already_paid || 0);
 
-  if (Number(studentForm.paying_now || 0) > remaining) {
-    toast.error("Payment exceeds remaining balance.");
-    setLoading(false);
-    return;
-  }
+    if (Number(studentForm.paying_now || 0) > remaining) {
+      toast.error("Payment exceeds remaining balance.");
+      setLoading(false);
+      return;
+    }
 
-  const payAmount = Number(studentForm.paying_now || 0);
+    const payAmount = Number(studentForm.paying_now || 0);
 
-  // 🔍 Check if record already exists
-  const { data: existingRecord } = await supabase
-    .from("student_fees")
-    .select("*")
-    .eq("student_id", studentForm.student_id)
-    .eq("fee_type", studentForm.fee_type)
-    .maybeSingle();
-
-  if (existingRecord) {
-    // ✅ UPDATE existing record
-    const newPaidAmount =
-      Number(existingRecord.paid_amount) + payAmount;
-
-    const { error } = await supabase
+    // 🔍 Check if record already exists
+    const { data: existingRecord } = await supabase
       .from("student_fees")
-      .update({
-        paid_amount: newPaidAmount,
-      })
-      .eq("id", existingRecord.id);
+      .select("*")
+      .eq("student_id", studentForm.student_id)
+      .eq("fee_type", studentForm.fee_type)
+      .maybeSingle();
 
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
+    if (existingRecord) {
+      // ✅ UPDATE existing record
+      const newPaidAmount =
+        Number(existingRecord.paid_amount) + payAmount;
+
+      const { error } = await supabase
+        .from("student_fees")
+        .update({
+          paid_amount: newPaidAmount,
+        })
+        .eq("id", existingRecord.id);
+
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Installment added successfully!");
+    } else {
+      // ✅ INSERT new record (first payment)
+      const { error } = await supabase.from("student_fees").insert([
+        {
+          student_id: studentForm.student_id,
+          student_name: studentForm.student_name,
+          roll_no: Number(studentForm.roll_no),
+          class: studentForm.class,
+          fee_type: studentForm.fee_type,
+          total_amount: Number(studentForm.total_amount),
+          paid_amount: payAmount,
+          payment_method: studentForm.payment_method,
+          remarks: `Father: ${studentForm.father_name} | Section: ${studentForm.section}`,
+        },
+      ]);
+
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Fee added successfully!");
     }
 
-    toast.success("Installment added successfully!");
-  } else {
-    // ✅ INSERT new record (first payment)
-    const { error } = await supabase.from("student_fees").insert([
-      {
-        student_id: studentForm.student_id,
-        student_name: studentForm.student_name,
-        roll_no: Number(studentForm.roll_no),
-        class: studentForm.class,
-        fee_type: studentForm.fee_type,
-        total_amount: Number(studentForm.total_amount),
-        paid_amount: payAmount,
-        payment_method: studentForm.payment_method,
-        remarks: `Father: ${studentForm.father_name} | Section: ${studentForm.section}`,
-      },
-    ]);
-
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
-    }
-
-    toast.success("Fee added successfully!");
-  }
-
-  closeModals();
-  fetchAll();
-  setLoading(false);
-};
+    closeModals();
+    fetchAll();
+    setLoading(false);
+  };
 
 
 
@@ -446,202 +446,260 @@ export default function FeesPage() {
       <Toaster position="top-right" />
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-center justify-between bg-white/80 backdrop-blur-md px-8 py-6 rounded-[2.5rem] border border-brand/10 shadow-sm">
-        <div className="flex items-center gap-5">
-          <div className="w-14 h-14 bg-brand-soft text-brand rounded-2xl flex items-center justify-center shadow-inner">
-            <Shield size={28} />
+      <header className="flex flex-col gap-6 bg-white/80 backdrop-blur-md px-6 py-6 md:px-8 md:py-6 rounded-[2rem] md:rounded-[2.5rem] border border-brand/10 shadow-sm">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-4 md:gap-5">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-soft text-brand rounded-2xl flex items-center justify-center shadow-inner shrink-0">
+              <Shield size={24} />
+            </div>
+            <div>
+              <h1 className="text-lg md:text-xl font-black text-slate-800 tracking-tight uppercase leading-none">
+                Fees Registry
+              </h1>
+              <p className="text-[9px] md:text-[10px] font-bold text-brand tracking-[0.2em] md:tracking-[0.25em] uppercase mt-1.5 opacity-80">
+                Financial Ledger Archive
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-black text-slate-800 tracking-tight uppercase leading-none">
-              Fees Registry
-            </h1>
-            <p className="text-[10px] font-bold text-brand tracking-[0.25em] uppercase mt-1.5 opacity-80">
-              Financial Ledger Archive
-            </p>
-          </div>
+
+          {/* Mobile Export Button (Icon only) */}
+          <button onClick={exportToExcel} className="md:hidden p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+            <BookOpen size={20} />
+          </button>
         </div>
 
-        <div className="flex items-center gap-3 mt-4 md:mt-0">
+        {/* Action Buttons: Scrollable or Grid on mobile */}
+        <div className="flex flex-wrap md:flex-row items-center gap-2 md:gap-3">
           <button
             onClick={() => setIsClassModalOpen(true)}
-            className="bg-white border-2 border-brand-soft text-brand-dark px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all hover:bg-brand-soft active:scale-95"
+            className="flex-1 md:flex-none bg-white border-2 border-brand-soft text-brand-dark px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all hover:bg-brand-soft"
           >
-            <Plus size={16} className="inline mr-2" /> Class Fees Structure
+            <Plus size={14} className="inline mr-1" /> Structure
           </button>
 
           <button
             onClick={() => setIsStudentModalOpen(true)}
-            className="bg-brand text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all hover:bg-brand-dark active:scale-95 shadow-lg shadow-brand/30"
+            className="flex-[1.5] md:flex-none bg-brand text-white px-4 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/20"
           >
-            <Plus size={18} className="inline mr-2" /> New Student Fees Entry
+            <Plus size={16} className="inline mr-1" /> New Entry
           </button>
 
           <button
             onClick={exportToExcel}
-            className="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all hover:bg-emerald-700 active:scale-95 shadow-lg shadow-emerald/20"
+            className="hidden md:block bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all hover:bg-emerald-700 shadow-lg shadow-emerald/20"
           >
             <BookOpen size={16} className="inline mr-2" /> Export Excel
           </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-3xl shadow-sm border border-brand/10 overflow-hidden">
-            <div className="p-6 border-b border-brand/5 bg-brand-accent/30">
-              <h2 className="font-bold text-brand-dark flex items-center gap-2">
-                <BookOpen size={18} /> Fee Structures
-              </h2>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
+        
+        {/* SIDEBAR: Collapsible on mobile */}
+        <div className="lg:col-span-1">
+            <button 
+                onClick={() => setShowSidebarMobile(!showSidebarMobile)}
+                className="lg:hidden w-full flex items-center justify-between bg-white p-4 rounded-2xl border border-brand/10 mb-2"
+            >
+                <span className="font-bold text-brand-dark flex items-center gap-2 text-sm uppercase tracking-wider">
+                    <BookOpen size={16} /> View Fee Structures
+                </span>
+                <Filter size={16} className={showSidebarMobile ? 'rotate-180' : ''} />
+            </button>
 
-            <div className="divide-y divide-slate-50">
-              {classFees.length === 0 && (
-                <p className="p-6 text-sm text-slate-400 italic">
-                  No fee structures.
-                </p>
-              )}
-
-              {classFees.map((f) => (
-                <div
-                  key={f.id}
-                  className="p-5 flex items-center justify-between hover:bg-brand-soft/20 transition"
-                >
-                  <div>
-                    <p className="font-bold text-slate-800">{f.class}</p>
-                    <p className="text-[10px] text-brand font-bold uppercase mt-0.5">
-                      {f.fee_type}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-2">
-                    <span className="font-bold text-brand text-lg">₹{f.amount}</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openEdit("class", f)}
-                        className="p-1.5 bg-slate-100 rounded-md text-slate-500 hover:text-brand transition"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
-                        onClick={() => deleteRecord("class_fees", f.id)}
-                        className="p-1.5 bg-slate-100 rounded-md text-slate-500 hover:text-red-600 transition"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
+            <div className={`${showSidebarMobile ? 'block' : 'hidden'} lg:block bg-white rounded-3xl shadow-sm border border-brand/10 overflow-hidden transition-all animate-in slide-in-from-top-2`}>
+                <div className="hidden lg:block p-6 border-b border-brand/5 bg-brand-accent/30">
+                    <h2 className="font-bold text-brand-dark flex items-center gap-2">
+                        <BookOpen size={18} /> Fee Structures
+                    </h2>
                 </div>
-              ))}
+
+                <div className="divide-y divide-slate-50 max-h-[300px] lg:max-h-none overflow-y-auto">
+                    {classFees.length === 0 ? (
+                        <p className="p-6 text-sm text-slate-400 italic">No fee structures.</p>
+                    ) : (
+                        classFees.map((f) => (
+                            <div key={f.id} className="p-4 md:p-5 flex items-center justify-between hover:bg-brand-soft/10">
+                                <div>
+                                    <p className="font-bold text-slate-800 text-sm md:text-base">{f.class}</p>
+                                    <p className="text-[9px] text-brand font-black uppercase mt-0.5">{f.fee_type}</p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    <span className="font-bold text-brand text-base">₹{f.amount}</span>
+                                    <div className="flex gap-1.5">
+                                        <button onClick={() => openEdit("class", f)} className="p-1.5 bg-slate-100 rounded-lg text-slate-500"><Edit size={12} /></button>
+                                        <button onClick={() => deleteRecord("class_fees", f.id)} className="p-1.5 bg-slate-100 rounded-lg text-slate-500 hover:text-red-500"><Trash2 size={12} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
-          </div>
         </div>
 
         {/* Main Table */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" size={20} />
-            <input
-              type="text"
-              placeholder="Search by student name or class..."
-              className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white border-2 border-transparent shadow-sm focus:border-brand-soft outline-none transition-all text-lg"
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+  {/* Search Bar */}
+  <div className="relative group">
+    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" size={20} />
+    <input
+      type="text"
+      placeholder="Search by student name or class..."
+      className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white border-2 border-transparent shadow-sm focus:border-brand-soft outline-none transition-all text-lg"
+      onChange={(e) => setSearchTerm(e.target.value)}
+    />
+  </div>
 
-          <div className="bg-white rounded-3xl shadow-sm border border-brand/10 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-brand-accent/30 text-brand-dark text-xs uppercase tracking-widest">
-                    <th className="p-5 font-bold">Student Details</th>
-                    <th className="p-5 font-bold">Type / Class</th>
-                    <th className="p-5 font-bold">Status</th>
-                    <th className="p-5 font-bold text-right">Outstanding</th>
-                    <th className="p-5 font-bold text-center">Action</th>
-                  </tr>
-                </thead>
+  {/* Desktop Table View (Hidden on Mobile) */}
+  <div className="hidden md:block bg-white rounded-3xl shadow-sm border border-brand/10 overflow-hidden">
+    <div className="overflow-x-auto">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-brand-accent/30 text-brand-dark text-xs uppercase tracking-widest">
+            <th className="p-5 font-bold">Student Details</th>
+            <th className="p-5 font-bold">Type / Class</th>
+            <th className="p-5 font-bold">Status</th>
+            <th className="p-5 font-bold text-right">Outstanding</th>
+            <th className="p-5 font-bold text-center">Action</th>
+          </tr>
+        </thead>
 
-                <tbody className="divide-y divide-slate-100">
-                  {filteredStudents.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="p-10 text-center text-slate-400">
-                        No records found.
-                      </td>
-                    </tr>
-                  )}
+        <tbody className="divide-y divide-slate-100">
+          {filteredStudents.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="p-10 text-center text-slate-400">
+                No records found.
+              </td>
+            </tr>
+          ) : (
+            filteredStudents.map((s) => {
+              const balance = s.total_amount - s.paid_amount;
+              return (
+                <tr key={s.id} className="hover:bg-brand-soft/10 transition-colors">
+                  <td className="p-5">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-brand-soft text-brand flex items-center justify-center font-bold uppercase">
+                        {s.student_name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800 leading-none mb-1">
+                          {s.student_name}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Roll: {s.roll_no}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
 
-                  {filteredStudents.map((s) => {
-                    const balance = s.total_amount - s.paid_amount;
+                  <td className="p-5">
+                    <p className="text-slate-700 font-medium">{s.fee_type}</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold">
+                      Class {s.class}
+                    </p>
+                  </td>
 
-                    return (
-                      <tr key={s.id} className="hover:bg-brand-soft/10 transition-colors">
-                        <td className="p-5">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-brand-soft text-brand flex items-center justify-center font-bold uppercase">
-                              {s.student_name.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-800 leading-none mb-1">
-                                {s.student_name}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                Roll: {s.roll_no}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
+                  <td className="p-5">
+                    <span
+                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                        balance <= 0
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-brand-soft text-brand-dark"
+                      }`}
+                    >
+                      {balance <= 0 ? "Fully Paid" : "Balance Due"}
+                    </span>
+                  </td>
 
-                        <td className="p-5">
-                          <p className="text-slate-700 font-medium">
-                            {s.fee_type}
-                          </p>
-                          <p className="text-[10px] text-slate-400 uppercase font-bold">
-                            Class {s.class}
-                          </p>
-                        </td>
+                  <td className="p-5 text-right font-mono font-bold text-lg text-brand">
+                    ₹{balance.toLocaleString()}
+                  </td>
 
-                        <td className="p-5">
-                          <span
-                            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${balance <= 0
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-brand-soft text-brand-dark"
-                              }`}
-                          >
-                            {balance <= 0 ? "Fully Paid" : "Balance Due"}
-                          </span>
-                        </td>
+                  <td className="p-5">
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={() => openEdit("student", s)}
+                        className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:bg-brand hover:text-white transition-all"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => deleteRecord("student_fees", s.id)}
+                        className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:bg-red-500 hover:text-white transition-all"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-                        <td className="p-5 text-right font-mono font-bold text-lg text-brand">
-                          ₹{balance.toLocaleString()}
-                        </td>
+  {/* Mobile Card View (Visible only on Mobile) */}
+  <div className="md:hidden bg-white rounded-3xl border border-brand/10 overflow-hidden divide-y divide-slate-100">
+    {filteredStudents.length === 0 ? (
+      <div className="p-10 text-center text-slate-400">No records found.</div>
+    ) : (
+      filteredStudents.map((s) => {
+        const balance = s.total_amount - s.paid_amount;
+        return (
+          <div key={s.id} className="p-5 space-y-4 active:bg-slate-50 transition-colors">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-brand-soft text-brand flex items-center justify-center font-bold">
+                  {s.student_name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-black text-slate-800 leading-none">{s.student_name}</p>
+                  <p className="text-[10px] text-slate-400 uppercase mt-1">
+                    Roll: {s.roll_no} • Class {s.class}
+                  </p>
+                </div>
+              </div>
+              <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase ${
+                balance <= 0 ? "bg-emerald-100 text-emerald-700" : "bg-brand-soft text-brand-dark"
+              }`}>
+                {balance <= 0 ? "Paid" : "Due"}
+              </span>
+            </div>
 
-                        <td className="p-5">
-                          <div className="flex justify-center gap-2">
-                            <button
-                              onClick={() => openEdit("student", s)}
-                              className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:bg-brand hover:text-white transition-all"
-                            >
-                              <Edit size={16} />
-                            </button>
+            <div className="flex items-end justify-between bg-slate-50 p-3 rounded-xl">
+              <div>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Fee Category</p>
+                <p className="text-xs font-bold text-slate-700">{s.fee_type}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Outstanding</p>
+                <p className="text-lg font-black text-brand leading-none">₹{balance.toLocaleString()}</p>
+              </div>
+            </div>
 
-                            <button
-                              onClick={() => deleteRecord("student_fees", s.id)}
-                              className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:bg-red-500 hover:text-white transition-all"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-
-              </table>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => openEdit("student", s)} 
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-slate-100 rounded-xl text-slate-600 font-bold text-xs hover:bg-brand hover:text-white transition-all"
+              >
+                <Edit size={14} /> Edit
+              </button>
+              <button 
+                onClick={() => deleteRecord("student_fees", s.id)} 
+                className="px-4 py-2.5 bg-red-50 rounded-xl text-red-500 hover:bg-red-500 hover:text-white transition-all"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
-        </div>
+        );
+      })
+    )}
+  </div>
+</div>
       </div>
 
       {/* MODAL */}
@@ -907,7 +965,7 @@ export default function FeesPage() {
                                 disabled={isFullyPaid}
                                 required
                               />
-                             
+
 
                             </div>
 

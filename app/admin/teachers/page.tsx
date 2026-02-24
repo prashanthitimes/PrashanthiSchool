@@ -200,98 +200,98 @@ export default function TeacherManagement() {
     }
   };
 
-  return (
-    <div className="max-w-7xl mx-auto px-6 py-10 space-y-8 bg-[#fffcfd] min-h-screen">
-      <Toaster richColors position="top-center" />
+return (
+  <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-6 md:space-y-8 bg-[#fffcfd] min-h-screen">
+    <Toaster richColors position="top-center" />
 
-      {/* HEADER */}
-      <header className="flex flex-col lg:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-brand-soft/30 rounded-3xl flex items-center justify-center text-brand border border-brand-soft shadow-sm">
-            <Users size={30} />
+    {/* HEADER */}
+    <header className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-brand-soft/30 rounded-2xl md:rounded-3xl flex items-center justify-center text-brand border border-brand-soft shadow-sm shrink-0">
+            <Users size={24} className="md:w-[30px] md:h-[30px]" />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight uppercase">
+            <h1 className="text-xl md:text-3xl font-black text-slate-800 tracking-tight uppercase leading-none">
               FACULTY<span className="text-brand">REGISTRY</span>
             </h1>
-            <p className="text-brand font-bold text-[10px] tracking-[0.2em] uppercase opacity-70">Staff Management System</p>
+            <p className="text-brand font-bold text-[8px] md:text-[10px] tracking-[0.2em] uppercase opacity-70 mt-1">Staff Management System</p>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-            {/* IMPORT HIDDEN INPUT */}
-            <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx, .xls, .csv" className="hidden" />
-            
-           <div className="flex items-center gap-3">
-    {/* NEW: Standalone Sample Button */}
-    <button 
-        onClick={downloadSample}
-        className="bg-emerald-50 text-emerald-600 border-2 border-emerald-100 px-4 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-100 transition-all"
-    >
-        <FileText size={18}/> Sample File
-    </button>
-
-    {/* IMPORT HIDDEN INPUT */}
-    <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx, .xls, .csv" className="hidden" />
-    
-    <button 
-        onClick={() => fileInputRef.current?.click()}
-        className="bg-white border-2 border-slate-100 text-slate-600 px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all"
-    >
-        <Upload size={18}/> Import
-    </button>
-
-    {/* EXPORT BUTTON */}
-    <button 
-        onClick={() => exportToExcel(teachers, 'all_teachers')}
-        className="bg-slate-800 text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg flex items-center gap-2 hover:bg-slate-700 transition-all"
-    >
-        <Download size={18}/> Export
-    </button>
-</div>
-          <button
-            onClick={() => openModal()}
-            className="bg-brand text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-brand-soft hover:brightness-110 transition-all flex items-center gap-2"
-          >
-            <Plus size={18} /> Onboard Teacher
-          </button>
-        </div>
-      </header>
-      
-      {/* ... Rest of your search, table, and modal code remains the same ... */}
-      {/* Ensure the table mapping and search logic are kept as per your original file */}
-      
-      {/* SEARCH & DEPT FILTER */}
-      <div className="space-y-4">
-        <div className="bg-white p-4 rounded-[2.5rem] border border-brand-soft flex flex-col lg:flex-row gap-4 items-center shadow-sm">
-            <div className="relative flex-1 w-full">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-brand" size={20} />
-                <input 
-                    type="text" 
-                    placeholder="Search by name, email or ID..."
-                    className="w-full pl-14 pr-6 py-4 bg-brand-soft/20 border-none rounded-2xl font-bold text-sm outline-none focus:ring-2 ring-brand"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
-            </div>
-            <div className="flex items-center bg-brand-soft/30 px-4 rounded-2xl w-full lg:w-auto">
-                <Building2 className="text-brand mr-2" size={14}/>
-                <select 
-                    value={selectedDept}
-                    className="w-full bg-transparent border-none py-4 font-black text-slate-700 text-[11px] uppercase cursor-pointer outline-none" 
-                    onChange={(e) => setSelectedDept(e.target.value)}
-                >
-                    <option value="All">All Departments</option>
-                    {subjects.map((s, idx) => (
-                        <option key={idx} value={s.name}>{s.name}</option>
-                    ))}
-                </select>
-            </div>
-        </div>
+        {/* Onboard Button for Mobile - Floating or Top Right */}
+        <button
+          onClick={() => openModal()}
+          className="lg:hidden bg-brand text-white p-4 rounded-2xl shadow-lg shadow-brand-soft active:scale-95 transition-all"
+        >
+          <Plus size={20} />
+        </button>
       </div>
 
-      {/* TABLE */}
-      <div className="bg-white rounded-[3rem] border border-brand-soft overflow-hidden shadow-sm">
+      {/* ACTION BUTTONS BAR */}
+      <div className="grid grid-cols-2 lg:flex lg:flex-row items-center gap-3">
+        <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx, .xls, .csv" className="hidden" />
+        
+        <button 
+            onClick={downloadSample}
+            className="flex-1 bg-emerald-50 text-emerald-600 border-2 border-emerald-100 px-3 py-4 rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-100 transition-all"
+        >
+            <FileText size={16}/> Sample
+        </button>
+
+        <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 bg-white border-2 border-slate-100 text-slate-600 px-3 py-4 rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
+        >
+            <Upload size={16}/> Import
+        </button>
+
+        <button 
+            onClick={() => exportToExcel(teachers, 'all_teachers')}
+            className="flex-1 bg-slate-800 text-white px-3 py-4 rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 hover:bg-slate-700 transition-all"
+        >
+            <Download size={16}/> Export
+        </button>
+
+        <button
+          onClick={() => openModal()}
+          className="hidden lg:flex flex-1 bg-brand text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-brand-soft hover:brightness-110 transition-all items-center justify-center gap-2"
+        >
+          <Plus size={18} /> Onboard Teacher
+        </button>
+      </div>
+    </header>
+
+    {/* SEARCH & DEPT FILTER */}
+    <div className="bg-white p-3 md:p-4 rounded-[1.5rem] md:rounded-[2.5rem] border border-brand-soft flex flex-col md:flex-row gap-3 items-center shadow-sm">
+      <div className="relative flex-1 w-full">
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-brand" size={18} />
+        <input 
+          type="text" 
+          placeholder="Search faculty..."
+          className="w-full pl-12 pr-6 py-4 bg-brand-soft/20 border-none rounded-2xl font-bold text-sm outline-none focus:ring-2 ring-brand"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+      <div className="flex items-center bg-brand-soft/30 px-4 rounded-2xl w-full md:w-auto">
+        <Building2 className="text-brand mr-2" size={14}/>
+        <select 
+          value={selectedDept}
+          className="w-full bg-transparent border-none py-4 font-black text-slate-700 text-[11px] uppercase cursor-pointer outline-none" 
+          onChange={(e) => setSelectedDept(e.target.value)}
+        >
+          <option value="All">All Departments</option>
+          {subjects.map((s, idx) => (
+            <option key={idx} value={s.name}>{s.name}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    {/* DATA CONTAINER */}
+    <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-brand-soft overflow-hidden shadow-sm">
+      {/* DESKTOP VIEW */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left">
           <thead>
             <tr className="bg-brand-soft/10 text-[10px] font-black text-brand uppercase tracking-widest border-b border-brand-soft">
@@ -308,9 +308,7 @@ export default function TeacherManagement() {
               <tr key={t.id} className="hover:bg-brand-soft/5 transition-all group">
                 <td className="px-10 py-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-brand-soft text-brand rounded-2xl flex items-center justify-center font-black text-xl">
-                      {t.full_name.charAt(0)}
-                    </div>
+                    <div className="w-10 h-10 bg-brand-soft text-brand rounded-xl flex items-center justify-center font-black text-lg shrink-0">{t.full_name.charAt(0)}</div>
                     <div>
                       <p className="font-black text-slate-800 uppercase text-sm">{t.full_name}</p>
                       <p className="text-[10px] font-bold text-slate-400">{t.teacher_id}</p>
@@ -318,13 +316,11 @@ export default function TeacherManagement() {
                   </div>
                 </td>
                 <td className="px-8 py-6">
-                  <div className="inline-flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
-                    <span className="text-xs font-black text-slate-700 uppercase">{t.department || "Unassigned"}</span>
-                  </div>
+                  <span className="text-[10px] font-black text-slate-700 uppercase bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">{t.department || "Unassigned"}</span>
                 </td>
                 <td className="px-8 py-6">
                   <div className="space-y-1">
-                    <p className="text-[11px] font-bold text-slate-500 flex items-center gap-2 lowercase"><Mail size={12} className="text-brand"/> {t.email}</p>
+                    <p className="text-[11px] font-bold text-slate-500 flex items-center gap-2 lowercase truncate max-w-[150px]"><Mail size={12} className="text-brand"/> {t.email}</p>
                     <p className="text-[11px] font-bold text-slate-500 flex items-center gap-2"><Phone size={12} className="text-brand"/> {t.phone || "N/A"}</p>
                   </div>
                 </td>
@@ -338,132 +334,101 @@ export default function TeacherManagement() {
             ))}
           </tbody>
         </table>
-        {!loading && filtered.length === 0 && (
-            <div className="p-20 text-center">
-                <AlertCircle className="mx-auto text-slate-200 mb-4" size={48} />
-                <p className="text-slate-400 font-black uppercase text-xs tracking-widest">No faculty members found</p>
-            </div>
-        )}
       </div>
 
-      {/* FORM MODAL */}
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-8 border-b border-brand-soft bg-brand-soft/10 flex justify-between items-center">
-                <h2 className="text-xl font-black text-brand uppercase tracking-tighter">
-                    {editTeacher ? 'Update' : 'Onboard'} Faculty
-                </h2>
-                <button onClick={() => setShowModal(false)}><X size={24}/></button>
+      {/* MOBILE LIST VIEW */}
+      <div className="md:hidden divide-y divide-brand-soft/10">
+        {loading ? (
+           <div className="p-20 text-center animate-pulse text-brand font-black text-xs uppercase tracking-widest">Loading...</div>
+        ) : filtered.map((t) => (
+          <div key={t.id} className="p-5 space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-brand-soft text-brand rounded-xl flex items-center justify-center font-black">{t.full_name.charAt(0)}</div>
+                <div>
+                  <p className="font-black text-slate-800 uppercase text-xs">{t.full_name}</p>
+                  <p className="text-[9px] font-bold text-slate-400">{t.teacher_id}</p>
+                </div>
+              </div>
+              <span className="text-[8px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded uppercase">{t.department || "N/A"}</span>
             </div>
             
-            <form onSubmit={saveTeacher} className="p-10 space-y-6">
-                <div className="grid grid-cols-2 gap-5">
-                    <div className="col-span-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Full Name</label>
-                        <input 
-                            required 
-                            value={formData.full_name} 
-                            onChange={e => setFormData({...formData, full_name: e.target.value})} 
-                            className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-brand-soft outline-none"
-                            placeholder="e.g. Dr. Sarah Jenkins"
-                        />
-                    </div>
-
-                    <div className="col-span-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Email Address</label>
-                        <input 
-                            required 
-                            type="email"
-                            value={formData.email} 
-                            onChange={e => setFormData({...formData, email: e.target.value})} 
-                            className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-brand-soft outline-none"
-                            placeholder="sarah.j@school.com"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Department</label>
-                        <select 
-                            required 
-                            value={formData.department} 
-                            onChange={e => setFormData({...formData, department: e.target.value})} 
-                            className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold outline-none cursor-pointer border-2 border-transparent focus:border-brand-soft"
-                        >
-                            <option value="">Select Dept</option>
-                            {subjects.map((s, idx) => (
-                                <option key={idx} value={s.name}>{s.name}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Contact Phone</label>
-                        <input 
-                            value={formData.phone} 
-                            onChange={e => setFormData({...formData, phone: e.target.value})} 
-                            className="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-brand-soft outline-none"
-                            placeholder="+1 (555) 000-0000"
-                        />
-                    </div>
-
-                    <div className="col-span-2">
-                        <div className="p-6 bg-brand-soft/10 rounded-[2rem] border border-brand-soft/30">
-                            <div className="flex justify-between items-center mb-3">
-                                <label className="text-[10px] font-black text-brand uppercase tracking-widest flex items-center gap-2">
-                                    <Lock size={12}/> Portal Password
-                                </label>
-                                <button 
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, password: generatePassword() })}
-                                    className="text-[10px] font-black text-slate-400 hover:text-brand transition-colors uppercase"
-                                >
-                                    Regenerate
-                                </button>
-                            </div>
-                            <div className="bg-white px-6 py-3 rounded-xl font-mono text-lg font-black text-brand text-center tracking-widest border border-brand-soft">
-                                {formData.password}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button className="w-full bg-brand text-white py-5 rounded-[2rem] font-black uppercase tracking-widest shadow-xl shadow-brand-soft hover:brightness-110 active:scale-[0.98] transition-all">
-                    {editTeacher ? "Update Profile" : "Onboard Faculty"}
-                </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* DELETE DIALOG */}
-      {deleteId && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white p-10 rounded-[3.5rem] w-full max-w-sm text-center shadow-2xl border border-slate-100 animate-in zoom-in-95">
-            <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                <Trash2 size={40}/>
+            <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 space-y-2">
+              <p className="text-[10px] font-bold text-slate-500 flex items-center gap-2 lowercase"><Mail size={10} className="text-brand"/> {t.email}</p>
+              <p className="text-[10px] font-bold text-slate-500 flex items-center gap-2"><Phone size={10} className="text-brand"/> {t.phone || "N/A"}</p>
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">TERMINATE RECORD?</h3>
-            <p className="text-slate-500 text-xs font-bold mb-8 uppercase leading-relaxed tracking-wide">
-                This will permanently remove the teacher from all academic systems.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-black text-slate-400 text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-colors">Cancel</button>
-              <button 
-                onClick={async () => { 
-                    await supabase.from("teachers").delete().eq("id", deleteId); 
-                    setDeleteId(null); 
-                    fetchData(); 
-                    toast.success("Record Terminated");
-                }} 
-                className="flex-1 py-4 bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-200 hover:bg-rose-600 transition-all"
-              >
-                Delete
-              </button>
+
+            <div className="flex gap-2">
+               <button onClick={() => openModal(t)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center gap-2 font-black text-[10px] uppercase">
+                <Edit2 size={14}/> Edit
+               </button>
+               <button onClick={() => setDeleteId(t.id)} className="flex-1 py-3 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center gap-2 font-black text-[10px] uppercase">
+                <Trash2 size={14}/> Remove
+               </button>
             </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
-  );
+
+    {/* MODAL ADJUSTMENTS (Mobile Full Screen) */}
+    {showModal && (
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+        <div className="bg-white w-full max-w-xl rounded-t-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 max-h-[95vh] flex flex-col">
+          <div className="p-6 md:p-8 border-b border-brand-soft bg-brand-soft/10 flex justify-between items-center shrink-0">
+            <h2 className="text-lg md:text-xl font-black text-brand uppercase tracking-tighter">
+              {editTeacher ? 'Update' : 'Onboard'} Faculty
+            </h2>
+            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white rounded-full transition-colors"><X size={24}/></button>
+          </div>
+          
+          <form onSubmit={saveTeacher} className="p-6 md:p-10 space-y-4 md:space-y-6 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+              <div className="md:col-span-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Full Name</label>
+                <input required value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="w-full px-5 py-3.5 md:px-6 md:py-4 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-brand-soft outline-none text-sm" placeholder="e.g. Dr. Sarah Jenkins" />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Email Address</label>
+                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-5 py-3.5 md:px-6 md:py-4 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-brand-soft outline-none text-sm" placeholder="sarah.j@school.com" />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Department</label>
+                <select required value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 rounded-2xl font-bold outline-none cursor-pointer border-2 border-transparent focus:border-brand-soft text-sm">
+                  <option value="">Select Dept</option>
+                  {subjects.map((s, idx) => (
+                    <option key={idx} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Contact Phone</label>
+                <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-brand-soft outline-none text-sm" placeholder="+1 (555) 000-0000" />
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="p-4 md:p-6 bg-brand-soft/10 rounded-[1.5rem] md:rounded-[2rem] border border-brand-soft/30">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[9px] font-black text-brand uppercase tracking-widest flex items-center gap-2"><Lock size={12}/> Portal Password</label>
+                    <button type="button" onClick={() => setFormData({ ...formData, password: generatePassword() })} className="text-[9px] font-black text-slate-400 uppercase">Regenerate</button>
+                  </div>
+                  <div className="bg-white px-4 py-2.5 rounded-xl font-mono text-base md:text-lg font-black text-brand text-center tracking-widest border border-brand-soft">
+                    {formData.password}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button className="w-full bg-brand text-white py-4 md:py-5 rounded-[1.5rem] md:rounded-[2rem] font-black uppercase tracking-widest shadow-xl shadow-brand-soft hover:brightness-110 active:scale-[0.98] transition-all text-[11px] md:text-sm">
+              {editTeacher ? "Update Profile" : "Onboard Faculty"}
+            </button>
+          </form>
+        </div>
+      </div>
+    )}
+  </div>
+);
 }

@@ -29,11 +29,11 @@ export default function NoticesManagement() {
     const [editingId, setEditingId] = useState<string | null>(null)
 
     const [formData, setFormData] = useState({
-        title: '', 
-        category: 'General', 
-        priority: 'Medium', 
-        content: '', 
-        recipients: [] as string[], 
+        title: '',
+        category: 'General',
+        priority: 'Medium',
+        content: '',
+        recipients: [] as string[],
         is_active: true,
         target_classes: [] as string[],
         target_all_classes: false
@@ -56,12 +56,12 @@ export default function NoticesManagement() {
     const toggleRecipient = (role: string) => {
         setFormData(prev => {
             const isSelected = prev.recipients.includes(role)
-            const newRecipients = isSelected 
-                ? prev.recipients.filter(r => r !== role) 
+            const newRecipients = isSelected
+                ? prev.recipients.filter(r => r !== role)
                 : [...prev.recipients, role]
-            
-            return { 
-                ...prev, 
+
+            return {
+                ...prev,
                 recipients: newRecipients,
                 // Reset classes if Students is unselected
                 target_classes: !newRecipients.includes('Students') ? [] : prev.target_classes,
@@ -122,45 +122,50 @@ export default function NoticesManagement() {
         setShowModal(false)
         setEditingId(null)
         setFile(null)
-        setFormData({ 
-            title: '', category: 'General', priority: 'Medium', content: '', 
-            recipients: [], is_active: true, target_classes: [], target_all_classes: false 
+        setFormData({
+            title: '', category: 'General', priority: 'Medium', content: '',
+            recipients: [], is_active: true, target_classes: [], target_all_classes: false
         })
     }
 
     return (
-        <div className="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 py-4 space-y-8 animate-in fade-in duration-500">
+        <div className="max-w-7xl mx-auto mt-4 sm:mt-10 px-4 sm:px-6 lg:px-8 py-4 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
             <Toaster position="top-right" />
-            
-            {/* Header */}
-            <header className="flex items-center justify-between bg-white/80 backdrop-blur-md px-8 py-6 rounded-[2rem] border border-brand-accent shadow-sm">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-brand-accent text-brand-light rounded-2xl flex items-center justify-center shadow-inner">
-                        <FiShield size={24} />
+
+            {/* Header - Made Flex-Col on Mobile */}
+            <header className="flex flex-col sm:flex-row items-center justify-between bg-white/80 backdrop-blur-md px-6 py-5 sm:px-8 sm:py-6 rounded-[1.5rem] sm:rounded-[2rem] border border-brand-accent shadow-sm gap-4">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-accent text-brand-light rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner">
+                        <FiShield size={20} className="sm:text-[24px]" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-black text-brand-dark tracking-tight uppercase leading-none">Notice Registry</h1>
-                        <p className="text-[10px] font-bold text-brand-light tracking-[0.2em] uppercase mt-1">Official Communications</p>
+                        <h1 className="text-lg sm:text-xl font-black text-brand-dark tracking-tight uppercase leading-none">Notice Registry</h1>
+                        <p className="text-[9px] sm:text-[10px] font-bold text-brand-light tracking-[0.2em] uppercase mt-1">Official Communications</p>
                     </div>
                 </div>
-                <button onClick={() => setShowModal(true)} className="bg-brand hover:bg-brand-dark text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/30">
+                <button onClick={() => setShowModal(true)} className="w-full sm:w-auto bg-brand hover:bg-brand-dark text-white px-6 py-4 rounded-xl sm:rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/30">
                     <FiPlus size={18} className="inline mr-2" /> New Notice
                 </button>
             </header>
 
             <div className="grid lg:grid-cols-12 gap-6">
-                <aside className="lg:col-span-3 space-y-6">
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-brand-accent shadow-sm">
-                        <p className="text-[10px] font-black text-brand-light uppercase tracking-[0.2em] mb-6">Metrics</p>
-                        <div className="space-y-5">
-                            <Metric icon={<FiGrid />} label="Total" value={notices.length} />
-                            <Metric icon={<FiCheckCircle className="text-brand" />} label="Active" value={notices.filter(n => n.is_active).length} />
+                {/* Metrics - Horizontal Scroll on Mobile */}
+                <aside className="lg:col-span-3">
+                    <div className="bg-white p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] border border-brand-accent shadow-sm">
+                        <p className="text-[10px] font-black text-brand-light uppercase tracking-[0.2em] mb-4 sm:mb-6">Registry Metrics</p>
+                        <div className="flex flex-row lg:flex-col gap-6 lg:gap-5 overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
+                            <div className="min-w-[120px] lg:min-w-0 flex-1">
+                                <Metric icon={<FiGrid />} label="Total" value={notices.length} />
+                            </div>
+                            <div className="min-w-[120px] lg:min-w-0 flex-1">
+                                <Metric icon={<FiCheckCircle className="text-brand" />} label="Active" value={notices.filter(n => n.is_active).length} />
+                            </div>
                         </div>
                     </div>
                 </aside>
 
                 <main className="lg:col-span-9">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                         {loading ? (
                             <div className="col-span-full text-center py-20 font-black text-brand-soft animate-pulse uppercase text-xs">Accessing Data...</div>
                         ) : notices.map((notice) => (
@@ -176,43 +181,46 @@ export default function NoticesManagement() {
                 </main>
             </div>
 
-            {/* FULL VIEW MODAL */}
+            {/* FULL VIEW MODAL - Mobile Drawer Style */}
             {viewingNotice && (
-                <div className="fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[3rem] w-full max-w-2xl shadow-2xl border border-brand-accent overflow-hidden animate-in zoom-in duration-300">
+                <div className="fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-[60] flex items-end sm:items-center justify-center">
+                    <div className="bg-white rounded-t-[2.5rem] sm:rounded-[3rem] w-full max-w-2xl shadow-2xl border border-brand-accent overflow-hidden animate-in slide-in-from-bottom sm:zoom-in duration-300 max-h-[90vh] overflow-y-auto">
                         <div className={`h-2 w-full ${viewingNotice.is_active ? 'bg-brand' : 'bg-rose-500'}`} />
-                        <div className="p-10 relative">
-                            <button onClick={() => setViewingNotice(null)} className="absolute top-8 right-8 text-brand-light p-2 bg-brand-soft rounded-full hover:bg-brand-accent transition-colors"><FiX size={20} /></button>
-                            <h2 className="text-3xl font-black text-brand-dark leading-tight uppercase tracking-tighter mb-6">{viewingNotice.title}</h2>
-                            
-                            <div className="grid grid-cols-2 gap-8 mb-8">
-                                <DetailItem icon={<FiUsers />} label="Target Audience" value={viewingNotice.recipients?.join(', ')} />
+                        <div className="p-6 sm:p-10 relative">
+                            <button onClick={() => setViewingNotice(null)} className="absolute top-4 right-4 sm:top-8 sm:right-8 text-brand-light p-2 bg-brand-soft rounded-full hover:bg-brand-accent transition-colors"><FiX size={20} /></button>
+                            <h2 className="text-2xl sm:text-3xl font-black text-brand-dark leading-tight uppercase tracking-tighter mb-6 pr-10">{viewingNotice.title}</h2>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-8">
+                                <DetailItem icon={<FiUsers />} label="Audience" value={viewingNotice.recipients?.join(', ')} />
                                 {viewingNotice.recipients.includes('Students') && (
                                     <DetailItem icon={<FiLayers />} label="Classes" value={viewingNotice.target_all_classes ? "All Classes" : viewingNotice.target_classes.join(', ')} />
                                 )}
                             </div>
 
-                            <div className="bg-brand-accent/30 p-8 rounded-[2rem] mb-8 border border-brand-accent/50">
-                                <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">{viewingNotice.content}</p>
+                            <div className="bg-brand-accent/30 p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2rem] mb-8 border border-brand-accent/50">
+                                <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap text-sm sm:text-base">{viewingNotice.content}</p>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* CREATE/EDIT MODAL */}
+            {/* CREATE/EDIT MODAL - Mobile Drawer Style */}
             {showModal && (
-                <div className="fixed inset-0 bg-brand-dark/20 backdrop-blur-md z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[3rem] w-full max-w-3xl shadow-2xl border border-brand-accent overflow-hidden max-h-[90vh] flex flex-col">
-                        <div className="p-10 pb-4 flex justify-between items-center">
-                            <h2 className="font-black text-2xl text-brand-dark uppercase tracking-tighter">{editingId ? 'Modify Entry' : 'New Registry'}</h2>
+                <div className="fixed inset-0 bg-brand-dark/20 backdrop-blur-md z-50 flex items-end sm:items-center justify-center">
+                    <div className="bg-white rounded-t-[2.5rem] sm:rounded-[3rem] w-full max-w-3xl shadow-2xl border border-brand-accent overflow-hidden h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+                        {/* Drawer Handle for mobile */}
+                        <div className="w-12 h-1.5 bg-brand-accent rounded-full mx-auto mt-4 sm:hidden" />
+
+                        <div className="p-6 sm:p-10 pb-4 flex justify-between items-center">
+                            <h2 className="font-black text-xl sm:text-2xl text-brand-dark uppercase tracking-tighter">{editingId ? 'Modify Entry' : 'New Registry'}</h2>
                             <button onClick={closeModal} className="text-brand-light p-2 bg-brand-soft rounded-full"><FiX size={20} /></button>
                         </div>
-                        
-                        <form onSubmit={handleSubmit} className="p-10 pt-4 space-y-6 overflow-y-auto">
+
+                        <form onSubmit={handleSubmit} className="p-6 sm:p-10 pt-4 space-y-6 overflow-y-auto no-scrollbar">
                             <Field label="Notice Title" value={formData.title} onChange={(v: any) => setFormData({ ...formData, title: v })} />
-                            
-                            <div className="grid grid-cols-2 gap-4">
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <SelectField label="Category" value={formData.category} onChange={(v: any) => setFormData({ ...formData, category: v })} options={CATEGORIES} />
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-brand-light uppercase ml-2 tracking-widest">Visibility</label>
@@ -225,32 +233,32 @@ export default function NoticesManagement() {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-brand-light uppercase ml-2 tracking-widest">Recipients</label>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap sm:flex-nowrap gap-2">
                                     {RECIPIENTS_OPTIONS.map(r => (
                                         <RecipientBtn key={r} label={r} active={formData.recipients.includes(r)} onClick={() => toggleRecipient(r)} />
                                     ))}
                                 </div>
                             </div>
 
-                            {/* CONDITIONAL CLASS SELECTOR */}
+                            {/* MOBILE OPTIMIZED CLASS SELECTOR */}
                             {formData.recipients.includes('Students') && (
-                                <div className="p-6 bg-brand-soft/50 rounded-[2rem] border border-brand-accent animate-in slide-in-from-top-4 duration-300">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <label className="text-[10px] font-black text-brand uppercase tracking-widest">Class & Section Selection</label>
-                                        <button 
-                                            type="button" 
+                                <div className="p-4 sm:p-6 bg-brand-soft/50 rounded-[1.5rem] sm:rounded-[2rem] border border-brand-accent">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                                        <label className="text-[10px] font-black text-brand uppercase tracking-widest">Target Selection</label>
+                                        <button
+                                            type="button"
                                             onClick={() => setFormData(prev => ({ ...prev, target_all_classes: !prev.target_all_classes, target_classes: [] }))}
-                                            className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all ${formData.target_all_classes ? 'bg-brand text-white border-brand' : 'border-brand text-brand hover:bg-brand hover:text-white'}`}>
-                                            {formData.target_all_classes ? 'Selected: All Classes' : 'Select All Classes'}
+                                            className={`w-full sm:w-auto px-4 py-2 rounded-full text-[9px] font-black uppercase border transition-all ${formData.target_all_classes ? 'bg-brand text-white' : 'bg-white text-brand border-brand'}`}>
+                                            {formData.target_all_classes ? '✓ All Classes Selected' : 'Select All Classes'}
                                         </button>
                                     </div>
-                                    
+
                                     {!formData.target_all_classes && (
-                                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                             {CLASSES.map(cls => (
-                                                <div key={cls} className="space-y-1">
-                                                    <p className="text-[9px] font-black text-brand-light text-center uppercase">Class {cls}</p>
-                                                    <div className="flex flex-wrap gap-1 justify-center">
+                                                <div key={cls} className="p-2 bg-white rounded-xl border border-brand-accent/50">
+                                                    <p className="text-[9px] font-black text-brand-light text-center uppercase mb-2 border-b pb-1">Cls {cls}</p>
+                                                    <div className="flex gap-1 justify-center">
                                                         {SECTIONS.map(sec => {
                                                             const isSel = formData.target_classes.includes(`${cls}-${sec}`)
                                                             return (
@@ -258,7 +266,7 @@ export default function NoticesManagement() {
                                                                     key={sec}
                                                                     type="button"
                                                                     onClick={() => toggleClassSection(cls, sec)}
-                                                                    className={`w-7 h-7 flex items-center justify-center rounded-lg text-[10px] font-bold border transition-all ${isSel ? 'bg-brand text-white border-brand' : 'bg-white text-brand-light border-brand-accent hover:border-brand-soft'}`}>
+                                                                    className={`w-7 h-7 flex items-center justify-center rounded-lg text-[10px] font-bold border transition-all ${isSel ? 'bg-brand text-white border-brand' : 'bg-brand-accent/20 text-brand-light border-transparent'}`}>
                                                                     {sec}
                                                                 </button>
                                                             )
@@ -276,25 +284,32 @@ export default function NoticesManagement() {
                                 <textarea required rows={4} className="w-full bg-brand-accent/30 border border-brand-accent p-4 rounded-2xl outline-none font-bold text-brand-dark text-sm" value={formData.content} onChange={e => setFormData({ ...formData, content: e.target.value })} />
                             </div>
 
-                            <button type="submit" disabled={isUploading} className="w-full py-5 bg-brand hover:bg-brand-dark text-white rounded-[1.5rem] font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-brand/20 transition-all flex items-center justify-center gap-2">
+                            <button type="submit" disabled={isUploading} className="w-full py-5 bg-brand hover:bg-brand-dark text-white rounded-[1.5rem] font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-brand/20 transition-all flex items-center justify-center gap-2 sticky bottom-0">
                                 <FiSend /> {isUploading ? 'Executing...' : 'Commit Notice'}
                             </button>
                         </form>
                     </div>
                 </div>
             )}
+
+            {/* Global Styles for Mobile UX */}
+            <style jsx global>{`
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+            `}</style>
         </div>
     )
 }
-
 // Reuse your existing helper components (NoticeCard, DetailItem, Metric, Field, SelectField, RecipientBtn)...
 // [Keeping logic same as your provided code for helpers]
 function NoticeCard({ notice, onEdit, onDelete, onView }: any) {
     const isActive = notice.is_active;
-    
+
     return (
         <div className={`group relative bg-white rounded-[2rem] border transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${isActive ? 'border-slate-200 shadow-sm' : 'border-rose-100 bg-rose-50/30'}`}>
-            
+
             {/* Top Status Bar & Date Badge */}
             <div className="flex justify-between items-center p-6 pb-0">
                 <div className="flex flex-col">
@@ -343,17 +358,17 @@ function NoticeCard({ notice, onEdit, onDelete, onView }: any) {
                 <div className="flex items-center justify-between pt-5 border-t border-slate-50">
                     <div className="flex -space-x-2">
                         {notice.recipients?.map((r: string) => (
-                            <div 
-                                key={r} 
-                                title={r} 
+                            <div
+                                key={r}
+                                title={r}
                                 className="w-8 h-8 rounded-full bg-white border-2 border-slate-50 flex items-center justify-center text-[10px] font-black text-slate-700 shadow-sm ring-1 ring-slate-100"
                             >
                                 {r[0]}
                             </div>
                         ))}
                     </div>
-                    
-                    <button 
+
+                    <button
                         onClick={onView}
                         className="text-[10px] font-black uppercase tracking-widest text-indigo-600 flex items-center gap-1.5 group/btn"
                     >

@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { 
-  FiCalendar, 
-  FiPlus, 
-  FiEdit, 
-  FiTrash2, 
-  FiX, 
-  FiClipboard, 
-  FiChevronRight, 
+import {
+  FiCalendar,
+  FiPlus,
+  FiEdit,
+  FiTrash2,
+  FiX,
+  FiClipboard,
+  FiChevronRight,
   FiCheckCircle,
-  FiAward, 
+  FiAward,
   FiTarget // Icon for Passing Marks
 } from "react-icons/fi";
 
@@ -25,7 +25,7 @@ export default function ExamsPage() {
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState(false);
-const [today, setToday] = useState<string | null>(null);
+  const [today, setToday] = useState<string | null>(null);
 
   const emptyForm = {
     exam_name: "",
@@ -51,21 +51,21 @@ const [today, setToday] = useState<string | null>(null);
   useEffect(() => { fetchExams(); }, []);
 
   useEffect(() => {
-  setToday(new Date().toISOString().split("T")[0]);
-}, []);
+    setToday(new Date().toISOString().split("T")[0]);
+  }, []);
 
   const saveExam = async () => {
     if (!form.exam_name || !form.exam_type) return alert("Please fill required fields");
     // Simple validation: Pass marks shouldn't exceed total marks
     if (form.pass_marks > form.total_marks) return alert("Passing marks cannot exceed maximum marks");
-    
+
     setLoading(true);
     if (editId) {
       await supabase.from("exams").update(form).eq("id", editId);
     } else {
       await supabase.from("exams").insert([form]);
     }
-    
+
     setLoading(false);
     setOpen(false);
     setEditId(null);
@@ -95,20 +95,20 @@ const [today, setToday] = useState<string | null>(null);
   };
 
   const getStatus = (start: string, end: string) => {
-  if (!today) return { label: "", color: "" };
+    if (!today) return { label: "", color: "" };
 
-  if (today < start)
-    return { label: "Upcoming", color: "bg-blue-50 text-blue-600 border-blue-100" };
+    if (today < start)
+      return { label: "Upcoming", color: "bg-blue-50 text-blue-600 border-blue-100" };
 
-  if (today > end)
-    return { label: "Completed", color: "bg-slate-100 text-slate-500 border-slate-200" };
+    if (today > end)
+      return { label: "Completed", color: "bg-slate-100 text-slate-500 border-slate-200" };
 
-  return { label: "Ongoing", color: "bg-emerald-50 text-emerald-600 border-emerald-100" };
-};
+    return { label: "Ongoing", color: "bg-emerald-50 text-emerald-600 border-emerald-100" };
+  };
 
   return (
     <div className="p-6 mt-10 space-y-8 max-w-[1200px] mx-auto min-h-screen bg-[#FCFAFC]">
-      
+
       {/* HEADER */}
       <header className="flex flex-col md:flex-row items-center justify-between bg-white/80 backdrop-blur-md px-8 py-6 rounded-[2.5rem] border border-brand-soft/30 shadow-sm">
         <div className="flex items-center gap-5">
@@ -130,91 +130,156 @@ const [today, setToday] = useState<string | null>(null);
       </header>
 
       {/* EXAMS TABLE */}
+      {/* EXAMS LIST */}
       <div className="bg-white rounded-[2.5rem] shadow-xl shadow-brand/5 border border-brand-soft/30 overflow-hidden">
-        <div className="overflow-x-auto">
+
+        {/* ================= DESKTOP TABLE ================= */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full border-collapse">
-           <thead>
-                <tr className="bg-brand-accent/40 text-[10px] font-black text-brand-dark/50 uppercase tracking-[0.2em]">
-                  <th className="p-6 text-left">Exam Details</th>
-                  <th className="p-6 text-left">Target Classes</th>
-                  <th className="p-6 text-center">Score Schema</th>
-                  <th className="p-6 text-left">Timeline</th>
-                  <th className="p-6 text-center">Status</th>
-                  <th className="p-6 text-right">Actions</th>
-                </tr>
-              </thead>
-            <tbody className="divide-y divide-brand-soft/20 text-xs font-bold uppercase tracking-wider">
-              {exams.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-20 text-center text-slate-400 font-black opacity-40 italic tracking-widest">
-                    No Examination Records Found
-                  </td>
-                </tr>
-              ) : (
-today && exams.map((e) => {
-                  const status = getStatus(e.start_date, e.end_date);
-                  return (
-                    <tr key={e.id} className="group hover:bg-brand-accent/10 transition-colors">
-                      <td className="p-6">
-                        <div className="text-slate-800 text-sm font-black">{e.exam_name}</div>
-                        <div className="text-brand text-[9px] mt-1">{e.exam_type}</div>
-                      </td>
-                      <td className="p-6">
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {e.classes.map((c: string) => (
-                            <span key={c} className="bg-white border border-brand-soft text-brand-dark px-2 py-0.5 rounded-lg text-[9px]">
-                              {c}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      {/* SCORE SCHEMA TD */}
-                      <td className="p-6 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="flex items-center gap-1.5 text-slate-800 font-black">
-                            <FiAward className="text-brand" size={12} />
-                            <span>{e.total_marks}</span>
-                          </div>
-                          <div className="text-[8px] text-slate-300 border-t border-slate-100 pt-1 flex items-center gap-1">
-                            <FiTarget size={10} className="text-slate-400" />
-                            <span>Pass: {e.pass_marks}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-6 text-slate-500">
-                        <div className="flex items-center gap-2">
-                          <FiCalendar className="text-brand" />
-                          {e.start_date} <FiChevronRight className="opacity-30"/> {e.end_date}
-                        </div>
-                      </td>
-                      <td className="p-6 text-center">
-                        <span className={`px-4 py-1.5 rounded-full border text-[9px] font-black ${status.color}`}>
-                          {status.label}
-                        </span>
-                      </td>
-                      <td className="p-6">
-                        <div className="flex justify-end gap-2">
-                          <button 
-                            onClick={() => { setEditId(e.id); setForm(e); setOpen(true); }}
-                            className="w-9 h-9 flex items-center justify-center bg-brand-soft/30 text-brand rounded-xl hover:bg-brand hover:text-white transition-all"
-                          >
-                            <FiEdit size={14} />
-                          </button>
-                          <button 
-                            onClick={() => deleteExam(e.id)}
-                            className="w-9 h-9 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"
-                          >
-                            <FiTrash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
+            <thead>
+              <tr className="bg-brand-accent/40 text-[10px] font-black uppercase tracking-widest">
+                <th className="p-6 text-left">Exam</th>
+                <th className="p-6 text-left">Classes</th>
+                <th className="p-6 text-center">Marks</th>
+                <th className="p-6 text-left">Dates</th>
+                <th className="p-6 text-center">Status</th>
+                <th className="p-6 text-right">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y text-xs font-bold uppercase">
+              {today && exams.map((e) => {
+                const status = getStatus(e.start_date, e.end_date)
+
+                return (
+                  <tr key={e.id} className="hover:bg-brand-accent/10">
+                    <td className="p-6">
+                      <div className="text-slate-800 text-sm font-black">{e.exam_name}</div>
+                      <div className="text-brand text-[9px]">{e.exam_type}</div>
+                    </td>
+
+                    <td className="p-6">
+                      {e.classes.join(", ")}
+                    </td>
+
+                    <td className="p-6 text-center">
+                      {e.total_marks} / {e.pass_marks}
+                    </td>
+
+                    <td className="p-6">
+                      {e.start_date} → {e.end_date}
+                    </td>
+
+                    <td className="p-6 text-center">
+                      <span className={`px-3 py-1 rounded-full text-[9px] border ${status.color}`}>
+                        {status.label}
+                      </span>
+                    </td>
+
+                    <td className="p-6 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => { setEditId(e.id); setForm(e); setOpen(true); }}
+                          className="p-2 bg-brand-soft/30 text-brand rounded-xl"
+                        >
+                          <FiEdit size={14} />
+                        </button>
+
+                        <button
+                          onClick={() => deleteExam(e.id)}
+                          className="p-2 bg-red-50 text-red-500 rounded-xl"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
+
+
+        {/* ================= MOBILE CARD VIEW ================= */}
+        <div className="md:hidden p-4 space-y-4">
+          {today && exams.map((e) => {
+            const status = getStatus(e.start_date, e.end_date)
+
+            return (
+              <div
+                key={e.id}
+                className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-4"
+              >
+                {/* Header */}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800">
+                      {e.exam_name}
+                    </h3>
+                    <p className="text-[10px] text-brand font-bold uppercase">
+                      {e.exam_type}
+                    </p>
+                  </div>
+
+                  <span className={`px-3 py-1 text-[9px] rounded-full border ${status.color}`}>
+                    {status.label}
+                  </span>
+                </div>
+
+                {/* Dates */}
+                <div className="text-xs text-slate-500 flex items-center gap-2">
+                  <FiCalendar size={14} className="text-brand" />
+                  {e.start_date} → {e.end_date}
+                </div>
+
+                {/* Marks */}
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-500">Max Marks</span>
+                  <span>{e.total_marks}</span>
+                </div>
+
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-500">Pass Marks</span>
+                  <span>{e.pass_marks}</span>
+                </div>
+
+                {/* Classes */}
+                <div>
+                  <p className="text-[9px] text-slate-400 uppercase mb-1">Classes</p>
+                  <div className="flex flex-wrap gap-2">
+                    {e.classes.map((c: string) => (
+                      <span
+                        key={c}
+                        className="px-2 py-1 text-[9px] bg-brand-soft/20 text-brand rounded-lg"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-3 border-t border-slate-100">
+                  <button
+                    onClick={() => { setEditId(e.id); setForm(e); setOpen(true); }}
+                    className="flex-1 py-2 bg-brand text-white rounded-xl text-xs font-bold"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={() => deleteExam(e.id)}
+                    className="flex-1 py-2 bg-red-50 text-red-500 rounded-xl text-xs font-bold"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
       </div>
 
       {/* FOOTER */}
@@ -338,11 +403,10 @@ today && exams.map((e) => {
                       key={cls}
                       type="button"
                       onClick={() => toggleClass(cls)}
-                      className={`px-4 py-2 rounded-xl border-2 text-[10px] font-black transition-all ${
-                        form.classes.includes(cls)
+                      className={`px-4 py-2 rounded-xl border-2 text-[10px] font-black transition-all ${form.classes.includes(cls)
                           ? "bg-brand border-brand text-white shadow-lg shadow-brand/30"
                           : "bg-white border-slate-100 text-slate-400 hover:border-brand-soft"
-                      }`}
+                        }`}
                     >
                       {cls}
                     </button>
