@@ -265,7 +265,7 @@ export default function PaymentConfiguration() {
                                             </td>
                                             <td className="p-6">
                                                 <div className="flex flex-wrap gap-1 mb-1">
-                                                    {sub.fee_types?.split(',').map((t) => (
+                                                    {sub.fee_types?.split(',').map((t: string) => (
                                                         <span key={t} className="bg-slate-100 px-2 py-0.5 rounded text-[8px] uppercase">{t}</span>
                                                     ))}
                                                 </div>
@@ -300,7 +300,7 @@ export default function PaymentConfiguration() {
                                     </div>
                                     <div className="bg-slate-50 p-3 rounded-xl space-y-2">
                                         <div className="flex flex-wrap gap-1">
-                                            {sub.fee_types?.split(',').map((t) => (
+                                            {sub.fee_types?.split(',').map((t: string) => (
                                                 <span key={t} className="bg-white border border-slate-200 px-2 py-0.5 rounded text-[8px] uppercase">{t}</span>
                                             ))}
                                         </div>
