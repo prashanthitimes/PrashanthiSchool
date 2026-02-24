@@ -374,8 +374,8 @@ return (
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {details?.records.map((r, i) => (
-                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+{details?.records.map((r: any, i: number) => (
+                      <tr key={i} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-6 font-bold text-slate-800">
                         {r.type}
                         {r.type === 'Transport Fee' && <span className="ml-2 text-[8px] bg-blue-100 text-blue-600 px-1 rounded">ADD-ON</span>}
@@ -407,8 +407,8 @@ return (
 
             {/* MOBILE CARD VIEW */}
             <div className="md:hidden divide-y divide-slate-100">
-              {details?.records.map((r, i) => (
-                <div key={i} className="p-5 space-y-3">
+{details?.records.map((r: any, i: number) => (
+                  <div key={i} className="p-5 space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-slate-800 text-sm">{r.type}</span>
                     {r.due <= 0 ? (
