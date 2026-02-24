@@ -46,3 +46,7 @@ jobs:
         with:
           name: prashanthi-school-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Generate Assets
+        # We use the full package name @capacitor/assets
+        run: npx @capacitor/assets generate --android --assetPath public
