@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 
 export default function UnifiedLoginPage() {
   const [role, setRole] = useState<'admin' | 'parent' | 'teacher'>('admin')
-  
+
   const [email, setEmail] = useState('')
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
@@ -25,9 +25,9 @@ export default function UnifiedLoginPage() {
         .from('admin_users')
         .select('email')
         .limit(1)
-      
+
       console.log('Connection test:', { data, error })
-      
+
       if (error) {
         setErrorMsg('Database might be paused. Wait 2-5 minutes and try again.')
         alert('Connection failed: ' + error.message)
@@ -46,13 +46,13 @@ export default function UnifiedLoginPage() {
   // ---------------------------------------------------------
   const handleLogin = async () => {
     setErrorMsg('')
-    
+
     if (role === 'parent') {
       if (!userId || !password) return alert('Please enter Parent ID and password')
     } else {
       if (!email || !password) return alert('Please enter email and password')
     }
-    
+
     setLoading(true)
 
     try {
@@ -66,7 +66,7 @@ export default function UnifiedLoginPage() {
           .ilike('email', email.trim())  // Case-insensitive like original code
           .eq('status', 'active')
           .single()
-    
+
         if (error || !data) {
           setLoading(false)
           setErrorMsg('No active admin account found.')
@@ -84,8 +84,8 @@ export default function UnifiedLoginPage() {
         localStorage.setItem('userRole', 'admin');
 
         router.push('/admin')
-      } 
-      
+      }
+
       // ---------------------------------------------------------
       // 2. PARENT LOGIN - Using .eq with user_id
       // ---------------------------------------------------------
@@ -98,7 +98,7 @@ export default function UnifiedLoginPage() {
           `)
           .eq('user_id', userId.trim())
           .single()
-    
+
         if (error || !data) {
           setLoading(false)
           setErrorMsg('Parent ID not found.')
@@ -114,15 +114,15 @@ export default function UnifiedLoginPage() {
         localStorage.setItem('parentId', data.id);
         localStorage.setItem('parentName', data.full_name);
         localStorage.setItem('parentUserId', data.user_id);
-        
+
         if (data.students) {
           localStorage.setItem('childId', data.child_id);
           localStorage.setItem('childName', data.students.full_name);
         }
 
         router.push('/parent')
-      } 
-      
+      }
+
       // ---------------------------------------------------------
       // 3. TEACHER LOGIN - Using .ilike (case-insensitive)
       // ---------------------------------------------------------
@@ -132,7 +132,7 @@ export default function UnifiedLoginPage() {
           .select('*')
           .ilike('email', email.trim())  // Case-insensitive like original code
           .single()
-    
+
         if (error || !data) {
           setLoading(false)
           setErrorMsg('Teacher account not found.')
@@ -161,7 +161,7 @@ export default function UnifiedLoginPage() {
   }
 
   const getRoleIcon = () => {
-    switch(role) {
+    switch (role) {
       case 'admin': return <FiUsers size={20} />;
       case 'parent': return <FiUser size={20} />;
       case 'teacher': return <FiBook size={20} />;
@@ -170,7 +170,7 @@ export default function UnifiedLoginPage() {
   }
 
   const getButtonText = () => {
-    switch(role) {
+    switch (role) {
       case 'admin': return 'Sign In To Portal';
       case 'parent': return "View My Child's Progress";
       case 'teacher': return 'Access My Dashboard';
@@ -179,7 +179,7 @@ export default function UnifiedLoginPage() {
   }
 
   const getLoadingText = () => {
-    switch(role) {
+    switch (role) {
       case 'admin': return 'Authenticating...';
       case 'parent': return 'Securing Connection...';
       case 'teacher': return 'Verifying Credentials...';
@@ -188,7 +188,7 @@ export default function UnifiedLoginPage() {
   }
 
   const getPortalTitle = () => {
-    switch(role) {
+    switch (role) {
       case 'admin': return 'Admin Portal';
       case 'parent': return 'Parent Portal';
       case 'teacher': return 'Teacher Portal';
@@ -203,23 +203,23 @@ export default function UnifiedLoginPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand/10 blur-[120px] rounded-full" />
 
       <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl shadow-brand/5 p-10 space-y-8 relative z-10 border border-slate-100">
-        
+
         {/* Header */}
         <div className="flex flex-col items-center text-center">
           <div className="w-20 h-20 relative p-1 rounded-3xl bg-white shadow-xl shadow-brand/10 border border-slate-50 mb-4">
-             <Image
-                src="/Schoollogo.jpg"
-                alt="Logo"
-                fill
-                className="object-contain p-2"
-              />
+            <Image
+              src="/Schoollogo.jpg"
+              alt="Logo"
+              fill
+              className="object-contain p-2"
+            />
           </div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Prashanthi Vidyalaya</h1>
           <p className="text-brand font-bold text-sm uppercase tracking-widest mt-1 italic">{getPortalTitle()}</p>
         </div>
 
         <div className="space-y-5">
-          
+
           {/* Error Message Display */}
           {errorMsg && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-medium text-center">
@@ -228,14 +228,7 @@ export default function UnifiedLoginPage() {
           )}
 
           {/* Connection Test Button (for debugging) */}
-          <button
-            type="button"
-            onClick={testConnection}
-            disabled={loading}
-            className="text-xs text-blue-500 underline flex items-center justify-center gap-1 w-full"
-          >
-            <FiWifi size={12} /> Test Database Connection
-          </button>
+          {/* <button type="button" onClick={testConnection}  disabled={loading} className="text-xs text-blue-500 underline flex items-center justify-center gap-1 w-full" >  <FiWifi size={12} /> Test Database Connection  </button> */}
 
           {/* Role Selection Dropdown */}
           <div className="space-y-2">
@@ -283,11 +276,11 @@ export default function UnifiedLoginPage() {
               <div className="relative">
                 <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
-                    type="email"
-                    placeholder={role === 'admin' ? 'admin@school.com' : 'teacher@prashanthi.com'}
-                    className="w-full border-2 border-slate-100 rounded-2xl px-12 py-3.5 focus:outline-none focus:border-brand transition-all font-medium text-slate-800"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  placeholder={role === 'admin' ? 'admin@school.com' : 'teacher@prashanthi.com'}
+                  className="w-full border-2 border-slate-100 rounded-2xl px-12 py-3.5 focus:outline-none focus:border-brand transition-all font-medium text-slate-800"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
@@ -302,11 +295,11 @@ export default function UnifiedLoginPage() {
               <div className="relative">
                 <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
-                    type="text"
-                    placeholder="e.g. jv13vv"
-                    className="w-full border-2 border-slate-100 rounded-2xl px-12 py-3.5 focus:outline-none focus:border-brand transition-all font-medium text-slate-800"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
+                  type="text"
+                  placeholder="e.g. jv13vv"
+                  className="w-full border-2 border-slate-100 rounded-2xl px-12 py-3.5 focus:outline-none focus:border-brand transition-all font-medium text-slate-800"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
                 />
               </div>
             </div>
@@ -318,21 +311,21 @@ export default function UnifiedLoginPage() {
               {role === 'parent' ? 'Access Password' : 'Password'}
             </label>
             <div className="relative">
-                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    className="w-full border-2 border-slate-100 rounded-2xl px-12 py-3.5 focus:outline-none focus:border-brand transition-all font-medium text-slate-800"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand transition-colors"
-                >
-                    {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                </button>
+              <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                className="w-full border-2 border-slate-100 rounded-2xl px-12 py-3.5 focus:outline-none focus:border-brand transition-all font-medium text-slate-800"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand transition-colors"
+              >
+                {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+              </button>
             </div>
           </div>
 
