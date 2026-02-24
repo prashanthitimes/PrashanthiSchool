@@ -350,8 +350,30 @@ export default function StudentManagement() {
               </button>
 
               <button
-                onClick={() => { setMode('add'); setFormData({}); setShowModal(true); }}
-                className="col-span-2 bg-[#d487bd] text-white px-6 py-4 rounded-xl lg:rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-[#d487bd]/20 hover:bg-[#c36fa8] transition-all flex items-center justify-center gap-2 active:scale-95"
+                onClick={() => {
+                  setMode('add');
+                  setFormData({
+                    student_id: "",
+                    full_name: "",
+                    email: "",
+                    parent_phone: "",
+                    dob: "",
+                    father_name: "",
+                    mother_name: "",
+                    caste: "",
+                    mobile_no: "",
+                    sats_no: "",
+                    pen_no: "",
+                    birth_certificate_no: "",
+                    aadhar_no: "",
+                    village: "",
+                    class_name: selectedClass, // Pre-fills based on your filter
+                    section: selectedSection,   // Pre-fills based on your filter
+                    roll_number: "",
+                    academic_year: "2026-27"
+                  });
+                  setShowModal(true);
+                }} className="col-span-2 bg-[#d487bd] text-white px-6 py-4 rounded-xl lg:rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-[#d487bd]/20 hover:bg-[#c36fa8] transition-all flex items-center justify-center gap-2 active:scale-95"
               >
                 <UserPlus size={18} /> Enroll Student
               </button>
