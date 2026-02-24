@@ -200,7 +200,7 @@ export default function PaymentConfiguration() {
                                         <tr key={conf.id} className="text-xs font-bold text-slate-600 hover:bg-slate-50">
                                             <td className="p-6">
                                                 <div className="flex flex-wrap gap-1 max-w-xs">
-                                                   {conf.class_name?.map((c: string) => (
+                                                    {conf.class_name?.map((c: string) => (
                                                         <span key={c} className="bg-brand-soft text-brand text-[9px] px-2 py-1 rounded font-black">{c}</span>
                                                     ))}
                                                 </div>
@@ -225,7 +225,7 @@ export default function PaymentConfiguration() {
                                 <div key={conf.id} className="p-4 space-y-3">
                                     <div className="flex justify-between items-start">
                                         <div className="flex flex-wrap gap-1 flex-1">
-                                            {conf.class_name?.map((c) => (
+                                            {conf.class_name?.map((c: string) => (
                                                 <span key={c} className="bg-brand-soft text-brand text-[8px] px-2 py-0.5 rounded font-black">{c}</span>
                                             ))}
                                         </div>
