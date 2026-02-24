@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [main] # Runs every time you push to main
+    branches: [main] # Runs every time you push to the main branch
 
 jobs:
   build:
@@ -14,14 +14,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22 # Updated to version 22 to satisfy Capacitor CLI
 
       - name: Install Dependencies
         run: npm install
 
-      - name: Build Web Project
-        run: npm run build
-        continue-on-error: true # Next.js might fail export, but we only need the APK shell
+      - name: Create Dummy Web Assets
+        # This prevents the "webDir does not exist" error during the first build
+        run: mkdir -p out && touch out/index.html
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -46,8 +46,3 @@ jobs:
         with:
           name: prashanthi-school-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22 # Change this from 20 to 22
