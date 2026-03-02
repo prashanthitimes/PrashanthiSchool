@@ -81,7 +81,7 @@ export default function AdminSidebar({ activeMenu, setActiveMenu, isOpen, setIsO
             <img src="/Schoollogo.jpg" alt="Logo" className="w-full h-full object-contain" />
           </div>
 
-          <h2 className="text-md font-black text-center">Prashanthi School</h2>
+          <h2 className="text-md font-black text-center">Prashanti Vidyalaya & High School.</h2>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-4 px-3">

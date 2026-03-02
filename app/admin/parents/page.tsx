@@ -33,12 +33,10 @@ export default function AdminParentsPage() {
     const [formData, setFormData] = useState({
         full_name: '',
         relation: '',
-        user_id: '', // Changed from email to user_id
         phone_number: '',
         child_id: '',
         temp_password: ''
     })
-
     // --- DATA FETCHING ---
     const fetchInitialData = useCallback(async () => {
         setLoading(true)
@@ -62,7 +60,7 @@ export default function AdminParentsPage() {
     const filteredParents = useMemo(() => {
         return parents.filter(p => {
             const matchesSearch = p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.user_id?.toLowerCase().includes(searchQuery.toLowerCase()) || // Updated to user_id
+                p.phone_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 p.students?.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesClass = tableClassFilter === '' || p.students?.class_name === tableClassFilter;
             const matchesSection = tableSectionFilter === '' || p.students?.section === tableSectionFilter;
@@ -103,7 +101,6 @@ export default function AdminParentsPage() {
         setFormData(prev => ({
             ...prev,
             full_name: parentName,
-            user_id: userId, // Set shorter user_id
             temp_password: prev.temp_password || password
         }))
     }
@@ -111,9 +108,9 @@ export default function AdminParentsPage() {
     // --- ACTIONS ---
     const downloadCSV = () => {
         if (filteredParents.length === 0) return toast.error("No data to export")
-        const headers = ["Parent Name", "Relation", "User ID", "Password", "Phone", "Child Name", "Class", "Section"] // Updated headers
+        const headers = ["Parent Name", "Relation", "Phone", "Password", "Child Name", "Class", "Section"]
         const rows = filteredParents.map(p => [
-            `"${p.full_name}"`, `"${p.relation}"`, `"${p.user_id}"`, `"${p.temp_password}"`, `"${p.phone_number}"`, // Updated to user_id
+            `"${p.full_name}"`, `"${p.relation}"`, `"${p.phone_number}"`, `"${p.temp_password}"`,
             `"${p.students?.full_name}"`, `"${p.students?.class_name}"`, `"${p.students?.section}"`
         ])
 
@@ -191,7 +188,6 @@ export default function AdminParentsPage() {
                     parentsToInsert.push({
                         full_name: parentName,
                         relation,
-                        user_id: userId,
                         phone_number: phone,
                         child_id: student.id,
                         temp_password: password
@@ -236,7 +232,7 @@ export default function AdminParentsPage() {
         setSelectedId(null)
         setModalSelectedClass('')
         setModalSelectedSection('')
-        setFormData({ full_name: '', relation: '', user_id: '', phone_number: '', child_id: '', temp_password: '' }) // Updated
+        setFormData({ full_name: '', relation: '', phone_number: '', child_id: '', temp_password: '' })
         setIsModalOpen(true)
     }
 
@@ -247,14 +243,13 @@ export default function AdminParentsPage() {
             setModalSelectedClass(parent.students.class_name)
             setModalSelectedSection(parent.students.section)
         }
-        setFormData({
-            full_name: parent.full_name,
-            relation: parent.relation,
-            user_id: parent.user_id, // Updated
-            phone_number: parent.phone_number,
-            child_id: parent.child_id,
-            temp_password: parent.temp_password
-        })
+      setFormData({
+    full_name: parent.full_name,
+    relation: parent.relation,
+    phone_number: parent.phone_number,
+    child_id: parent.child_id,
+    temp_password: parent.temp_password
+})
         setIsModalOpen(true)
     }
 
@@ -409,7 +404,7 @@ export default function AdminParentsPage() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase">ID: {p.user_id}</p>
+<p className="text-[10px] text-slate-400 font-bold uppercase">Phone: {p.phone_number}</p>
                                                     <p className="text-[10px] text-[#d487bd] font-mono font-bold">Pass: {p.temp_password}</p>
                                                 </div>
                                             </td>
@@ -463,8 +458,9 @@ export default function AdminParentsPage() {
                                         </div>
                                         <div className="bg-slate-900 p-3 rounded-xl">
                                             <p className="text-[9px] text-slate-400 font-bold uppercase">Credentials</p>
-                                            <p className="text-[10px] text-white font-bold truncate">ID: {p.user_id}</p>
-                                            <p className="text-[10px] text-[#d487bd] font-mono font-bold truncate">PW: {p.temp_password}</p>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase">
+                                                Phone: {p.phone_number}
+                                            </p>                                            <p className="text-[10px] text-[#d487bd] font-mono font-bold truncate">PW: {p.temp_password}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -554,8 +550,8 @@ export default function AdminParentsPage() {
                                 <div className="p-5 bg-slate-900 rounded-[1.5rem] md:rounded-[2rem] space-y-4">
                                     <div className="grid grid-cols-2 gap-3 md:gap-4">
                                         <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/10 overflow-hidden">
-                                            <p className="text-[8px] font-bold text-slate-400 uppercase">Login User ID</p>
-                                            <p className="text-[10px] md:text-xs font-bold text-white truncate">{formData.user_id || '...'}</p>
+                                            <p className="text-[8px] font-bold text-slate-400 uppercase">Login Phone</p>
+                                            <p className="text-xs font-bold text-white">{formData.phone_number}</p>
                                         </div>
                                         <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/10 overflow-hidden">
                                             <p className="text-[8px] font-bold text-slate-400 uppercase">Temp Password</p>

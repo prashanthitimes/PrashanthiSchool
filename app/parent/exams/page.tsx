@@ -219,7 +219,7 @@ export default function ExamTimetable() {
 
         <div className="bg-slate-50 p-6 text-center border-t border-slate-100">
           <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em]">
-            Prashanthi School Management • Session 2026-27
+            Prashanti Vidyalaya & High School. Management • Session 2026-27
           </p>
         </div>
       </div>

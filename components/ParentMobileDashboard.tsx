@@ -3,63 +3,67 @@
 import Link from 'next/link'
 
 const items = [
-  { title: "Student Profile", img: "/profile.jpg", link: "/parent/profile" },
+  { title: "Profile", img: "/profile.jpg", link: "/parent/profile" },
   { title: "Homework", img: "/homewor.png", link: "/parent/homework" },
   { title: "Attendance", img: "/attendance.jpg", link: "/parent/attendance" },
-  { title: "Class Time Table", img: "/timetable.png", link: "/parent/timetable" },
-  { title: "Exam Time Table", img: "/exam.png", link: "/parent/exams" },
-  { title: "Exam Syllabus", img: "/syllabus.jpg", link: "/parent/syllabus" },
-  { title: "Exam Markscard", img: "/marks.jpg", link: "/parent/marks" },
-  { title: "Annual Calendar", img: "/calendar.jpg", link: "/parent/calendar" },
-  { title: "Fee Details", img: "/fees.jpg", link: "/parent/fees" },
+  { title: "Time Table", img: "/timetable.png", link: "/parent/timetable" },
+  { title: "Exams", img: "/exam.png", link: "/parent/exams" },
+  { title: "Syllabus", img: "/syllabus.jpg", link: "/parent/syllabus" },
+  { title: "Marks", img: "/marks.jpg", link: "/parent/marks" },
+  { title: "Calendar", img: "/calendar.jpg", link: "/parent/calendar" },
+  { title: "Fees", img: "/fees.jpg", link: "/parent/fees" },
   { title: "Transport", img: "/bus.jpg", link: "/parent/transport" },
   { title: "Notice", img: "/notice.jpg", link: "/parent/notices" },
-  { title: "Contact School", img: "/contact.png", link: "/parent/contact" },
+  { title: "Contact", img: "/contact.png", link: "/parent/contact" },
 ]
 
 export default function ParentMobileDashboard() {
   return (
-<div className="lg:hidden px-4 py-8 bg-[#F8FAFC]">      
+    // REMOVED: min-h-screen and pb-20
+    <div className="lg:hidden bg-[#F8FAFC]"> 
+
       {/* 1. Icon Grid Section */}
-      <div className="grid grid-cols-3 gap-y-10 gap-x-4 max-w-sm mx-auto">
-        {items.map((item) => (
-          <Link key={item.title} href={item.link} className="group active:scale-90 transition-transform duration-200">
-            <div className="flex flex-col items-center">
-              
-              {/* App Icon Container */}
-              <div className="relative w-[72px] h-[72px] md:w-20 md:h-20 bg-white rounded-2xl flex items-center justify-center p-3
-                shadow-[0_8px_30px_rgb(0,0,0,0.06)] 
-                border-b-[3px] border-slate-100 
-                group-hover:shadow-lg transition-all">
+      <div className="px-4">
+        <div className="grid grid-cols-3 gap-y-6 gap-x-4 max-w-sm mx-auto">
+          {items.map((item) => (
+            <Link
+              key={item.title}
+              href={item.link}
+              className="group flex flex-col items-center active:scale-95 transition-all duration-200"
+            >
+              <div className="relative w-full aspect-square max-w-[85px] bg-white rounded-[1.8rem] flex items-center justify-center p-4
+                  shadow-[0_4px_20px_rgba(0,0,0,0.04)] 
+                  border border-slate-100/80
+                  group-hover:shadow-md transition-all">
                 
-                {/* Subtle Glow Effect behind image */}
-                <div className="absolute inset-0 bg-brand/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                
-                <img 
-                  src={item.img} 
-                  alt={item.title} 
-                  className="w-full h-full object-contain relative z-10"
+                <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent rounded-[1.8rem] pointer-events-none" />
+
+                <img
+                  src={item.img}
+                  alt={item.title}
+                  className="w-full h-full object-contain relative z-10 brightness-[1.02]"
                 />
               </div>
 
-              {/* Icon Label */}
-              <p className="text-[11px] font-bold text-slate-700 mt-3 text-center leading-tight tracking-tight px-1">
+              <span className="text-[11px] font-bold text-slate-600 mt-2.5 text-center leading-[1.1] tracking-tight">
                 {item.title}
-              </p>
-              
-            </div>
-          </Link>
-        ))}
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
 
-      {/* 2. Footer Section (Matches Reference Image) */}
-      <div className="mt-16 text-center">
-        <div className="w-full h-[1px] bg-slate-200 mb-8 max-w-[200px] mx-auto"></div>
-        <h2 className="text-[#5B21B6] font-black text-xl uppercase tracking-tight opacity-90">
+      {/* 2. Focused Footer Section - Tightened Up */}
+      <div className="mt-8 pb-8 text-center px-8"> 
+        <div className="flex items-center gap-3 w-full opacity-10 mb-4">
+          <div className="h-[1px] bg-slate-900 flex-1"></div>
+          <div className="w-1 h-1 rounded-full bg-slate-900"></div>
+          <div className="h-[1px] bg-slate-900 flex-1"></div>
+        </div>
+        <h2 className="text-brand-dark/40 font-black text-[10px] uppercase tracking-[0.2em]">
           Select an Option
         </h2>
       </div>
-
     </div>
   )
 }

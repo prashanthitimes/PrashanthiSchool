@@ -217,7 +217,7 @@ return (
       {/* FOOTER */}
       <div className="p-8 md:p-10 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
          <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] md:tracking-[0.4em] text-center">
-           Official Prashanthi School Document
+           Official Prashanti Vidyalaya & High School. Document
          </p>
          <p className="text-[8px] md:text-[9px] font-black text-[#a63d93] uppercase tracking-[0.2em] md:tracking-[0.4em]">
            Generated: {new Date().toLocaleDateString()}

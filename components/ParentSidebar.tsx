@@ -36,7 +36,7 @@ export default function ParentSidebar({ activeMenu, setActiveMenu }: Props) {
 
       <div className="p-6 flex flex-col items-center border-b border-white/10">
         <img src="/Schoollogo.jpg" className="w-14 mb-2"/>
-        <h2 className="font-bold">Prashanthi School</h2>
+        <h2 className="font-bold">Prashanti Vidyalaya & High School.</h2>
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">

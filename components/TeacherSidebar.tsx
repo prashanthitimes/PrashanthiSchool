@@ -73,7 +73,7 @@ export default function TeacherSidebar({ activeMenu, setActiveMenu }: Props) {
           <div className="w-16 h-16 relative mb-3 bg-white rounded-2xl p-2 overflow-hidden shadow-lg shadow-black/20">
             <img src="/Schoollogo.jpg" alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <h2 className="text-md font-black text-center leading-tight">Prashanthi School</h2>
+          <h2 className="text-md font-black text-center leading-tight">Prashanti Vidyalaya & High School.</h2>
           <span className="text-[9px] text-white/60 tracking-[0.2em] uppercase mt-1 font-bold">
             Teacher Portal
           </span>
@@ -120,7 +120,7 @@ export default function TeacherSidebar({ activeMenu, setActiveMenu }: Props) {
             Powered by RAKVH Solutions
           </div>
           <div className="text-[9px] text-center text-white/40 font-bold tracking-widest">
-            © 2026 PRASHANTHI SCHOOL
+            © 2026 Prashanti Vidyalaya & High School.
           </div>
         </div>
       </aside>

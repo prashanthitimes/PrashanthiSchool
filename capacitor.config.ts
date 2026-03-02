@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.prashanthischool.app', // You can change this to your choice
-  appName: 'Prashanthi School',
+  appName: 'Prashanti Vidyalaya & High School.',
   webDir: 'out',
   server: {
     // This is the magic part for auto-updates

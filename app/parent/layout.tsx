@@ -42,7 +42,7 @@ export default function ParentLayout({
 
   const handleLogout = () => {
     localStorage.clear()
-    router.push('/login/parent')
+    router.push('/login')
   }
 
   return (
@@ -144,28 +144,29 @@ export default function ParentLayout({
         </header>
 
         {/* CONTENT AREA */}
-        <main className="px-4 md:px-8 pb-12 pt-4 flex-1">
-          {/* MOBILE DASHBOARD - Shown only on /parent path for small screens */}
-          {pathname === "/parent" && (
-            <div className="lg:hidden">
-              {/* HELLO BANNER FOR MOBILE */}
-              <div className="mb-6 px-1">
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">
-                  Hello, <span className="text-brand uppercase">{parentName}!</span>
-                </h3>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                  Academic overview for {childName}
-                </p>
-              </div>
-              <ParentMobileDashboard />
-            </div>
-          )}
+      {/* CONTENT AREA */}
+<main className={`px-4 md:px-8 flex-1 ${pathname === "/parent" ? "pb-0 pt-2" : "pb-12 pt-4"}`}>
+  {/* MOBILE DASHBOARD */}
+  {pathname === "/parent" && (
+    <div className="lg:hidden">
+      {/* HELLO BANNER FOR MOBILE */}
+      <div className="mb-6 px-1"> {/* Increased mb for better visual breathing with icons */}
+        <h3 className="text-2xl font-black text-slate-800 tracking-tight">
+          Hello, <span className="text-brand uppercase">{parentName}!</span>
+        </h3>
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+          Academic overview for {childName}
+        </p>
+      </div>
+      <ParentMobileDashboard />
+    </div>
+  )}
 
-          {/* MAIN PAGE CONTENT (CHILDREN) */}
-          <div className={`${pathname === "/parent" ? "hidden lg:block" : "block"} max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-3 duration-500`}>
-            {children}
-          </div>
-        </main>
+  {/* MAIN PAGE CONTENT */}
+  <div className={`${pathname === "/parent" ? "hidden lg:block" : "block"} max-w-7xl mx-auto`}>
+    {children}
+  </div>
+</main>
       </div>
     </div>
   )

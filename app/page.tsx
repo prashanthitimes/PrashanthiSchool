@@ -37,7 +37,7 @@ export default function Home() {
           <div className="w-24 h-24 relative p-1 rounded-3xl bg-white shadow-xl border border-brand-soft/30">
             <Image 
               src="/Schoollogo.jpg" 
-              alt="Prashanthi School Logo" 
+              alt="Prashanti Vidyalaya & High School. Logo" 
               fill
               className="object-contain p-2"
               priority
