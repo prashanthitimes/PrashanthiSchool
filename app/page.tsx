@@ -53,7 +53,7 @@ export default function Home() {
 
         {/* 3. School Name */}
         <h2 className="mt-6 text-slate-800 font-black tracking-tight text-lg">
-          PRASHANTHI VIDYALAYA
+        Prashanti Vidyalaya & High School.
         </h2>
         <p className="mt-1 text-brand-light font-bold text-[10px] uppercase tracking-[0.3em]">
           Loading Experience...

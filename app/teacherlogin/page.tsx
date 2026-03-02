@@ -69,7 +69,7 @@ export default function TeacherLoginPage() {
                 className="object-contain p-2"
               />
           </div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Prashanthi Vidyalaya</h1>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Prashanti Vidyalaya & High School.</h1>
           <p className="text-brand font-bold text-sm uppercase tracking-widest mt-1 italic">Teacher Portal</p>
         </div>
 

@@ -78,7 +78,7 @@ export default function ParentLayout({
                    <img src="/Schoollogo.jpg" alt="Logo" className="w-full h-full object-contain" />
                 </div>
                 <div className="flex flex-col">
-                   <h1 className="text-[13px] font-black text-slate-800 leading-none uppercase">Prashanthi</h1>
+                   <h1 className="text-[13px] font-black text-slate-800 leading-none uppercase">Prashanti Vidyalaya & High School.</h1>
                    <span className="text-[9px] font-bold text-brand tracking-tighter uppercase opacity-70">Parental Panel</span>
                 </div>
               </div>

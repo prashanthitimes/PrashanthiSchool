@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-   title: "Prashanthi Vidyalaya Portal",
+   title: "Prashanti Vidyalaya & High School.",
   description: "School Management System",
   icons: {
     icon: [
