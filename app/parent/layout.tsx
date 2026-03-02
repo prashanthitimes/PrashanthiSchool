@@ -1,11 +1,11 @@
 'use client'
-
+import { usePathname } from 'next/navigation'
 import React, { useState, useRef, useEffect } from 'react'
 import ParentSidebar from '@/components/ParentSidebar'
-import { FiUser, FiLogOut, FiBell, FiChevronDown, FiSettings, FiHeart } from 'react-icons/fi'
+import { FiUser, FiLogOut, FiBell, FiChevronDown, FiSettings, FiHeart, FiArrowLeft } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
 import Link from "next/link";
-
+import ParentMobileDashboard from '@/components/ParentMobileDashboard'
 export default function ParentLayout({
   children,
 }: {
@@ -18,7 +18,7 @@ export default function ParentLayout({
   const [childName, setChildName] = useState('Student')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
-
+  const pathname = usePathname()
   useEffect(() => {
     // Load data from LocalStorage
     setParentName(localStorage.getItem('parentName') || 'Parent')
@@ -61,15 +61,30 @@ export default function ParentLayout({
               : 'bg-transparent'}`}
         >
           {/* Breadcrumbs - Hidden on very small screens to save space */}
-          <div className="flex flex-col overflow-hidden">
-            <div className="hidden xs:flex items-center gap-2 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-              <span>Portal</span>
-              <span className="text-slate-300">/</span>
-              <span className="text-brand">Parent</span>
+          <div className="flex items-center gap-3 overflow-hidden">
+
+            {/* Back Button */}
+            {pathname !== "/parent" && (
+              <button
+                onClick={() => router.back()}
+                className="p-2 rounded-lg hover:bg-slate-100 transition flex items-center justify-center"
+              >
+                <FiArrowLeft size={20} className="text-slate-700" />
+              </button>
+            )}
+
+            <div className="flex flex-col overflow-hidden">
+              <div className="hidden xs:flex items-center gap-2 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                <span>Portal</span>
+                <span className="text-slate-300">/</span>
+                <span className="text-brand">Parent</span>
+              </div>
+
+              <h2 className="text-lg md:text-xl font-black text-slate-800 capitalize leading-tight truncate">
+                {activeMenu.replace('-', ' ')}
+              </h2>
             </div>
-            <h2 className="text-lg md:text-xl font-black text-slate-800 capitalize leading-tight truncate">
-              {activeMenu.replace('-', ' ')}
-            </h2>
+
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
@@ -114,16 +129,16 @@ export default function ParentLayout({
                       <FiUser size={14} /> Profile Settings
                     </button>
                   </Link>
-                 
+
 
                   <div className="border-t border-slate-50 my-1 mx-2"></div>
                   <Link href="/login" className="w-full">
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-3 w-full px-5 py-3 text-sm text-rose-500 hover:bg-rose-50 transition-colors font-bold"
-                  >
-                    <FiLogOut size={14} /> Logout
-                  </button>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 w-full px-5 py-3 text-sm text-rose-500 hover:bg-rose-50 transition-colors font-bold"
+                    >
+                      <FiLogOut size={14} /> Logout
+                    </button>
                   </Link>
                 </div>
               )}
@@ -133,11 +148,19 @@ export default function ParentLayout({
 
         {/* MAIN PAGE CONTENT - Responsive Padding */}
         <main className="px-4 md:px-8 pb-12 pt-4 flex-1">
-          <div className="max-w-7xl mx-auto">
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              {children}
+
+          {/* Show dashboard ONLY on /parent */}
+          {pathname === "/parent" && (
+            <div className="lg:hidden">
+              <ParentMobileDashboard />
             </div>
+          )}
+
+          {/* Show pages normally */}
+          <div className="max-w-7xl mx-auto">
+            {children}
           </div>
+
         </main>
 
         {/* Brand Background Blur - Hidden on mobile to improve performance */}
