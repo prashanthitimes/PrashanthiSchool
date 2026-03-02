@@ -19,8 +19,7 @@ const items = [
 
 export default function ParentMobileDashboard() {
   return (
-    <div className="lg:hidden px-4 py-8 bg-[#F8FAFC] min-h-screen">
-      
+<div className="lg:hidden px-4 py-8 bg-[#F8FAFC]">      
       {/* 1. Icon Grid Section */}
       <div className="grid grid-cols-3 gap-y-10 gap-x-4 max-w-sm mx-auto">
         {items.map((item) => (
