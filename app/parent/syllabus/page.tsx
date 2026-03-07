@@ -4,13 +4,47 @@ import React, { useState, useEffect, useRef } from "react";
 import { FiCalendar, FiClock, FiMapPin, FiBookOpen, FiDownload, FiInfo, FiChevronRight } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
+type Schedule = {
+  id: string | number
+  title: string
+  date: string
+  teacher: string
+}
+type Student = {
+  full_name: string
+  class_name: string
+  section: string
+}
 
+type Syllabus = {
+  id: string | number
+  subject_id: string | number
+  exam_name: string
+  chapters: string[]
+  class_name: string
+  section: string
+}
+
+type Exam = {
+  id: string | number
+  exam_date: string
+  start_time: string
+  end_time: string
+  room_no?: string
+  subjects?: {
+    name: string
+  }
+  exams?: {
+    exam_name: string
+  }
+  syllabus_details?: Syllabus
+}
+
+type ExamGroup = [string, Exam[]] // [examName, schedules]
 export default function ExamTimetable() {
-  const [exams, setExams] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [studentInfo, setStudentInfo] = useState<any>(null);
-  const tableRef = useRef(null);
-
+  const [exams, setExams] = useState<ExamGroup[]>([])
+  const [loading, setLoading] = useState(true)
+  const [studentInfo, setStudentInfo] = useState<Student | null>(null)
   useEffect(() => {
     fetchExamData();
   }, []);
@@ -157,8 +191,7 @@ export default function ExamTimetable() {
 
                 <div className="space-y-4">
 
-                  {schedules.map((item) => (
-
+                  {schedules.map((item: Exam) => (
                     <div
                       key={item.id}
                       className="grid grid-cols-1 lg:grid-cols-12 border border-[#e9d1e4] dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-lg transition"
