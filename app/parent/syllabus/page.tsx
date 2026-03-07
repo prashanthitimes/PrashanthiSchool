@@ -44,6 +44,7 @@ type ExamGroup = [string, Exam[]] // [examName, schedules]
 export default function ExamTimetable() {
   const [exams, setExams] = useState<ExamGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const tableRef = useRef<HTMLDivElement>(null)
   const [studentInfo, setStudentInfo] = useState<Student | null>(null)
   useEffect(() => {
     fetchExamData();
