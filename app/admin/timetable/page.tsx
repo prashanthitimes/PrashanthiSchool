@@ -148,7 +148,16 @@ export default function TimeTablePage() {
       return
     }
 
-    if (data) setPeriods(data)
+    if (data) {
+      const formatted = data.map((p: any) => ({
+        id: p.id,
+        start_time: p.start_time,
+        end_time: p.end_time,
+        type: p.type ?? "period", // default value
+      }))
+
+      setPeriods(formatted)
+    }
   }
 
   useEffect(() => {
@@ -220,43 +229,44 @@ export default function TimeTablePage() {
     doc.save(`${active.label}_Timetable.pdf`)
   }
 
-async function handleInlineUpdate(day: string, period: number, subjectId: string) {
+  async function handleInlineUpdate(day: string, period: number, subjectId: string) {
 
-  if (!subjectId) return;
+    if (!subjectId) return;
 
-  if (subjectId === "delete") {
+    if (subjectId === "delete") {
 
-    await supabase
-      .from('timetable')
-      .delete()
-      .match({
-        class: active.class,
-        section: active.section,
-        day,
-        period
-      })
+      await supabase
+        .from('timetable')
+        .delete()
+        .match({
+          class: active.class,
+          section: active.section,
+          day,
+          period
+        })
 
-  } else {
+    } else {
 
-    const { error } = await supabase
-      .from('timetable')
-      .upsert({
-        class: active.class,
-        section: active.section,
-        day,
-        period,
-        subject_id: subjectId
-      }, {
-        onConflict: 'class,section,day,period'
-      })
+      const { error } = await supabase
+        .from('timetable')
+        .upsert({
+          class: active.class,
+          section: active.section,
+          day,
+          period,
+          subject_id: subjectId
+        }, {
+          onConflict: 'class,section,day,period'
+        })
 
-   if (error) {
-  console.error("Timetable Save Error:", error.message, error.details)
-}
+      if (error) {
+        console.error("Timetable Save Error:", error.message, error.details)
+      }
 
+    }
+
+    await fetchTimetable()
   }
-
-await fetchTimetable()}
   return (
     <div className="max-w-7xl mx-auto mt-4 md:mt-10 px-3 py-2 space-y-4 md:space-y-6 bg-[#fffcfd] dark:bg-slate-950 min-h-screen transition-colors duration-300">
 
@@ -366,17 +376,17 @@ await fetchTimetable()}
                   <td className="p-6 font-black text-slate-700 dark:text-slate-300 text-xs uppercase tracking-widest bg-brand-accent/5 dark:bg-slate-800/30 border-r border-brand-soft/10 dark:border-slate-800">{day}</td>
                   {periods.map(period => {
                     const currentId = timetable[day]?.[period.id] || "";
-             const subjectName =
-  subjectsList.find(s => s.id === currentId)?.name ?? '—';
+                    const subjectName =
+                      subjectsList.find(s => s.id === currentId)?.name ?? '—';
                     const isSlotEmpty = subjectName === '—';
                     const colorStyle = isSlotEmpty ? "bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-700 border-slate-50 dark:border-slate-800" : getSubjectColor(subjectName);
 
                     return (
                       <td key={period.id} className="p-3 min-w-[160px]">
                         {isEditMode ? (
-                     <select
-  value={currentId || ""}
-  onChange={(e) => handleInlineUpdate(day, period.id, e.target.value)}
+                          <select
+                            value={currentId || ""}
+                            onChange={(e) => handleInlineUpdate(day, period.id, e.target.value)}
                             className={`w-full p-4 border-2 rounded-2xl text-[10px] font-black outline-none transition-all appearance-none text-center cursor-pointer uppercase ${isSlotEmpty ? "border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-400" : "border-solid border-brand bg-brand-soft/20 dark:bg-brand/10 text-brand-dark dark:text-brand-light"}`}
                           >
                             <option value="" className="dark:bg-slate-900">+ Assign</option>
@@ -422,9 +432,9 @@ await fetchTimetable()}
 
                       <div className="flex-1">
                         {isEditMode ? (
-                        <select
-  value={currentId || ""}
-  onChange={(e) => handleInlineUpdate(day, period.id, e.target.value)}
+                          <select
+                            value={currentId || ""}
+                            onChange={(e) => handleInlineUpdate(day, period.id, e.target.value)}
                             className={`w-full p-3 border-2 rounded-xl text-[10px] font-black outline-none appearance-none uppercase text-center ${isSlotEmpty ? "border-dashed border-slate-200 dark:border-slate-800 dark:bg-slate-950 text-slate-500" : "border-solid border-brand bg-brand-soft/20 dark:bg-brand/10 dark:text-brand-light"}`}
                           >
                             <option value="" className="dark:bg-slate-900">+ Assign</option>
