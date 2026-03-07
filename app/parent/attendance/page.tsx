@@ -291,7 +291,7 @@ function StatTile({ label, value, color, bg, icon }: any) {
       {/* Icon: Smaller and more subtle */}
       {icon && (
         <div className={`mb-1 opacity-80 ${color}`}>
-          {React.cloneElement(icon as React.ReactElement, { size: 16 })}
+{React.cloneElement(icon as React.ReactElement<{ size?: number }>, { size: 16 })}
         </div>
       )}
 
