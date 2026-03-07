@@ -41,7 +41,7 @@ export default function StudentTimetable() {
 
       const classNum = parseInt(student.class_name.replace(/\D/g, ''));
       const sectionStr = student.section.split('-').pop()?.trim() || student.section.trim();
-      
+
       setStudentInfo({ class: classNum, section: sectionStr, name: student.full_name });
 
       const { data: ttData } = await supabase
@@ -78,157 +78,179 @@ export default function StudentTimetable() {
 
   if (loading) return <div className="p-20 text-center text-[#722366] font-black animate-pulse uppercase tracking-widest">Generating Table...</div>;
 
-  return (
-    <div className="p-4 md:p-10 bg-slate-50 min-h-screen pb-24 md:pb-10">
+ return (
+  /* MAIN CANVAS: bg-slate-50 | dark:bg-slate-950 */
+  <div className="p-4 md:p-10 bg-slate-50 dark:bg-slate-950 min-h-screen pb-24 md:pb-10 transition-colors duration-300">
+{/* HEADER SECTION - MOBILE OPTIMIZED */}
+<div className="bg-[#722366] rounded-2xl md:rounded-3xl p-4 md:p-6 mb-4 md:mb-6 text-white shadow-xl border border-white/10 relative overflow-hidden">
+  
+  {/* Subtle Background Pattern for Premium Look */}
+  <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-3xl" />
+
+  <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    
+    {/* Left Side: Title & Badges */}
+    <div className="w-full sm:w-auto">
+      <h2 className="text-xl md:text-2xl font-black tracking-tighter uppercase leading-none mb-2">
+        Class Timetable
+      </h2>
+
+      <div className="flex flex-wrap gap-1.5">
+        <div className="bg-white/10 backdrop-blur-md px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border border-white/10">
+          Class {studentInfo?.class}
+        </div>
+
+        <div className="bg-white/10 backdrop-blur-md px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border border-white/10">
+          Section {studentInfo?.section}
+        </div>
+      </div>
+    </div>
+
+    {/* Right Side: Student Info & Action */}
+    <div className="flex flex-row sm:flex-col justify-between items-center sm:items-end w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-white/10">
       
-      {/* HEADER SECTION */}
-      <div className="bg-[#722366] rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 mb-6 md:mb-10 text-white shadow-xl">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-2">
-            <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase leading-none">Class Timetable</h2>
-            <div className="flex gap-2">
-              <span className="bg-white/10 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-white/20">
-                Class {studentInfo?.class}
-              </span>
-              <span className="bg-white/10 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-white/20">
-                Section {studentInfo?.section}
-              </span>
-            </div>
-          </div>
-          
-          <div className="flex flex-col items-start md:items-end w-full md:w-auto">
-             <p className="text-[9px] font-black opacity-50 uppercase tracking-[0.2em] mb-1">Student Schedule</p>
-             <h3 className="text-lg md:text-2xl font-black uppercase truncate max-w-full">{studentInfo?.name}</h3>
-             <button 
-              onClick={downloadImage}
-              className="mt-4 flex items-center gap-2 px-6 py-3 bg-white text-[#722366] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all shadow-lg w-full md:w-auto justify-center"
-            >
-              <FiDownload size={14}/> Save as Image
-            </button>
-          </div>
-        </div>
+      <div className="text-left sm:text-right overflow-hidden mr-2 sm:mr-0">
+        <p className="text-[7px] font-bold opacity-60 uppercase tracking-widest leading-none mb-1">
+          Student Profile
+        </p>
+        <h3 className="text-xs md:text-base font-black uppercase truncate max-w-[150px] md:max-w-full leading-tight">
+          {studentInfo?.name}
+        </h3>
       </div>
 
-      {/* MOBILE DAY SELECTOR (Hidden on Desktop) */}
-      <div className="md:hidden flex overflow-x-auto gap-2 mb-6 pb-2 scrollbar-hide">
-        {DAYS.map((day) => (
-          <button
-            key={day}
-            onClick={() => setActiveDay(day)}
-            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
-              activeDay === day 
-              ? 'bg-[#722366] text-white border-[#722366] shadow-md' 
-              : 'bg-white text-slate-400 border-slate-200'
+      <button
+        onClick={downloadImage}
+        className="flex items-center gap-2 px-3 py-2.5 bg-white text-[#722366] active:scale-95 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shrink-0"
+      >
+        <FiDownload size={14} className="sm:size-[12px]" /> 
+        <span className="hidden xs:inline">Save Image</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+    {/* MOBILE DAY SELECTOR */}
+    <div className="md:hidden flex overflow-x-auto gap-2 mb-6 pb-2 scrollbar-hide">
+      {DAYS.map((day) => (
+        <button
+          key={day}
+          onClick={() => setActiveDay(day)}
+          className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${activeDay === day
+              ? 'bg-[#722366] text-white border-[#722366] shadow-md'
+              : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'
             }`}
-          >
-            {day.substring(0, 3)}
-          </button>
-        ))}
-      </div>
+        >
+          {day.substring(0, 3)}
+        </button>
+      ))}
+    </div>
 
-      {/* MAIN VIEW AREA */}
-      <div className="max-w-6xl mx-auto">
-        
-        {/* MOBILE VIEW (List Style) */}
-        <div className="md:hidden space-y-4">
-          <div className="flex items-center gap-2 px-2 mb-2">
-            <FiCalendar className="text-[#722366]" />
-            <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{activeDay}'s Schedule</span>
-          </div>
-          
-          {PERIODS.map((slot) => {
-            const entry = timetable.find(
-              t => t.day.trim().toLowerCase() === activeDay.toLowerCase() && t.period === slot.id
-            );
-            
-            return (
-              <div key={slot.id} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className="w-16 flex flex-col items-center justify-center border-r border-slate-50 pr-4">
-                  <span className="text-[10px] font-black text-[#722366]">P{slot.id}</span>
-                  <span className="text-[8px] font-bold text-slate-400 text-center leading-tight mt-1">{slot.time.split('-')[0]}</span>
-                </div>
-                
-                <div className="flex-1">
-                  {entry ? (
-                    <div className={`p-3 rounded-xl border ${getSubjectColor(entry.subjects?.name)}`}>
-                      <h4 className="text-[11px] font-black uppercase truncate">
-                        {entry.subjects?.subject_name || entry.subjects?.name}
-                      </h4>
-                      <p className="text-[8px] font-bold opacity-60 tracking-widest mt-0.5">
-                        {entry.subjects?.subject_code || entry.subjects?.code}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-[10px] font-bold text-slate-300 italic">No Class Scheduled</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+    {/* MAIN VIEW AREA */}
+    <div className="max-w-8xl mx-auto">
+
+      {/* MOBILE VIEW (List Style) */}
+      <div className="md:hidden space-y-4">
+        <div className="flex items-center gap-2 px-2 mb-2">
+          <FiCalendar className="text-[#722366] dark:text-brand-soft" />
+          <span className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">{activeDay}'s Schedule</span>
         </div>
 
-        {/* DESKTOP VIEW (Grid Style) - Stays same for Download & Large Screens */}
-        <div className="hidden md:block">
-          <div ref={tableRef} className="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-slate-50">
-                    <th className="p-5 border border-slate-100 text-left w-[120px]">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Timeline</span>
+        {PERIODS.map((slot) => {
+          const entry = timetable.find(
+            t => t.day.trim().toLowerCase() === activeDay.toLowerCase() && t.period === slot.id
+          );
+
+          return (
+            /* MOBILE CARD: bg-white | dark:bg-slate-900 */
+            <div key={slot.id} className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-colors">
+              <div className="w-16 flex flex-col items-center justify-center border-r border-slate-50 dark:border-slate-800 pr-4">
+                <span className="text-[10px] font-black text-[#722366] dark:text-brand-soft">P{slot.id}</span>
+                <span className="text-[8px] font-bold text-slate-400 text-center leading-tight mt-1">{slot.time.split('-')[0]}</span>
+              </div>
+
+              <div className="flex-1">
+                {entry ? (
+                  <div className={`p-3 rounded-xl border ${getSubjectColor(entry.subjects?.name)}`}>
+                    <h4 className="text-[11px] font-black uppercase truncate dark:text-slate-900">
+                      {entry.subjects?.subject_name || entry.subjects?.name}
+                    </h4>
+                    <p className="text-[8px] font-bold opacity-60 tracking-widest mt-0.5 dark:text-slate-800">
+                      {entry.subjects?.subject_code || entry.subjects?.code}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-[10px] font-bold text-slate-300 dark:text-slate-700 italic">No Class Scheduled</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* DESKTOP VIEW (Grid Style) */}
+      <div className="hidden md:block">
+        <div ref={tableRef} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 transition-colors">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/50">
+                  <th className="p-5 border border-slate-100 dark:border-slate-800 text-left w-[120px]">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Timeline</span>
+                  </th>
+                  {PERIODS.map((p) => (
+                    <th key={p.id} className="p-5 border border-slate-100 dark:border-slate-800 min-w-[140px]">
+                      <span className="block text-[10px] font-black text-[#722366] dark:text-brand-soft uppercase">Period {p.id}</span>
+                      <div className="flex items-center justify-center gap-1 mt-1.5 text-slate-400">
+                        <FiClock size={10} />
+                        <span className="text-[8px] font-bold">{p.time}</span>
+                      </div>
                     </th>
-                    {PERIODS.map((p) => (
-                      <th key={p.id} className="p-5 border border-slate-100 min-w-[140px]">
-                        <span className="block text-[10px] font-black text-[#722366] uppercase">Period {p.id}</span>
-                        <div className="flex items-center justify-center gap-1 mt-1.5 text-slate-400">
-                          <FiClock size={10} />
-                          <span className="text-[8px] font-bold">{p.time}</span>
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {DAYS.map((day) => (
-                    <tr key={day}>
-                      <td className="p-5 border border-slate-100 bg-slate-50/50">
-                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{day}</span>
-                      </td>
-                      {PERIODS.map((slot) => {
-                        const entry = timetable.find(
-                          t => t.day.trim().toLowerCase() === day.toLowerCase() && t.period === slot.id
-                        );
-                        
-                        return (
-                          <td key={`${day}-${slot.id}`} className="p-2 border border-slate-100">
-                            {entry ? (
-                              <div className={`p-3 rounded-xl border text-center flex flex-col justify-center min-h-[70px] ${getSubjectColor(entry.subjects?.name)}`}>
-                                <h4 className="text-[10px] font-black uppercase leading-tight mb-1">
-                                  {entry.subjects?.subject_name || entry.subjects?.name}
-                                </h4>
-                                <p className="text-[8px] font-bold opacity-60 tracking-widest">
-                                  {entry.subjects?.subject_code || entry.subjects?.code}
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-center py-4 text-slate-200">—</div>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
-            {/* Branding for the saved image */}
-            <div className="mt-6 flex justify-between items-center opacity-30 px-2">
-                <span className="text-[8px] font-black uppercase tracking-[0.3em]">Official School Timetable</span>
-                <span className="text-[8px] font-black uppercase tracking-[0.3em]">Session 2026-27</span>
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {DAYS.map((day) => (
+                  <tr key={day} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/20 transition-colors">
+                    <td className="p-5 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                      <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">{day}</span>
+                    </td>
+                    {PERIODS.map((slot) => {
+                      const entry = timetable.find(
+                        t => t.day.trim().toLowerCase() === day.toLowerCase() && t.period === slot.id
+                      );
+
+                      return (
+                        <td key={`${day}-${slot.id}`} className="p-2 border border-slate-100 dark:border-slate-800">
+                          {entry ? (
+                            <div className={`p-3 rounded-xl border text-center flex flex-col justify-center min-h-[70px] ${getSubjectColor(entry.subjects?.name)}`}>
+                              <h4 className="text-[10px] font-black uppercase leading-tight mb-1 dark:text-slate-900">
+                                {entry.subjects?.subject_name || entry.subjects?.name}
+                              </h4>
+                              <p className="text-[8px] font-bold opacity-60 tracking-widest dark:text-slate-800">
+                                {entry.subjects?.subject_code || entry.subjects?.code}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center py-4 text-slate-200 dark:text-slate-800 transition-colors">—</div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Branding for image export */}
+          <div className="mt-6 flex justify-between items-center opacity-30 dark:opacity-20 px-2 text-slate-800 dark:text-slate-100">
+            <span className="text-[8px] font-black uppercase tracking-[0.3em]">Official School Timetable</span>
+            <span className="text-[8px] font-black uppercase tracking-[0.3em]">Session 2026-27</span>
           </div>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }

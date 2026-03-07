@@ -92,89 +92,86 @@ export default function TeacherExamTimetable() {
         }
     }
 
-    return (
-        <div className="min-h-screen bg-[#FDFCFD] p-6 md:p-10 relative">
-            {/* --- HEADER --- */}
-            <div className="bg-brand-soft p-10 rounded-[3rem] border border-brand-light/10 shadow-sm mb-10">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                    <div className="flex items-center gap-6">
-                        <div className="p-5 bg-white rounded-[2rem] shadow-sm text-brand-light border border-brand-soft">
-                            <FiCalendar size={28} />
-                        </div>
-                        <div>
-                            <h1 className="text-3xl font-black text-brand-dark tracking-tight uppercase">My Exam Schedule</h1>
-                            <p className="text-brand-light font-bold text-xs uppercase tracking-widest mt-1">Class-Specific Timings</p>
-                        </div>
+ return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 md:p-10 relative transition-colors duration-300">
+        {/* --- HEADER --- */}
+        <div className="bg-brand-soft dark:bg-slate-900 p-10 rounded-[3rem] border border-brand-light/10 dark:border-slate-800 shadow-sm mb-10">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="flex items-center gap-6">
+                    <div className="p-5 bg-white dark:bg-slate-800 rounded-[2rem] shadow-sm text-brand-light dark:text-brand border border-brand-soft dark:border-slate-700">
+                        <FiCalendar size={28} />
                     </div>
-
-                    {/* --- TOP FILTER --- */}
-                    <div className="flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-brand-soft w-full md:w-auto">
-                        <div className="pl-3 text-brand-light"><FiFilter /></div>
-                        <select 
-                            className="bg-transparent border-none text-sm font-black text-brand-dark focus:ring-0 cursor-pointer pr-10"
-                            value={selectedFilterClass}
-                            onChange={(e) => setSelectedFilterClass(e.target.value)}
-                        >
-                            <option value="all">All My Classes</option>
-                            {teacherAssignments.map((a, i) => {
-                                const val = `${a.class_name.replace(/(st|nd|rd|th)/gi, '').trim()}-${a.section.trim()}`;
-                                return <option key={i} value={val}>Grade {a.class_name}-{a.section}</option>
-                            })}
-                        </select>
+                    <div>
+                        <h1 className="text-3xl font-black text-brand-dark dark:text-slate-100 tracking-tight uppercase">My Exam Schedule</h1>
+                        <p className="text-brand-light dark:text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Class-Specific Timings</p>
                     </div>
                 </div>
+
+                {/* --- TOP FILTER --- */}
+                <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-2 rounded-2xl shadow-sm border border-brand-soft dark:border-slate-700 w-full md:w-auto">
+                    <div className="pl-3 text-brand-light dark:text-slate-500"><FiFilter /></div>
+                    <select 
+                        className="bg-transparent border-none text-sm font-black text-brand-dark dark:text-slate-200 focus:ring-0 cursor-pointer pr-10"
+                        value={selectedFilterClass}
+                        onChange={(e) => setSelectedFilterClass(e.target.value)}
+                    >
+                        <option value="all" className="dark:bg-slate-900">All My Classes</option>
+                        {teacherAssignments.map((a, i) => {
+                            const val = `${a.class_name.replace(/(st|nd|rd|th)/gi, '').trim()}-${a.section.trim()}`;
+                            return <option key={i} value={val} className="dark:bg-slate-900">Grade {a.class_name}-{a.section}</option>
+                        })}
+                    </select>
+                </div>
             </div>
-
-            {/* --- EXAM GRID --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {loading ? (
-                    <div className="col-span-full py-20 text-center font-black text-brand-light animate-pulse uppercase">Syncing your assignments...</div>
-                ) : filteredTimetable.length > 0 ? (
-                    filteredTimetable.map((exam) => {
-                        // Find which of the teacher's assignments belong to THIS specific exam card
-                        const relevantAssignments = teacherAssignments.filter(a => {
-                            const formatted = `${a.class_name.replace(/(st|nd|rd|th)/gi, '').trim()}-${a.section.trim()}`;
-                            return exam.classes.includes(formatted);
-                        });
-
-                        return (
-                            <div key={exam.id} className="bg-white p-8 rounded-[2.5rem] border border-brand-soft shadow-sm hover:shadow-xl transition-all group">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="bg-brand-dark text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">
-                                        {new Date(exam.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-[10px] font-black text-brand uppercase">Standard Time</span>
-                                        <span className="text-xs font-bold text-slate-400">09:00 AM - 12:00 PM</span>
-                                    </div>
-                                </div>
-
-                                <h3 className="text-xl font-black text-brand-dark uppercase mb-4 leading-tight">{exam.exam_name}</h3>
-                                
-                                <div className="space-y-4 mb-8">
-                                    <p className="text-[10px] font-black text-brand-light uppercase tracking-widest">Your Assigned Subjects:</p>
-                                    {relevantAssignments.map((ra, idx) => (
-                                        <div key={idx} className="flex items-center gap-3 bg-brand-soft/50 p-3 rounded-xl border border-brand-soft">
-                                            <FiBookOpen className="text-brand" />
-                                            <div>
-                                                <p className="text-xs font-black text-brand-dark uppercase">{ra.subjects?.name}</p>
-                                                <p className="text-[10px] font-bold text-brand-light uppercase">Grade {ra.class_name}-{ra.section}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                            </div>
-                        )
-                    })
-                ) : (
-                    <div className="col-span-full text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-brand-soft">
-                        <FiAlertCircle size={48} className="mx-auto text-brand-light opacity-20 mb-4" />
-                        <p className="font-black text-brand-light uppercase text-xs">No exams found for the selected filter</p>
-                    </div>
-                )}
-            </div>
-
         </div>
-    )
+
+        {/* --- EXAM GRID --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {loading ? (
+                <div className="col-span-full py-20 text-center font-black text-brand-light dark:text-slate-600 animate-pulse uppercase">Syncing your assignments...</div>
+            ) : filteredTimetable.length > 0 ? (
+                filteredTimetable.map((exam) => {
+                    const relevantAssignments = teacherAssignments.filter(a => {
+                        const formatted = `${a.class_name.replace(/(st|nd|rd|th)/gi, '').trim()}-${a.section.trim()}`;
+                        return exam.classes.includes(formatted);
+                    });
+
+                    return (
+                        <div key={exam.id} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-brand-soft dark:border-slate-800 shadow-sm hover:shadow-xl dark:hover:shadow-brand/5 transition-all group">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="bg-brand-dark dark:bg-brand text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">
+                                    {new Date(exam.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </div>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[10px] font-black text-brand dark:text-brand-light uppercase">Standard Time</span>
+                                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500">09:00 AM - 12:00 PM</span>
+                                </div>
+                            </div>
+
+                            <h3 className="text-xl font-black text-brand-dark dark:text-slate-100 uppercase mb-4 leading-tight">{exam.exam_name}</h3>
+                            
+                            <div className="space-y-4 mb-8">
+                                <p className="text-[10px] font-black text-brand-light dark:text-slate-500 uppercase tracking-widest">Your Assigned Subjects:</p>
+                                {relevantAssignments.map((ra, idx) => (
+                                    <div key={idx} className="flex items-center gap-3 bg-brand-soft/50 dark:bg-slate-800/50 p-3 rounded-xl border border-brand-soft dark:border-slate-700">
+                                        <FiBookOpen className="text-brand" />
+                                        <div>
+                                            <p className="text-xs font-black text-brand-dark dark:text-slate-200 uppercase">{ra.subjects?.name}</p>
+                                            <p className="text-[10px] font-bold text-brand-light dark:text-slate-500 uppercase">Grade {ra.class_name}-{ra.section}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )
+                })
+            ) : (
+                <div className="col-span-full text-center py-20 bg-white dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-brand-soft dark:border-slate-800">
+                    <FiAlertCircle size={48} className="mx-auto text-brand-light dark:text-slate-700 opacity-20 mb-4" />
+                    <p className="font-black text-brand-light dark:text-slate-500 uppercase text-xs">No exams found for the selected filter</p>
+                </div>
+            )}
+        </div>
+    </div>
+)
 }

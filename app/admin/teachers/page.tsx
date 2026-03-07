@@ -1,7 +1,7 @@
 "use client";
 import * as XLSX from "xlsx";
-import { 
-  Plus, Search, Edit2, Trash2, X, GraduationCap, 
+import {
+  Plus, Search, Edit2, Trash2, X, GraduationCap,
   Users, Building2, Phone, Mail, Download, Layers, Lock, AlertCircle, Upload, FileText
 } from "lucide-react";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
@@ -24,7 +24,6 @@ export default function TeacherManagement() {
     email: "",
     phone: "",
     department: "",
-    description: "",
     password: "",
   };
 
@@ -49,77 +48,77 @@ export default function TeacherManagement() {
 
     if (sRes.error) toast.error("Could not load departments");
     else setSubjects(sRes.data || []);
-    
+
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Handle Excel Import
- const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = async (evt) => {
-    try {
-      const bstr = evt.target?.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rawData: any[] = XLSX.utils.sheet_to_json(ws);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rawData: any[] = XLSX.utils.sheet_to_json(ws);
 
-      if (rawData.length === 0) throw new Error("The file is empty.");
+        if (rawData.length === 0) throw new Error("The file is empty.");
 
-      // 1. CHECK FOR COMPULSORY FIELDS
-      const validData: any[] = [];
-      const emailsToImport: string[] = [];
+        // 1. CHECK FOR COMPULSORY FIELDS
+        const validData: any[] = [];
+        const emailsToImport: string[] = [];
 
-      for (const [index, item] of rawData.entries()) {
-        const name = item["Full Name"] || item.FullName;
-        const email = item.Email;
-        const phone = item.Phone;
-        const rowNum = index + 2; // Offset for header and 0-index
+        for (const [index, item] of rawData.entries()) {
+          const name = item["Full Name"] || item.FullName;
+          const email = item.Email;
+          const phone = item.Phone;
+          const rowNum = index + 2; // Offset for header and 0-index
 
-        if (!name || !email || !phone) {
-          throw new Error(`Row ${rowNum} is missing required data (Name, Email, or Phone).`);
+          if (!name || !email || !phone) {
+            throw new Error(`Row ${rowNum} is missing required data (Name, Email, or Phone).`);
+          }
+
+          validData.push({
+            full_name: name,
+            email: email.toLowerCase().trim(),
+            phone: phone.toString(),
+            department: item.Department || "Unassigned",
+            teacher_id: `TEA-${Math.floor(1000 + Math.random() * 9000)}`,
+            password: generatePassword(),
+          });
+          emailsToImport.push(email.toLowerCase().trim());
         }
 
-        validData.push({
-          full_name: name,
-          email: email.toLowerCase().trim(),
-          phone: phone.toString(),
-          department: item.Department || "Unassigned",
-          teacher_id: `TEA-${Math.floor(1000 + Math.random() * 9000)}`,
-          password: generatePassword(), 
-        });
-        emailsToImport.push(email.toLowerCase().trim());
+        // 2. CHECK FOR DUPLICATES IN DATABASE
+        const { data: existingStaff } = await supabase
+          .from("teachers")
+          .select("email")
+          .in("email", emailsToImport);
+
+        if (existingStaff && existingStaff.length > 0) {
+          const dups = existingStaff.map(s => s.email).join(", ");
+          throw new Error(`Import blocked. The following emails already exist: ${dups}`);
+        }
+
+        // 3. INSERT DATA
+        const { error } = await supabase.from("teachers").insert(validData);
+        if (error) throw error;
+
+        toast.success(`${validData.length} Staff members imported successfully.`);
+        fetchData();
+      } catch (err: any) {
+        // SHOW ERROR MODAL/TOAST
+        toast.error(err.message, { duration: 5000 });
       }
-
-      // 2. CHECK FOR DUPLICATES IN DATABASE
-      const { data: existingStaff } = await supabase
-        .from("teachers")
-        .select("email")
-        .in("email", emailsToImport);
-
-      if (existingStaff && existingStaff.length > 0) {
-        const dups = existingStaff.map(s => s.email).join(", ");
-        throw new Error(`Import blocked. The following emails already exist: ${dups}`);
-      }
-
-      // 3. INSERT DATA
-      const { error } = await supabase.from("teachers").insert(validData);
-      if (error) throw error;
-
-      toast.success(`${validData.length} Staff members imported successfully.`);
-      fetchData();
-    } catch (err: any) {
-      // SHOW ERROR MODAL/TOAST
-      toast.error(err.message, { duration: 5000 });
-    }
+    };
+    reader.readAsBinaryString(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
-  reader.readAsBinaryString(file);
-  if (fileInputRef.current) fileInputRef.current.value = "";
-};
 
   // Download Sample File
   const downloadSample = () => {
@@ -135,7 +134,7 @@ export default function TeacherManagement() {
 
   const filtered = useMemo(() => {
     return teachers.filter(t => {
-      const matchesSearch = [t.full_name, t.email, t.department, t.teacher_id].some(field => 
+      const matchesSearch = [t.full_name, t.email, t.department, t.teacher_id].some(field =>
         (field || "").toLowerCase().includes(search.toLowerCase())
       );
       const matchesDept = selectedDept === "All" || t.department === selectedDept;
@@ -170,7 +169,6 @@ export default function TeacherManagement() {
         email: t.email,
         phone: t.phone || "",
         department: t.department || "",
-        description: t.description || "",
         password: t.password || "",
       });
     } else {
@@ -186,8 +184,8 @@ export default function TeacherManagement() {
 
     try {
       const payload = { ...formData, teacher_id: editTeacher ? editTeacher.teacher_id : `TEA-${Math.floor(1000 + Math.random() * 9000)}` };
-      
-      const { error } = editTeacher 
+
+      const { error } = editTeacher
         ? await supabase.from("teachers").update(payload).eq("id", editTeacher.id)
         : await supabase.from("teachers").insert([payload]);
 
@@ -201,27 +199,31 @@ export default function TeacherManagement() {
   };
 
 return (
-  <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-6 md:space-y-8 bg-[#fffcfd] min-h-screen">
-    <Toaster richColors position="top-center" />
+  <div className="max-w-10xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-6 md:space-y-8 min-h-screen transition-colors duration-500
+    bg-[#fcfcfd] dark:bg-slate-950 text-slate-900 dark:text-slate-200">
+    
+    <Toaster richColors position="top-center" theme="dark" />
 
     {/* HEADER */}
     <header className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 md:gap-4">
-          <div className="w-12 h-12 md:w-16 md:h-16 bg-brand-soft/30 rounded-2xl md:rounded-3xl flex items-center justify-center text-brand border border-brand-soft shadow-sm shrink-0">
+          <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center text-brand border shadow-xl shrink-0 transition-all
+            bg-white dark:bg-slate-900 rounded-2xl md:rounded-3xl border-slate-200 dark:border-slate-800">
             <Users size={24} className="md:w-[30px] md:h-[30px]" />
           </div>
           <div>
-            <h1 className="text-xl md:text-3xl font-black text-slate-800 tracking-tight uppercase leading-none">
+            <h1 className="text-xl md:text-3xl font-black tracking-tight uppercase leading-none text-slate-900 dark:text-white">
               FACULTY<span className="text-brand">REGISTRY</span>
             </h1>
-            <p className="text-brand font-bold text-[8px] md:text-[10px] tracking-[0.2em] uppercase opacity-70 mt-1">Staff Management System</p>
+            <p className="text-brand font-bold text-[8px] md:text-[10px] tracking-[0.2em] uppercase opacity-70 mt-1">
+              Staff Management System
+            </p>
           </div>
         </div>
-        {/* Onboard Button for Mobile - Floating or Top Right */}
         <button
           onClick={() => openModal()}
-          className="lg:hidden bg-brand text-white p-4 rounded-2xl shadow-lg shadow-brand-soft active:scale-95 transition-all"
+          className="lg:hidden bg-brand text-white p-4 rounded-2xl shadow-lg shadow-brand/20 active:scale-95 transition-all"
         >
           <Plus size={20} />
         </button>
@@ -230,31 +232,34 @@ return (
       {/* ACTION BUTTONS BAR */}
       <div className="grid grid-cols-2 lg:flex lg:flex-row items-center gap-3">
         <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx, .xls, .csv" className="hidden" />
-        
-        <button 
-            onClick={downloadSample}
-            className="flex-1 bg-emerald-50 text-emerald-600 border-2 border-emerald-100 px-3 py-4 rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-100 transition-all"
+
+        <button
+          onClick={downloadSample}
+          className="flex-1 px-3 py-4 rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border-2
+            bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
         >
-            <FileText size={16}/> Sample
+          <FileText size={16} /> Sample
         </button>
 
-        <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 bg-white border-2 border-slate-100 text-slate-600 px-3 py-4 rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex-1 px-3 py-4 rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border-2
+            bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
         >
-            <Upload size={16}/> Import
+          <Upload size={16} /> Import
         </button>
 
-        <button 
-            onClick={() => exportToExcel(teachers, 'all_teachers')}
-            className="flex-1 bg-slate-800 text-white px-3 py-4 rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 hover:bg-slate-700 transition-all"
+        <button
+          onClick={() => exportToExcel(teachers, 'all_teachers')}
+          className="flex-1 bg-brand text-white px-3 py-4 rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest shadow-lg shadow-brand/10 flex items-center justify-center gap-2 hover:brightness-110 transition-all"
         >
-            <Download size={16}/> Export
+          <Download size={16} /> Export
         </button>
 
         <button
           onClick={() => openModal()}
-          className="hidden lg:flex flex-1 bg-brand text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-brand-soft hover:brightness-110 transition-all items-center justify-center gap-2"
+          className="hidden lg:flex flex-1 px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl transition-all items-center justify-center gap-2
+            bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 dark:hover:bg-slate-100"
         >
           <Plus size={18} /> Onboard Teacher
         </button>
@@ -262,72 +267,95 @@ return (
     </header>
 
     {/* SEARCH & DEPT FILTER */}
-    <div className="bg-white p-3 md:p-4 rounded-[1.5rem] md:rounded-[2.5rem] border border-brand-soft flex flex-col md:flex-row gap-3 items-center shadow-sm">
+    <div className="p-3 md:p-4 rounded-[1.5rem] md:rounded-[2.5rem] border flex flex-col md:flex-row gap-3 items-center transition-all
+      bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl">
       <div className="relative flex-1 w-full">
         <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-brand" size={18} />
-        <input 
-          type="text" 
+        <input
+          type="text"
           placeholder="Search faculty..."
-          className="w-full pl-12 pr-6 py-4 bg-brand-soft/20 border-none rounded-2xl font-bold text-sm outline-none focus:ring-2 ring-brand"
+          className="w-full pl-12 pr-6 py-4 rounded-2xl font-bold text-sm outline-none focus:ring-2 ring-brand transition-all
+            bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border-none"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-      <div className="flex items-center bg-brand-soft/30 px-4 rounded-2xl w-full md:w-auto">
-        <Building2 className="text-brand mr-2" size={14}/>
-        <select 
+      <div className="flex items-center px-4 rounded-2xl w-full md:w-auto border transition-all
+        bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+        <Building2 className="text-brand mr-2" size={14} />
+        <select
           value={selectedDept}
-          className="w-full bg-transparent border-none py-4 font-black text-slate-700 text-[11px] uppercase cursor-pointer outline-none" 
+          className="w-full bg-transparent border-none py-4 font-black text-[11px] uppercase cursor-pointer outline-none
+            text-slate-600 dark:text-slate-300"
           onChange={(e) => setSelectedDept(e.target.value)}
         >
-          <option value="All">All Departments</option>
+          <option value="All" className="dark:bg-slate-900">All Departments</option>
           {subjects.map((s, idx) => (
-            <option key={idx} value={s.name}>{s.name}</option>
+            <option key={idx} value={s.name} className="dark:bg-slate-900">{s.name}</option>
           ))}
         </select>
       </div>
     </div>
 
     {/* DATA CONTAINER */}
-    <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-brand-soft overflow-hidden shadow-sm">
+    <div className="rounded-[2rem] md:rounded-[3rem] border overflow-hidden transition-all
+      bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl">
+      
       {/* DESKTOP VIEW */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left">
           <thead>
-            <tr className="bg-brand-soft/10 text-[10px] font-black text-brand uppercase tracking-widest border-b border-brand-soft">
+            <tr className="text-[10px] font-black uppercase tracking-widest border-b transition-colors
+              bg-slate-50/50 dark:bg-slate-950/50 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-800">
               <th className="px-10 py-7">Faculty Member</th>
               <th className="px-8 py-7">Department</th>
               <th className="px-8 py-7">Contact Information</th>
               <th className="px-10 py-7 text-center">Manage</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-brand-soft/10">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {loading ? (
               <tr><td colSpan={4} className="p-32 text-center animate-pulse text-brand font-black tracking-widest">LOADING...</td></tr>
             ) : filtered.map((t) => (
-              <tr key={t.id} className="hover:bg-brand-soft/5 transition-all group">
+              <tr key={t.id} className="transition-all group hover:bg-slate-50 dark:hover:bg-slate-800/40">
                 <td className="px-10 py-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-brand-soft text-brand rounded-xl flex items-center justify-center font-black text-lg shrink-0">{t.full_name.charAt(0)}</div>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shrink-0 border transition-all
+                      bg-slate-100 dark:bg-slate-800 text-brand border-slate-200 dark:border-slate-700">
+                      {t.full_name.charAt(0)}
+                    </div>
                     <div>
-                      <p className="font-black text-slate-800 uppercase text-sm">{t.full_name}</p>
-                      <p className="text-[10px] font-bold text-slate-400">{t.teacher_id}</p>
+                      <p className="font-black uppercase text-sm text-slate-800 dark:text-slate-100">{t.full_name}</p>
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500">{t.teacher_id}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-8 py-6">
-                  <span className="text-[10px] font-black text-slate-700 uppercase bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">{t.department || "Unassigned"}</span>
+                  <span className="text-[10px] font-black uppercase px-3 py-1 rounded-lg border transition-all
+                    bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800">
+                    {t.department || "Unassigned"}
+                  </span>
                 </td>
                 <td className="px-8 py-6">
                   <div className="space-y-1">
-                    <p className="text-[11px] font-bold text-slate-500 flex items-center gap-2 lowercase truncate max-w-[150px]"><Mail size={12} className="text-brand"/> {t.email}</p>
-                    <p className="text-[11px] font-bold text-slate-500 flex items-center gap-2"><Phone size={12} className="text-brand"/> {t.phone || "N/A"}</p>
+                    <p className="text-[11px] font-bold flex items-center gap-2 lowercase truncate max-w-[150px] text-slate-500 dark:text-slate-400">
+                      <Mail size={12} className="text-brand" /> {t.email}
+                    </p>
+                    <p className="text-[11px] font-bold flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                      <Phone size={12} className="text-brand" /> {t.phone || "N/A"}
+                    </p>
                   </div>
                 </td>
                 <td className="px-10 py-6">
                   <div className="flex justify-center gap-2">
-                    <button onClick={() => openModal(t)} className="p-3 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-800 hover:text-white transition-all"><Edit2 size={16}/></button>
-                    <button onClick={() => setDeleteId(t.id)} className="p-3 bg-rose-50 text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={16}/></button>
+                    <button onClick={() => openModal(t)} className="p-3 rounded-xl transition-all border
+                      bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-slate-900 dark:hover:bg-white hover:text-white dark:hover:text-slate-900 border-slate-200 dark:border-slate-700">
+                      <Edit2 size={16} />
+                    </button>
+                    <button onClick={() => setDeleteId(t.id)} className="p-3 rounded-xl transition-all border
+                      bg-rose-50 dark:bg-rose-950/30 text-rose-500 border-rose-100 dark:border-rose-900/50 hover:bg-rose-500 hover:text-white">
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -337,66 +365,90 @@ return (
       </div>
 
       {/* MOBILE LIST VIEW */}
-      <div className="md:hidden divide-y divide-brand-soft/10">
-        {loading ? (
-           <div className="p-20 text-center animate-pulse text-brand font-black text-xs uppercase tracking-widest">Loading...</div>
-        ) : filtered.map((t) => (
+      <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+        {filtered.map((t) => (
           <div key={t.id} className="p-5 space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-brand-soft text-brand rounded-xl flex items-center justify-center font-black">{t.full_name.charAt(0)}</div>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black border transition-all
+                  bg-slate-100 dark:bg-slate-800 text-brand border-slate-200 dark:border-slate-700">
+                  {t.full_name.charAt(0)}
+                </div>
                 <div>
-                  <p className="font-black text-slate-800 uppercase text-xs">{t.full_name}</p>
-                  <p className="text-[9px] font-bold text-slate-400">{t.teacher_id}</p>
+                  <p className="font-black uppercase text-xs text-slate-800 dark:text-slate-100">{t.full_name}</p>
+                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500">{t.teacher_id}</p>
                 </div>
               </div>
-              <span className="text-[8px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded uppercase">{t.department || "N/A"}</span>
+              <span className="text-[8px] font-black px-2 py-1 rounded border uppercase transition-all
+                bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800">
+                {t.department || "N/A"}
+              </span>
             </div>
-            
-            <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 space-y-2">
-              <p className="text-[10px] font-bold text-slate-500 flex items-center gap-2 lowercase"><Mail size={10} className="text-brand"/> {t.email}</p>
-              <p className="text-[10px] font-bold text-slate-500 flex items-center gap-2"><Phone size={10} className="text-brand"/> {t.phone || "N/A"}</p>
+
+            <div className="p-3 rounded-xl border space-y-2 transition-all
+              bg-slate-50/50 dark:bg-slate-950/50 border-slate-100 dark:border-slate-800">
+              <p className="text-[10px] font-bold flex items-center gap-2 lowercase text-slate-500 dark:text-slate-400">
+                <Mail size={10} className="text-brand" /> {t.email}
+              </p>
+              <p className="text-[10px] font-bold flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                <Phone size={10} className="text-brand" /> {t.phone || "N/A"}
+              </p>
             </div>
 
             <div className="flex gap-2">
-               <button onClick={() => openModal(t)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center gap-2 font-black text-[10px] uppercase">
-                <Edit2 size={14}/> Edit
-               </button>
-               <button onClick={() => setDeleteId(t.id)} className="flex-1 py-3 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center gap-2 font-black text-[10px] uppercase">
-                <Trash2 size={14}/> Remove
-               </button>
+              <button onClick={() => openModal(t)} className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-black text-[10px] border uppercase transition-all
+                bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700">
+                <Edit2 size={14} /> Edit
+              </button>
+              <button onClick={() => setDeleteId(t.id)} className="flex-1 py-3 bg-rose-50 dark:bg-rose-950/30 text-rose-500 rounded-xl flex items-center justify-center gap-2 font-black text-[10px] border border-rose-100 dark:border-rose-900/50 uppercase">
+                <Trash2 size={14} /> Remove
+              </button>
             </div>
           </div>
         ))}
       </div>
     </div>
 
-    {/* MODAL ADJUSTMENTS (Mobile Full Screen) */}
+    {/* MODAL */}
     {showModal && (
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4">
-        <div className="bg-white w-full max-w-xl rounded-t-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 max-h-[95vh] flex flex-col">
-          <div className="p-6 md:p-8 border-b border-brand-soft bg-brand-soft/10 flex justify-between items-center shrink-0">
+      <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 transition-all
+        bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md">
+        <div className="w-full max-w-xl rounded-t-[2.5rem] md:rounded-[3rem] border shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 max-h-[95vh] flex flex-col transition-all
+          bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          
+          <div className="p-6 md:p-8 border-b flex justify-between items-center shrink-0 transition-colors
+            bg-slate-50/50 dark:bg-slate-950/50 border-slate-100 dark:border-slate-800">
             <h2 className="text-lg md:text-xl font-black text-brand uppercase tracking-tighter">
               {editTeacher ? 'Update' : 'Onboard'} Faculty
             </h2>
-            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white rounded-full transition-colors"><X size={24}/></button>
+            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-full transition-colors">
+              <X size={24} />
+            </button>
           </div>
-          
+
           <form onSubmit={saveTeacher} className="p-6 md:p-10 space-y-4 md:space-y-6 overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
               <div className="md:col-span-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Full Name</label>
-                <input required value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="w-full px-5 py-3.5 md:px-6 md:py-4 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-brand-soft outline-none text-sm" placeholder="e.g. Dr. Sarah Jenkins" />
+                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2 tracking-widest">Full Name</label>
+                <input required value={formData.full_name} onChange={e => setFormData({ ...formData, full_name: e.target.value })} 
+                  className="w-full px-5 py-3.5 md:px-6 md:py-4 rounded-2xl font-bold border-2 outline-none text-sm transition-all
+                  bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border-slate-100 dark:border-slate-800 focus:border-brand" 
+                  placeholder="e.g. Dr. Sarah Jenkins" />
               </div>
 
               <div className="md:col-span-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Email Address</label>
-                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-5 py-3.5 md:px-6 md:py-4 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-brand-soft outline-none text-sm" placeholder="sarah.j@school.com" />
+                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2 tracking-widest">Email Address</label>
+                <input required type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} 
+                  className="w-full px-5 py-3.5 md:px-6 md:py-4 rounded-2xl font-bold border-2 outline-none text-sm transition-all
+                  bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border-slate-100 dark:border-slate-800 focus:border-brand" 
+                  placeholder="sarah.j@school.com" />
               </div>
 
               <div>
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Department</label>
-                <select required value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 rounded-2xl font-bold outline-none cursor-pointer border-2 border-transparent focus:border-brand-soft text-sm">
+                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2 tracking-widest">Department</label>
+                <select required value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} 
+                  className="w-full px-5 py-3.5 rounded-2xl font-bold outline-none cursor-pointer border-2 text-sm transition-all
+                  bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border-slate-100 dark:border-slate-800 focus:border-brand">
                   <option value="">Select Dept</option>
                   {subjects.map((s, idx) => (
                     <option key={idx} value={s.name}>{s.name}</option>
@@ -405,24 +457,29 @@ return (
               </div>
 
               <div>
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Contact Phone</label>
-                <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-brand-soft outline-none text-sm" placeholder="+1 (555) 000-0000" />
+                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2 tracking-widest">Contact Phone</label>
+                <input value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} 
+                  className="w-full px-5 py-3.5 rounded-2xl font-bold border-2 outline-none text-sm transition-all
+                  bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border-slate-100 dark:border-slate-800 focus:border-brand" 
+                  placeholder="+1 (555) 000-0000" />
               </div>
 
               <div className="md:col-span-2">
-                <div className="p-4 md:p-6 bg-brand-soft/10 rounded-[1.5rem] md:rounded-[2rem] border border-brand-soft/30">
+                <div className="p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border transition-all
+                  bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800">
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-[9px] font-black text-brand uppercase tracking-widest flex items-center gap-2"><Lock size={12}/> Portal Password</label>
-                    <button type="button" onClick={() => setFormData({ ...formData, password: generatePassword() })} className="text-[9px] font-black text-slate-400 uppercase">Regenerate</button>
+                    <label className="text-[9px] font-black text-brand uppercase tracking-widest flex items-center gap-2"><Lock size={12} /> Portal Password</label>
+                    <button type="button" onClick={() => setFormData({ ...formData, password: generatePassword() })} className="text-[9px] font-black text-slate-400 hover:text-brand transition-colors uppercase">Regenerate</button>
                   </div>
-                  <div className="bg-white px-4 py-2.5 rounded-xl font-mono text-base md:text-lg font-black text-brand text-center tracking-widest border border-brand-soft">
+                  <div className="px-4 py-2.5 rounded-xl font-mono text-base md:text-lg font-black text-center tracking-widest border transition-all
+                    bg-white dark:bg-slate-900 text-brand border-slate-200 dark:border-slate-800">
                     {formData.password}
                   </div>
                 </div>
               </div>
             </div>
 
-            <button className="w-full bg-brand text-white py-4 md:py-5 rounded-[1.5rem] md:rounded-[2rem] font-black uppercase tracking-widest shadow-xl shadow-brand-soft hover:brightness-110 active:scale-[0.98] transition-all text-[11px] md:text-sm">
+            <button className="w-full bg-brand text-white py-4 md:py-5 rounded-[1.5rem] md:rounded-[2rem] font-black uppercase tracking-widest shadow-xl shadow-brand/20 hover:brightness-110 active:scale-[0.98] transition-all text-[11px] md:text-sm">
               {editTeacher ? "Update Profile" : "Onboard Faculty"}
             </button>
           </form>

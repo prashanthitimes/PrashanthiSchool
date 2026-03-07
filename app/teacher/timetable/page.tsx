@@ -12,7 +12,7 @@ export default function TeacherTimetable() {
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   const periods = [1, 2, 3, 4, 5, 6]
-  
+
   const timeSlots: Record<number, string> = {
     1: "09:00 - 10:00", 2: "10:00 - 11:00", 3: "11:00 - 12:00",
     4: "12:00 - 01:00", 5: "02:00 - 03:00", 6: "03:00 - 04:00",
@@ -25,7 +25,7 @@ export default function TeacherTimetable() {
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-    
+
     // List of elegant Tailwind color pairs
     const colors = [
       { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-700' },
@@ -45,8 +45,8 @@ export default function TeacherTimetable() {
   const handleDownloadImage = async () => {
     if (!printRef.current) return;
     const canvas = await html2canvas(printRef.current, {
-        scale: 2, // High quality
-        backgroundColor: '#ffffff',
+      scale: 2, // High quality
+      backgroundColor: '#ffffff',
     });
     const image = canvas.toDataURL("image/png", 1.0);
     const link = document.createElement("a");
@@ -62,7 +62,7 @@ export default function TeacherTimetable() {
   async function fetchTeacherTimetable() {
     try {
       setLoading(true);
-      const userEmail = localStorage.getItem('teacherEmail'); 
+      const userEmail = localStorage.getItem('teacherEmail');
 
       const { data: teacher, error: tError } = await supabase
         .from('teachers')
@@ -98,7 +98,7 @@ export default function TeacherTimetable() {
 
   if (loading) return (
     <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand"></div>
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand"></div>
     </div>
   )
 
@@ -106,43 +106,43 @@ export default function TeacherTimetable() {
     <div className="space-y-4">
       {/* Action Bar */}
       <div className="flex justify-between items-center px-2">
-        <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
-            <FiCalendar className="text-brand" /> Weekly Schedule
+        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <FiCalendar className="text-brand dark:text-brand-soft" /> Weekly Schedule
         </h2>
-        <button 
+        <button
           onClick={handleDownloadImage}
-          className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-black hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200"
+          className="flex items-center gap-2 bg-slate-900 dark:bg-brand text-white px-4 py-2 rounded-xl text-xs font-black hover:bg-slate-800 dark:hover:bg-brand-dark transition-all active:scale-95 shadow-lg shadow-slate-200 dark:shadow-none"
         >
           <FiDownload /> Export as Photo
         </button>
       </div>
 
-      {/* TIMETABLE CONTAINER (This is what gets captured) */}
-      <div 
-        ref={printRef} 
-        className="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden"
+      {/* TIMETABLE CONTAINER */}
+      <div
+        ref={printRef}
+        className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden"
       >
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
           <div>
-            <h1 className="text-xl font-black text-slate-800 tracking-tight">Teacher Timetable</h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Academic Session 2025-26</p>
+            <h1 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Teacher Timetable</h1>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Academic Session 2025-26</p>
           </div>
           <div className="text-right">
-             <div className="text-xs font-black text-brand flex items-center gap-1">
-                <span className="w-2 h-2 bg-brand rounded-full animate-pulse"></span> Live Schedule
-             </div>
+            <div className="text-xs font-black text-brand dark:text-brand-soft flex items-center gap-1">
+              <span className="w-2 h-2 bg-brand dark:bg-brand-soft rounded-full animate-pulse"></span> Live Schedule
+            </div>
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-slate-50/80">
-                <th className="p-4 border-b border-r border-slate-100 text-slate-400 font-black text-[9px] uppercase tracking-widest text-left w-28">
+              <tr className="bg-slate-50/80 dark:bg-slate-800/50">
+                <th className="p-4 border-b border-r border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 font-black text-[9px] uppercase tracking-widest text-left w-28">
                   <div className="flex items-center gap-2"><FiClock /> Time</div>
                 </th>
                 {days.map(day => (
-                  <th key={day} className="p-4 border-b border-r border-slate-100 text-slate-700 font-black text-xs text-center min-w-[140px]">
+                  <th key={day} className="p-4 border-b border-r border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-black text-xs text-center min-w-[140px]">
                     {day}
                   </th>
                 ))}
@@ -151,7 +151,7 @@ export default function TeacherTimetable() {
             <tbody>
               {periods.map(period => (
                 <tr key={period} className="group">
-                  <td className="p-4 border-b border-r border-slate-100 text-[10px] font-black text-slate-400 bg-slate-50/30">
+                  <td className="p-4 border-b border-r border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 dark:text-slate-500 bg-slate-50/30 dark:bg-slate-800/20">
                     {timeSlots[period]}
                   </td>
                   {days.map(day => {
@@ -159,20 +159,21 @@ export default function TeacherTimetable() {
                     const styles = slot ? getSubjectStyle(slot.subjects?.name) : null;
 
                     return (
-                      <td key={`${day}-${period}`} className="p-2 border-b border-r border-slate-100 align-top">
+                      <td key={`${day}-${period}`} className="p-2 border-b border-r border-slate-100 dark:border-slate-800 align-top">
                         {slot ? (
-                          <div className={`rounded-xl p-3 h-full border-l-4 shadow-sm transition-all ${styles?.bg} ${styles?.border} ${styles?.text}`}>
+                          /* Subject Card: We use style strings but ensure shadow and text play nice in dark mode */
+                          <div className={`rounded-xl p-3 h-full border-l-4 shadow-sm transition-all ${styles?.bg} ${styles?.border} ${styles?.text} dark:brightness-90 dark:contrast-125`}>
                             <p className="font-black text-xs mb-1 leading-tight">{slot.subjects?.name}</p>
                             <div className="flex items-center justify-between mt-2">
-                                <span className="text-[9px] font-black bg-white/50 px-2 py-0.5 rounded-md uppercase">
-                                    {slot.class}-{slot.section}
-                                </span>
-                                <FiInfo size={12} className="opacity-40" />
+                              <span className="text-[9px] font-black bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded-md uppercase">
+                                {slot.class}-{slot.section}
+                              </span>
+                              <FiInfo size={12} className="opacity-40" />
                             </div>
                           </div>
                         ) : (
                           <div className="h-12 flex items-center justify-center">
-                            <div className="w-6 h-[2px] bg-slate-100 rounded-full"></div>
+                            <div className="w-6 h-[2px] bg-slate-100 dark:bg-slate-800 rounded-full"></div>
                           </div>
                         )}
                       </td>
@@ -183,10 +184,10 @@ export default function TeacherTimetable() {
             </tbody>
           </table>
         </div>
-        
+
         {/* Footer for the Photo Export */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
-            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.3em]">Generated via School Management System</p>
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 text-center">
+          <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">Generated via School Management System</p>
         </div>
       </div>
     </div>

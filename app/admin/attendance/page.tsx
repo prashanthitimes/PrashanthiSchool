@@ -85,59 +85,59 @@ export default function AttendanceAdminPage() {
     })
 
     return (
-        <div className="p-4 md:p-6 mt-16 md:mt-10 space-y-6 max-w-[1400px] mx-auto min-h-screen bg-[#FCFAFC]">
+        <div className="p-4 md:p-6 mt-16 md:mt-10 space-y-6 max-w-[1400px] mx-auto min-h-screen bg-[#FCFAFC] dark:bg-slate-950 transition-colors duration-300">
 
             {/* HEADER SECTION */}
-            <header className="bg-white p-4 md:px-8 md:py-6 rounded-3xl md:rounded-[2.5rem] border border-brand-soft/30 shadow-sm">
+            <header className="bg-white dark:bg-slate-900 p-4 md:px-8 md:py-6 rounded-3xl md:rounded-[2.5rem] border border-brand-soft/30 dark:border-slate-800 shadow-sm transition-colors">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-accent text-brand rounded-2xl flex items-center justify-center shrink-0">
+                        <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-accent dark:bg-brand/20 text-brand dark:text-brand-light rounded-2xl flex items-center justify-center shrink-0">
                             <FiUserCheck size={24} />
                         </div>
                         <div>
-                            <h1 className="text-lg md:text-xl font-black text-slate-800 tracking-tight uppercase leading-none">Attendance</h1>
-                            <p className="text-[9px] font-bold text-brand tracking-[0.2em] uppercase mt-1 opacity-80">Admin Ledger</p>
+                            <h1 className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-none">Attendance</h1>
+                            <p className="text-[9px] font-bold text-brand dark:text-brand-light tracking-[0.2em] uppercase mt-1 opacity-80">Admin Ledger</p>
                         </div>
                         {/* Mobile Filter Toggle */}
-                        <button 
+                        <button
                             onClick={() => setShowFilters(!showFilters)}
-                            className="ml-auto lg:hidden p-3 bg-slate-50 rounded-xl text-brand border border-brand-soft/20"
+                            className="ml-auto lg:hidden p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-brand dark:text-brand-light border border-brand-soft/20 dark:border-slate-700"
                         >
                             <FiFilter />
                         </button>
                     </div>
 
-                    {/* Filter Controls - Responsive visibility */}
+                    {/* Filter Controls */}
                     <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col sm:flex-row flex-wrap items-center gap-3 transition-all`}>
                         <div className="relative w-full sm:w-auto">
-                            <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" />
+                            <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand dark:text-brand-light" />
                             <input
                                 type="date"
                                 value={selectedDate}
                                 onChange={(e) => setSelectedDate(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-brand-soft/20 rounded-2xl text-[11px] font-black uppercase outline-none"
+                                className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-brand-soft/20 dark:border-slate-800 rounded-2xl text-[11px] font-black uppercase outline-none dark:text-slate-200 focus:border-brand transition-all"
                             />
                         </div>
 
                         <select
                             value={selectedClass}
                             onChange={(e) => setSelectedClass(e.target.value)}
-                            className="w-full sm:w-auto px-6 py-3 bg-slate-50 border border-brand-soft/20 rounded-2xl text-[11px] font-black uppercase outline-none cursor-pointer"
+                            className="w-full sm:w-auto px-6 py-3 bg-slate-50 dark:bg-slate-950 border border-brand-soft/20 dark:border-slate-800 rounded-2xl text-[11px] font-black uppercase outline-none cursor-pointer dark:text-slate-200 focus:border-brand transition-all"
                         >
-                            <option value="All">All Classes</option>
-                            {classOptions.map(c => <option key={c} value={c}>Class {c}</option>)}
+                            <option value="All" className="dark:bg-slate-900">All Classes</option>
+                            {classOptions.map(c => <option key={c} value={c} className="dark:bg-slate-900">Class {c}</option>)}
                         </select>
 
                         <div className="relative w-full sm:w-auto">
-                            <FiBookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" />
+                            <FiBookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-brand dark:text-brand-light" />
                             <select
                                 value={selectedSubject}
                                 onChange={(e) => setSelectedSubject(e.target.value)}
-                                className="w-full pl-11 pr-6 py-3 bg-slate-50 border border-brand-soft/20 rounded-2xl text-[11px] font-black uppercase outline-none cursor-pointer"
+                                className="w-full pl-11 pr-6 py-3 bg-slate-50 dark:bg-slate-950 border border-brand-soft/20 dark:border-slate-800 rounded-2xl text-[11px] font-black uppercase outline-none cursor-pointer dark:text-slate-200 focus:border-brand transition-all"
                             >
-                                <option value="All">All Subjects</option>
+                                <option value="All" className="dark:bg-slate-900">All Subjects</option>
                                 {subjectsList.map(sub => (
-                                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                                    <option key={sub.id} value={sub.id} className="dark:bg-slate-900">{sub.name}</option>
                                 ))}
                             </select>
                         </div>
@@ -145,35 +145,35 @@ export default function AttendanceAdminPage() {
                 </div>
             </header>
 
-            {/* STATS CARDS - 2 columns on mobile */}
+            {/* STATS CARDS */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 {[
-                    { label: 'Total', value: attendance.length, color: 'text-brand', icon: FiCircle },
-                    { label: 'Present', value: attendance.filter(a => a.status === 'present').length, color: 'text-emerald-500', icon: FiCheckCircle },
-                    { label: 'Absent', value: attendance.filter(a => a.status === 'absent').length, color: 'text-red-500', icon: FiXCircle },
-                    { label: 'Late', value: attendance.filter(a => a.status === 'late').length, color: 'text-amber-500', icon: FiClock },
+                    { label: 'Total', value: attendance.length, color: 'text-brand dark:text-brand-light', icon: FiCircle },
+                    { label: 'Present', value: attendance.filter(a => a.status === 'present').length, color: 'text-emerald-500 dark:text-emerald-400', icon: FiCheckCircle },
+                    { label: 'Absent', value: attendance.filter(a => a.status === 'absent').length, color: 'text-red-500 dark:text-red-400', icon: FiXCircle },
+                    { label: 'Late', value: attendance.filter(a => a.status === 'late').length, color: 'text-amber-500 dark:text-amber-400', icon: FiClock },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white p-4 md:p-6 rounded-3xl border border-brand-soft/20 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div key={i} className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-3xl border border-brand-soft/20 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-2 transition-colors">
                         <div>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{stat.label}</p>
                             <h3 className={`text-xl md:text-2xl font-black mt-1 ${stat.color}`}>{stat.value}</h3>
                         </div>
-                        <stat.icon size={20} className="hidden md:block opacity-20" />
+                        <stat.icon size={20} className="hidden md:block opacity-20 dark:opacity-40" />
                     </div>
                 ))}
             </div>
 
             {/* TABLE / LIST CONTAINER */}
-            <div className="bg-white rounded-3xl md:rounded-[2.5rem] shadow-xl border border-brand-soft/30 overflow-hidden">
-                <div className="p-4 md:p-6 border-b border-brand-soft/10">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl md:rounded-[2.5rem] shadow-xl dark:shadow-none border border-brand-soft/30 dark:border-slate-800 overflow-hidden transition-colors">
+                <div className="p-4 md:p-6 border-b border-brand-soft/10 dark:border-slate-800">
                     <div className="relative max-w-md">
-                        <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600" />
                         <input
                             type="text"
                             placeholder="SEARCH STUDENT OR SUBJECT..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl text-[10px] md:text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-brand/10"
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 dark:bg-slate-950 border-none rounded-2xl text-[10px] md:text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-brand/10 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-700 transition-all"
                         />
                     </div>
                 </div>
@@ -182,7 +182,7 @@ export default function AttendanceAdminPage() {
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full border-collapse">
                         <thead>
-                            <tr className="bg-brand-accent/40 text-[10px] font-black text-brand-dark/50 uppercase tracking-[0.2em]">
+                            <tr className="bg-brand-accent/40 dark:bg-slate-800/50 text-[10px] font-black text-brand-dark/50 dark:text-slate-400 uppercase tracking-[0.2em]">
                                 <th className="p-6 text-left">Student Profile</th>
                                 <th className="p-6 text-left">Class Info</th>
                                 <th className="p-6 text-left">Subject / Period</th>
@@ -190,30 +190,30 @@ export default function AttendanceAdminPage() {
                                 <th className="p-6 text-right">Teacher</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-brand-soft/10">
+                        <tbody className="divide-y divide-brand-soft/10 dark:divide-slate-800">
                             {filteredData.map((item) => (
-                                <tr key={item.id} className="group hover:bg-brand-accent/5 transition-all">
+                                <tr key={item.id} className="group hover:bg-brand-accent/5 dark:hover:bg-brand/5 transition-all">
                                     <td className="p-6">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-brand-soft/30 flex items-center justify-center font-black text-brand shrink-0">
+                                            <div className="w-10 h-10 rounded-xl bg-brand-soft/30 dark:bg-slate-800 flex items-center justify-center font-black text-brand dark:text-brand-light shrink-0 transition-colors">
                                                 {(item.students?.name || "U")[0]}
                                             </div>
-                                            <span className="text-slate-800 font-black">{item.students?.name || 'Unknown'}</span>
+                                            <span className="text-slate-800 dark:text-slate-200 font-black">{item.students?.name || 'Unknown'}</span>
                                         </div>
                                     </td>
-                                    <td className="p-6 text-slate-500 font-bold uppercase text-[11px]">
+                                    <td className="p-6 text-slate-500 dark:text-slate-400 font-bold uppercase text-[11px]">
                                         Class {item.students?.class}-{item.students?.section}
                                     </td>
                                     <td className="p-6">
-                                        <div className="text-slate-700 font-bold">{item.subjects?.name || 'No Subject'}</div>
-                                        <div className="text-[9px] text-brand opacity-60 font-black">Period {item.period}</div>
+                                        <div className="text-slate-700 dark:text-slate-300 font-bold">{item.subjects?.name || 'No Subject'}</div>
+                                        <div className="text-[9px] text-brand dark:text-brand-light opacity-60 font-black">Period {item.period}</div>
                                     </td>
                                     <td className="p-6 text-center">
-                                        <span className={`px-5 py-2 rounded-full border text-[9px] font-black tracking-widest uppercase ${statusStyles[item.status] || ''}`}>
+                                        <span className={`px-5 py-2 rounded-full border text-[9px] font-black tracking-widest uppercase ${statusStyles[item.status] || ''} dark:bg-opacity-10`}>
                                             {item.status}
                                         </span>
                                     </td>
-                                    <td className="p-6 text-right text-slate-400 font-bold text-[10px]">
+                                    <td className="p-6 text-right text-slate-400 dark:text-slate-500 font-bold text-[10px]">
                                         {item.teachers?.name || 'Not Assigned'}
                                     </td>
                                 </tr>
@@ -223,39 +223,39 @@ export default function AttendanceAdminPage() {
                 </div>
 
                 {/* MOBILE LIST VIEW */}
-                <div className="md:hidden divide-y divide-brand-soft/10">
+                <div className="md:hidden divide-y divide-brand-soft/10 dark:divide-slate-800">
                     {filteredData.map((item) => (
                         <div key={item.id} className="p-5 space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-brand-soft/30 flex items-center justify-center font-black text-brand shrink-0">
+                                    <div className="w-10 h-10 rounded-xl bg-brand-soft/30 dark:bg-slate-800 flex items-center justify-center font-black text-brand dark:text-brand-light shrink-0">
                                         {(item.students?.name || "U")[0]}
                                     </div>
                                     <div>
-                                        <div className="text-slate-800 font-black text-sm">{item.students?.name}</div>
-                                        <div className="text-[10px] text-slate-500 font-bold uppercase">Class {item.students?.class}-{item.students?.section}</div>
+                                        <div className="text-slate-800 dark:text-slate-200 font-black text-sm">{item.students?.name}</div>
+                                        <div className="text-[10px] text-slate-500 dark:text-slate-500 font-bold uppercase">Class {item.students?.class}-{item.students?.section}</div>
                                     </div>
                                 </div>
                                 <span className={`px-3 py-1.5 rounded-full border text-[8px] font-black tracking-widest uppercase ${statusStyles[item.status] || ''}`}>
                                     {item.status}
                                 </span>
                             </div>
-                            
-                            <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl">
+
+                            <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
                                 <div>
-                                    <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Subject</p>
-                                    <p className="text-[11px] font-bold text-slate-700">{item.subjects?.name}</p>
-                                    <p className="text-[9px] text-brand font-black">Period {item.period}</p>
+                                    <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Subject</p>
+                                    <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{item.subjects?.name}</p>
+                                    <p className="text-[9px] text-brand dark:text-brand-light font-black">Period {item.period}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Teacher</p>
-                                    <p className="text-[11px] font-bold text-slate-700">{item.teachers?.name || 'N/A'}</p>
+                                    <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Teacher</p>
+                                    <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{item.teachers?.name || 'N/A'}</p>
                                 </div>
                             </div>
                         </div>
                     ))}
                     {filteredData.length === 0 && (
-                        <div className="p-10 text-center text-slate-400 font-bold text-xs">
+                        <div className="p-10 text-center text-slate-400 dark:text-slate-600 font-bold text-xs">
                             No records found for this selection.
                         </div>
                     )}

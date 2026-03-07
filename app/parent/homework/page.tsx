@@ -49,25 +49,30 @@ export default function ParentHomework() {
   }
 
   return (
-    <div className="space-y-8 p-6 bg-white min-h-screen animate-in fade-in duration-700">
-      
+    /* Main Page Canvas: bg-[#fffcfd] | dark:bg-slate-950 */
+    <div className="space-y-8 p-6 bg-[#fffcfd] dark:bg-slate-950 min-h-screen animate-in fade-in duration-700 transition-colors duration-300">
+
       {/* --- REDUCED COMPACT HEADER --- */}
-      <header className="bg-brand-soft/40 rounded-[2rem] p-6 md:p-8 border border-brand-soft flex flex-col md:flex-row justify-between items-center gap-4">
+      {/* bg-slate-50 / dark:bg-slate-800/50 for secondary backgrounds */}
+      <header className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-6 md:p-8 border border-[#e9d1e4] dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-light tracking-tighter uppercase">
+          {/* Primary Headings: text-slate-800 | dark:text-slate-100 */}
+          <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter uppercase">
             {studentDetails?.full_name?.split(' ')[0]}'s Tasks
           </h1>
-          <p className="text-[10px] font-bold text-brand-light/60 uppercase tracking-[0.2em]">
+          {/* Secondary Metadata: text-slate-400 */}
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
             Class {studentDetails?.class_name} • Section {studentDetails?.section}
           </p>
         </div>
         <div className="flex gap-2">
-            <div className="bg-white/60 px-4 py-2 rounded-xl border border-brand-soft text-[10px] font-black text-brand-light uppercase tracking-widest">
-                {homework.length} Assignments
-            </div>
-            <div className="bg-brand-light px-4 py-2 rounded-xl text-[10px] font-black text-white uppercase tracking-widest">
-                Term 1
-            </div>
+          <div className="bg-white/60 dark:bg-slate-900/60 px-4 py-2 rounded-xl border border-[#e9d1e4] dark:border-slate-700 text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">
+            {homework.length} Assignments
+          </div>
+          {/* Branding Highlights: bg-brand | dark:text-brand-soft */}
+          <div className="bg-brand dark:bg-brand-soft px-4 py-2 rounded-xl text-[10px] font-black text-white dark:text-slate-950 uppercase tracking-widest">
+            Term 1
+          </div>
         </div>
       </header>
 
@@ -75,46 +80,53 @@ export default function ParentHomework() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 bg-brand-soft/10 rounded-[2.5rem] animate-pulse border border-brand-soft/20" />
+            <div key={i} className="h-64 bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] animate-pulse border border-[#e9d1e4] dark:border-slate-800" />
           ))}
         </div>
       ) : homework.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {homework.map((item) => (
-            <div key={item.id} className="group bg-white border border-brand-soft p-6 rounded-[2.5rem] hover:bg-brand-accent/30 transition-all flex flex-col h-full">
-              
+            /* Card Background: bg-white | dark:bg-slate-900 */
+            /* Card Border: border-[#e9d1e4] | dark:border-slate-800 */
+            <div key={item.id} className="group bg-white dark:bg-slate-900 border border-[#e9d1e4] dark:border-slate-800 p-6 rounded-[2.5rem] hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all flex flex-col h-full shadow-sm">
+
               {/* Card Top */}
               <div className="flex justify-between items-start mb-4">
-                <span className="bg-brand-light text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                <span className="bg-brand dark:bg-brand-soft text-white dark:text-slate-950 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
                   {item.subjects?.name || 'General'}
                 </span>
                 <div className="text-right">
-                    <p className="text-[9px] font-black text-brand-light/40 uppercase tracking-widest">Period</p>
-                    <p className="text-lg font-black text-brand-light leading-none">{item.period || '—'}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Period</p>
+                  <p className="text-lg font-black text-brand dark:text-brand-soft leading-none">{item.period || '—'}</p>
                 </div>
               </div>
 
               {/* Card Body */}
               <div className="flex-1 space-y-2 mb-6">
-                <h3 className="text-lg font-black text-brand-light tracking-tight uppercase leading-tight group-hover:text-brand transition-colors">
+                <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-tight group-hover:text-brand dark:group-hover:text-brand-soft transition-colors">
                   {item.title}
                 </h3>
-                <p className="text-brand-light/70 text-xs font-medium leading-relaxed line-clamp-3">
+                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed line-clamp-3">
                   {item.description}
                 </p>
               </div>
 
               {/* Card Bottom Meta */}
-              <div className="pt-4 border-t border-brand-soft/40 space-y-3">
+              <div className="pt-4 border-t border-[#e9d1e4] dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-brand-light/60">
-                        <FiCalendar size={14} />
-                        <span className="text-[10px] font-black uppercase tracking-wider italic">{item.due_date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-brand-light/40">
-                        <FiUser size={14} />
-                        <span className="text-[10px] font-bold">{item.teachers?.full_name?.split(' ')[0]}</span>
-                    </div>
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <span className="bg-brand dark:bg-brand-soft text-white dark:text-slate-950 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                      Due Date
+                    </span>
+                    <FiCalendar size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-wider italic">{item.due_date}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <FiUser size={14} />
+                    <span className="text-[10px] font-bold">
+                      {item.teachers?.full_name || 'N/A'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -122,10 +134,11 @@ export default function ParentHomework() {
           ))}
         </div>
       ) : (
-        <div className="bg-white border-2 border-dashed border-brand-soft rounded-[3rem] py-20 text-center">
-          <FiCheckCircle size={40} className="mx-auto text-brand-light/20 mb-4" />
-          <h3 className="text-xl font-black text-brand-light uppercase tracking-tight">All Caught Up</h3>
-          <p className="text-brand-light/50 text-[10px] font-bold uppercase tracking-widest mt-2">No active assignments found.</p>
+        /* Empty State Background */
+        <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-[#e9d1e4] dark:border-slate-800 rounded-[3rem] py-20 text-center">
+          <FiCheckCircle size={40} className="mx-auto text-slate-200 dark:text-slate-800 mb-4" />
+          <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">All Caught Up</h3>
+          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2">No active assignments found.</p>
         </div>
       )}
     </div>

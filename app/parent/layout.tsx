@@ -4,23 +4,32 @@ import { usePathname, useRouter } from 'next/navigation'
 import React, { useState, useRef, useEffect } from 'react'
 import ParentSidebar from '@/components/ParentSidebar'
 import ParentMobileDashboard from '@/components/ParentMobileDashboard'
-import { FiUser, FiLogOut, FiChevronDown, FiHeart, FiArrowLeft } from 'react-icons/fi'
-import Link from "next/link";
+import { FiUser, FiLogOut, FiArrowLeft, FiHeart, FiSun, FiMoon } from 'react-icons/fi'
 
 export default function ParentLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [activeMenu, setActiveMenu] = useState('dashboard')
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [parentName, setParentName] = useState('Parent')
   const [childName, setChildName] = useState('Student')
+  const [isDarkMode, setIsDarkMode] = useState(false) // Added state
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const pathname = usePathname()
+
+  // THEME LOGIC: Sync with HTML class
+  useEffect(() => {
+    const root = window.document.documentElement
+    if (isDarkMode) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }, [isDarkMode])
 
   useEffect(() => {
     setParentName(localStorage.getItem('parentName') || 'Parent')
@@ -46,127 +55,117 @@ export default function ParentLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#FDFDFF] font-sans text-slate-900">
+    /* MAIN CANVAS BACKGROUND: bg-[#fffcfd] | dark:bg-slate-950 */
+    <div className="flex min-h-screen bg-[#fffcfd] dark:bg-slate-950 font-sans transition-colors duration-500">
+
       {/* DESKTOP SIDEBAR */}
       <div className="hidden lg:block">
-        <ParentSidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
-      </div>
+        <ParentSidebar />      </div>
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 flex flex-col min-h-screen relative lg:ml-64">
-        
-        {/* ENHANCED HEADER - MOBILE FRIENDLY */}
+
+        {/* ENHANCED HEADER */}
         <header
-          className={`sticky top-0 z-40 px-4 md:px-8 h-16 md:h-20 flex items-center justify-between transition-all duration-300
-          ${isScrolled
-              ? 'bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-200'
-              : 'bg-white lg:bg-transparent border-b lg:border-none border-slate-100'}`}
+          className={`sticky top-0 z-40 px-4 md:px-8 h-12 md:h-14 flex items-center justify-between transition-all duration-300
+  ${isScrolled ? 'bg-white/90 shadow-sm' : 'bg-transparent'}`}
         >
           {/* LEFT: BACK BUTTON OR MOBILE BRANDING */}
           <div className="flex items-center gap-3">
-            {pathname !== "/parent" ? (
-              <button
-                onClick={() => router.back()}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition border border-slate-200"
-              >
-                <FiArrowLeft size={20} className="text-slate-600" />
-              </button>
-            ) : (
-              /* MOBILE BRANDING (Only visible on Dashboard /parent) */
-              <div className="flex lg:hidden items-center gap-2">
-                <div className="w-9 h-9 bg-white rounded-lg p-1 border border-slate-100 shadow-sm">
-                   <img src="/Schoollogo.jpg" alt="Logo" className="w-full h-full object-contain" />
-                </div>
-                <div className="flex flex-col">
-                   <h1 className="text-[13px] font-black text-slate-800 leading-none uppercase">Prashanti Vidyalaya & High School.</h1>
-                   <span className="text-[9px] font-bold text-brand tracking-tighter uppercase opacity-70">Parental Panel</span>
-                </div>
-              </div>
-            )}
+            <button
+              onClick={() => router.back()}
+              className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition border border-slate-200 dark:border-slate-700"
+            >
+              <FiArrowLeft size={20} className="text-slate-600 dark:text-slate-300" />
+            </button>
 
-            {/* DESKTOP PAGE TITLE */}
-            <h2 className="hidden lg:block text-xl font-black text-slate-800 capitalize">
-              {activeMenu.replace('-', ' ')}
-            </h2>
+            <div className="flex lg:hidden items-center gap-2">
+              <div className="w-9 h-9 bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-100 dark:border-slate-700 shadow-sm">
+                <img src="/Schoollogo.jpg" alt="Logo" className="w-full h-full object-contain" />
+              </div>
+              <div className="flex flex-col">
+                <h1 className="text-[13px] font-black text-slate-800 dark:text-slate-100 leading-none uppercase">Prashanti Vidyalaya</h1>
+                <span className="text-[9px] font-bold text-brand dark:text-brand-soft tracking-tighter uppercase opacity-70">Parental Panel</span>
+              </div>
+            </div>
+
+            <h2 className="hidden lg:block text-xl font-black text-slate-800 dark:text-slate-100 capitalize">
+{pathname.split('/').pop()?.replace('-', ' ')}            </h2>
           </div>
 
-          {/* RIGHT: PROFILE ACTIONS */}
+          {/* RIGHT: THEME TOGGLE, LOGOUT, PROFILE */}
           <div className="flex items-center gap-2 md:gap-4">
-            
-            {/* CHILD INFO - HIDDEN ON SMALL MOBILE */}
-            <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-brand/5 border border-brand/10 rounded-xl">
-              <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center text-white shadow-sm shadow-brand/20">
+
+            {/* THEME TOGGLE BUTTON - MOBILE ONLY */}
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="md:hidden p-2.5 rounded-xl border bg-white dark:bg-slate-800 border-[#e9d1e4] dark:border-slate-700 text-slate-600 dark:text-yellow-400 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-90"
+              title="Toggle Theme"
+            >
+              {isDarkMode ? <FiSun size={16} /> : <FiMoon size={16} />}
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="p-2.5 rounded-xl border bg-white dark:bg-slate-800 border-[#e9d1e4] dark:border-slate-700 text-red-500 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            >
+              <FiLogOut size={14} />
+            </button>
+
+            {/* CHILD INFO */}
+            <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-brand/5 dark:bg-slate-800/50 border border-brand/10 dark:border-slate-700 rounded-xl">
+              <div className="w-7 h-7 bg-brand dark:bg-brand-soft rounded-lg flex items-center justify-center text-white shadow-sm shadow-brand/20">
                 <FiHeart size={12} />
               </div>
-              <p className="text-xs font-black text-slate-700 truncate max-w-[100px]">{childName}</p>
+              <p className="text-xs font-black text-slate-700 dark:text-slate-100 truncate max-w-[100px]">
+                {childName}
+              </p>
             </div>
 
             {/* PROFILE DROPDOWN */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-2 p-1 md:p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-brand/30 transition-all"
+                className="flex items-center gap-2 p-1 md:p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm hover:border-brand/30 dark:hover:border-brand-soft/50 transition-all"
               >
-                <div className="h-8 w-8 bg-brand rounded-lg flex items-center justify-center text-white shadow-lg shadow-brand/20">
+                <div className="h-8 w-8 bg-brand dark:bg-brand-soft rounded-lg flex items-center justify-center text-white shadow-md shadow-brand/10">
                   <FiUser size={16} />
                 </div>
+
                 <div className="hidden md:block text-left pr-1">
-                   <p className="text-[11px] font-black text-slate-800 leading-none">{parentName}</p>
+                  <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 leading-none">
+                    {parentName}
+                  </p>
                 </div>
-                <FiChevronDown className={`text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
               </button>
-
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-3 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 origin-top-right">
-                  <div className="px-4 py-2 border-b border-slate-50 mb-1 lg:hidden">
-                     <p className="text-[10px] font-bold text-slate-400 uppercase">Signed in as</p>
-                     <p className="text-xs font-black text-slate-800">{parentName}</p>
-                  </div>
-                  
-                  <Link href="/parent/profile">
-                    <button className="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-brand/5 hover:text-brand transition-colors">
-                      <FiUser size={14} /> Profile Settings
-                    </button>
-                  </Link>
-
-                  <div className="border-t border-slate-50 my-1 mx-2"></div>
-                  
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-xs text-rose-500 hover:bg-rose-50 transition-colors font-bold"
-                  >
-                    <FiLogOut size={14} /> Logout
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </header>
 
         {/* CONTENT AREA */}
-      {/* CONTENT AREA */}
-<main className={`px-4 md:px-8 flex-1 ${pathname === "/parent" ? "pb-0 pt-2" : "pb-12 pt-4"}`}>
-  {/* MOBILE DASHBOARD */}
-  {pathname === "/parent" && (
-    <div className="lg:hidden">
-      {/* HELLO BANNER FOR MOBILE */}
-      <div className="mb-6 px-1"> {/* Increased mb for better visual breathing with icons */}
-        <h3 className="text-2xl font-black text-slate-800 tracking-tight">
-          Hello, <span className="text-brand uppercase">{parentName}!</span>
-        </h3>
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-          Academic overview for {childName}
-        </p>
-      </div>
-      <ParentMobileDashboard />
-    </div>
-  )}
+        {/* CONTENT AREA */}
+        <main className={`px-4 md:px-8 flex-1 w-full ${pathname === "/parent" ? "pb-4 pt-2" : "pb-4 pt-2"}`}>
+          {pathname === "/parent" && (
+            <div className="lg:hidden">
+              {/* Reduced margin-bottom from mb-6 to mb-2 */}
+              <div className="mb-2 px-1 text-center">
+                <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
+                  Hello, <span className="text-brand dark:text-brand-soft uppercase">{parentName}!</span>
+                </h3>
+                {/* Hidden on mobile to save space */}
+                <p className="hidden xs:block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                  Academic overview for {childName}
+                </p>
+              </div>
+              <ParentMobileDashboard />
+            </div>
+          )}
 
-  {/* MAIN PAGE CONTENT */}
-  <div className={`${pathname === "/parent" ? "hidden lg:block" : "block"} max-w-7xl mx-auto`}>
-    {children}
-  </div>
-</main>
+          {/* Ensure the container doesn't add extra height */}
+          <div className={`${pathname === "/parent" ? "hidden lg:block" : "block"} max-w-8xl mx-auto h-full`}>
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   )

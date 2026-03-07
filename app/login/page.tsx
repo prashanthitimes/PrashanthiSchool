@@ -276,6 +276,7 @@ export default function UnifiedLoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     className="w-full border-2 border-brand-accent/30 rounded-2xl px-12 py-3.5"
                     value={password}
+                    placeholder="**"
                     onChange={(e) => setPassword(e.target.value)}
                   />
 
@@ -382,8 +383,6 @@ export default function UnifiedLoginPage() {
   )
 }
 
-
-
 function RoleButton({ icon, title, desc, onClick }: any) {
 
   return (
@@ -408,8 +407,6 @@ function RoleButton({ icon, title, desc, onClick }: any) {
 
   )
 }
-
-
 
 function InputGroup({ label, icon, type, placeholder, value, onChange }: any) {
 

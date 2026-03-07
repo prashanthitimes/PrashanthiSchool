@@ -2,9 +2,12 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import AdminSidebar from '@/components/AdminSidebar'
-import { FiUser, FiLogOut, FiSearch, FiChevronDown, FiSettings, FiMenu } from 'react-icons/fi'
+import { FiUser, FiLogOut, FiChevronDown, FiSettings, FiMenu, FiArrowLeft } from 'react-icons/fi'
+import { useRouter, usePathname } from 'next/navigation'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const pathname = usePathname() // Hook to detect current path
   const [activeMenu, setActiveMenu] = useState('dashboard')
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -13,7 +16,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [adminEmail, setAdminEmail] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Load admin data from localStorage
+  // Sync activeMenu with URL on load and path change
+  useEffect(() => {
+    const path = pathname.split('/').pop() || 'dashboard'
+    setActiveMenu(path === 'admin' ? 'dashboard' : path)
+  }, [pathname])
+
   useEffect(() => {
     const name = localStorage.getItem('adminName')
     const email = localStorage.getItem('adminEmail')
@@ -48,8 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8F9FD] font-sans text-slate-900 overflow-x-hidden">
-
+    <div className="flex min-h-screen bg-[#F8F9FD] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-x-hidden transition-colors duration-300">
       <AdminSidebar
         activeMenu={activeMenu}
         setActiveMenu={setActiveMenu}
@@ -58,85 +65,82 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       />
 
       <div className="flex-1 flex flex-col min-h-screen relative lg:ml-64 w-full">
-
         <header
           className={`fixed top-0 right-0 z-40 px-4 md:px-8 flex items-center justify-between
-          w-full lg:w-[calc(100%-16rem)]
-          ${isScrolled ? 'bg-white shadow-sm border-b h-16' : 'bg-transparent h-20'}`}
+          w-full lg:w-[calc(100%-16rem)] transition-all duration-300
+          ${isScrolled ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm border-b dark:border-slate-800 h-16' : 'bg-transparent h-20'}`}
         >
-
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 bg-white border rounded-xl text-brand"
+              className="lg:hidden p-2 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl text-brand"
             >
               <FiMenu size={20} />
             </button>
 
+
+            <button
+              onClick={() => router.back()}
+              className="p-2 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 hover:text-brand transition-colors"
+              title="Go Back"
+            >
+              <FiArrowLeft size={20} />
+            </button>
+
             <div>
               <h2 className="text-lg md:text-xl font-black capitalize">
-                {activeMenu.replace('-', ' ')}
+                {activeMenu.replace(/-/g, ' ')}
               </h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* STANDALONE LOGOUT BUTTON */}
+            <button
+              onClick={handleLogout}
+              title="Logout"
+              className="p-2.5 md:p-3 rounded-2xl transition-all border group
+      /* Light Mode */
+      bg-white border-[#e9d1e4] text-red-500 hover:bg-red-50
+      /* Dark Mode */
+      dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-red-950/20 shadow-sm"
+            >
+              <FiLogOut size={18} className="group-active:scale-90 transition-transform" />
+            </button>
 
-            <div className="hidden sm:flex items-center bg-white border px-3 py-2 rounded-2xl">
-              <FiSearch className="text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="bg-transparent ml-2 text-sm outline-none"
-              />
-            </div>
-
+            {/* PROFILE TRIGGER (Now just shows info, no dropdown needed unless you want other settings) */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-3 p-2 bg-white border rounded-2xl"
+                className="flex items-center gap-3 p-1.5 md:p-2 border rounded-2xl transition-all
+        /* Light Mode */
+        bg-white border-[#e9d1e4] text-slate-800
+        /* Dark Mode */
+        dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 shadow-sm"
               >
-                <div className="h-9 w-9 bg-brand rounded-xl flex items-center justify-center text-white">
+                <div className="h-8 w-8 md:h-9 md:w-9 bg-brand rounded-xl flex items-center justify-center text-white shrink-0">
                   <FiUser size={16} />
                 </div>
 
-                <div className="text-left hidden md:block">
-                  <p className="text-sm font-bold">{adminName || 'Admin'}</p>
-                  <p className="text-xs text-slate-500">{adminEmail}</p>
+                <div className="text-left hidden md:block pr-2">
+                  <p className="text-sm font-bold leading-tight">{adminName || 'Admin'}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                    {adminEmail}
+                  </p>
                 </div>
 
-                <FiChevronDown />
               </button>
 
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border py-2">
-                  <button
-                    onClick={() => window.location.href = '/admin/settings'}
-                    className="flex items-center gap-3 w-full px-5 py-3 text-sm hover:bg-gray-50"
-                  >
-                    <FiSettings size={14} /> Settings
-                  </button>
-
-                  <div className="border-t my-1"></div>
-
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-3 w-full px-5 py-3 text-sm text-red-500 hover:bg-red-50"
-                  >
-                    <FiLogOut size={14} /> Logout
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </header>
 
-        <main className="px-4 pb-4 mt-4 flex-1">
-          <div className="max-w-7xl mx-auto">
+
+        <main className="px-4 pb-1 mt-5 flex-1">
+          <div className="max-w-9xl mx-auto">
             {children}
           </div>
         </main>
-
       </div>
     </div>
   )

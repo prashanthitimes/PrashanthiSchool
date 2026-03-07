@@ -193,38 +193,38 @@ export default function TransportPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8 bg-[#fffcfd] min-h-screen">
+    <div className="max-w-8xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8 bg-[#fffcfd] dark:bg-[#0d020b] min-h-screen transition-colors duration-300">
       <Toaster />
 
       {/* HEADER */}
-      <header className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between bg-white/80 backdrop-blur-md px-6 py-5 md:px-8 md:py-6 rounded-[2rem] md:rounded-[2.5rem] border border-[#f3e8f1] shadow-sm">
+      <header className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-6 py-5 md:px-8 md:py-6 rounded-[2rem] md:rounded-[2.5rem] border border-[#f3e8f1] dark:border-zinc-800 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-[#8f1e7a] text-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-[#8f1e7a]/20 shrink-0">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-[#8f1e7a] dark:bg-[#a63d93] text-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-[#8f1e7a]/20 shrink-0">
             <Bus size={20} className="md:w-6 md:h-6" />
           </div>
           <div>
-            <h1 className="text-lg md:text-xl font-black text-[#6b165c] uppercase tracking-tight leading-none">Transport Registry</h1>
-            <p className="text-[8px] md:text-[10px] font-bold text-[#a63d93] tracking-[0.2em] uppercase mt-1">Fleet & Logistics Hub</p>
+            <h1 className="text-lg md:text-xl font-black text-[#6b165c] dark:text-plum-100 uppercase tracking-tight leading-none transition-colors">Transport Registry</h1>
+            <p className="text-[8px] md:text-[10px] font-bold text-[#a63d93] dark:text-zinc-500 tracking-[0.2em] uppercase mt-1">Fleet & Logistics Hub</p>
           </div>
         </div>
 
         <div className="flex gap-2 w-full lg:w-auto">
           <button
             onClick={() => setAssignModal(true)}
-            className="flex-1 lg:flex-none bg-[#e9d1e4] text-[#8f1e7a] px-4 py-3.5 rounded-xl font-black text-[9px] md:text-[11px] uppercase tracking-widest hover:bg-[#8f1e7a] hover:text-white transition-all"
+            className="flex-1 lg:flex-none bg-[#e9d1e4] dark:bg-zinc-800 text-[#8f1e7a] dark:text-plum-300 px-4 py-3.5 rounded-xl font-black text-[9px] md:text-[11px] uppercase tracking-widest hover:bg-[#8f1e7a] hover:text-white dark:hover:bg-plum-700 transition-all"
           >
             Assign
           </button>
           <button
             onClick={() => { setEditingId(null); resetForm(); setRouteModal(true); }}
-            className="flex-1 lg:flex-none bg-[#8f1e7a] text-white px-4 py-3.5 rounded-xl font-black text-[9px] md:text-[11px] uppercase tracking-widest shadow-lg shadow-[#8f1e7a]/30 flex items-center justify-center"
+            className="flex-1 lg:flex-none bg-[#8f1e7a] text-white px-4 py-3.5 rounded-xl font-black text-[9px] md:text-[11px] uppercase tracking-widest shadow-lg shadow-[#8f1e7a]/30 flex items-center justify-center active:scale-95 transition-transform"
           >
             <Plus size={14} className="mr-1" /> New Route
           </button>
         </div>
       </header>
 
-      {/* STATS - 2 columns on mobile, 4 on desktop */}
+      {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
         <StatCard label="Routes" value={routes.length} icon={<MapPin size={18} />} />
         <StatCard label="Fleet" value={new Set(routes.map(r => r.bus_number)).size} icon={<Bus size={18} />} />
@@ -237,23 +237,23 @@ export default function TransportPage() {
         {routes.map(route => {
           const occupancy = students.filter(s => s.transport_route_id === route.id).length;
           return (
-            <div key={route.id} className="bg-white border border-[#f3e8f1] rounded-[2.5rem] p-8 hover:shadow-2xl transition-all group relative overflow-hidden">
+            <div key={route.id} className="bg-white dark:bg-zinc-900 border border-[#f3e8f1] dark:border-zinc-800 rounded-[2.5rem] p-8 hover:shadow-2xl dark:hover:shadow-plum-900/10 transition-all group relative overflow-hidden">
               <div className="flex justify-between items-start mb-6">
-                <span className="bg-[#e9d1e4] text-[#8f1e7a] text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">
+                <span className="bg-[#e9d1e4] dark:bg-plum-900/30 text-[#8f1e7a] dark:text-plum-200 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">
                   Route {route.route_number}
                 </span>
                 <div className="flex gap-2">
-                  <button onClick={() => handleEditRoute(route)} className="p-2.5 bg-[#f3e8f1] text-[#8f1e7a] rounded-xl hover:bg-[#8f1e7a] hover:text-white transition-all"><Edit3 size={14} /></button>
-                  <button onClick={() => handleDeleteRoute(route.id)} className="p-2.5 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={14} /></button>
+                  <button onClick={() => handleEditRoute(route)} className="p-2.5 bg-[#f3e8f1] dark:bg-zinc-800 text-[#8f1e7a] dark:text-plum-300 rounded-xl hover:bg-[#8f1e7a] hover:text-white transition-all"><Edit3 size={14} /></button>
+                  <button onClick={() => handleDeleteRoute(route.id)} className="p-2.5 bg-rose-50 dark:bg-rose-950/30 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={14} /></button>
                 </div>
               </div>
 
-              <h3 className="text-xl font-black text-[#6b165c] uppercase leading-tight mb-2">{route.route_name}</h3>
-              <p className="text-[11px] font-bold text-slate-500 uppercase mb-6">{route.driver_name} • {route.bus_number}</p>
+              <h3 className="text-xl font-black text-[#6b165c] dark:text-zinc-100 uppercase leading-tight mb-2">{route.route_name}</h3>
+              <p className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase mb-6">{route.driver_name} • {route.bus_number}</p>
 
-              <button onClick={() => setDetailsModal(route)} className="w-full flex items-center justify-between p-4 bg-[#f3e8f1]/50 rounded-2xl border border-dashed border-[#8f1e7a]/30 hover:bg-[#8f1e7a] hover:text-white transition-all group/btn">
+              <button onClick={() => setDetailsModal(route)} className="w-full flex items-center justify-between p-4 bg-[#f3e8f1]/50 dark:bg-zinc-800/40 rounded-2xl border border-dashed border-[#8f1e7a]/30 dark:border-zinc-700 hover:bg-[#8f1e7a] dark:hover:bg-plum-700 hover:text-white transition-all group/btn">
                 <div className="flex items-center gap-3">
-                  <Users size={16} className="text-[#8f1e7a] group-hover/btn:text-white" />
+                  <Users size={16} className="text-[#8f1e7a] dark:text-plum-300 group-hover/btn:text-white" />
                   <span className="text-[10px] font-black uppercase tracking-widest">Manage Passengers ({occupancy})</span>
                 </div>
                 <ChevronRight size={16} />
@@ -265,29 +265,29 @@ export default function TransportPage() {
 
       {/* ASSIGN MODAL */}
       {assignModal && (
-        <div className="fixed inset-0 bg-[#6b165c]/40 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[3rem] w-full max-w-xl p-10 shadow-2xl border border-[#f3e8f1]">
+        <div className="fixed inset-0 bg-[#6b165c]/40 dark:bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-[3rem] w-full max-w-xl p-6 md:p-10 shadow-2xl border border-[#f3e8f1] dark:border-zinc-800">
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-black text-[#6b165c] uppercase">Assign Passenger</h2>
-              <button onClick={() => { setAssignModal(false); resetAssignFields(); }} className="p-2 bg-[#f3e8f1] rounded-full"><X size={20} /></button>
+              <h2 className="text-2xl font-black text-[#6b165c] dark:text-plum-100 uppercase">Assign Passenger</h2>
+              <button onClick={() => { setAssignModal(false); resetAssignFields(); }} className="p-2 bg-[#f3e8f1] dark:bg-zinc-800 dark:text-zinc-400 rounded-full"><X size={20} /></button>
             </div>
 
             <div className="space-y-6">
               <div className="relative">
-                <label className="text-[10px] font-black text-[#a63d93] uppercase ml-2">1. Find Student</label>
+                <label className="text-[10px] font-black text-[#a63d93] dark:text-plum-400 uppercase ml-2">1. Find Student</label>
                 <input
                   type="text"
                   placeholder="Search Name..."
                   value={studentSearchTerm}
                   onChange={(e) => { setStudentSearchTerm(e.target.value); setSelectedStudent(null); }}
-                  className="w-full mt-2 p-4 bg-[#f3e8f1]/50 border border-[#f3e8f1] rounded-2xl font-bold outline-none text-[#6b165c]"
+                  className="w-full mt-2 p-4 bg-[#f3e8f1]/50 dark:bg-zinc-800/50 border border-[#f3e8f1] dark:border-zinc-700 rounded-2xl font-bold outline-none text-[#6b165c] dark:text-white placeholder:text-zinc-500"
                 />
                 {filteredSearchStudents.length > 0 && (
-                  <div className="absolute z-50 w-full mt-2 bg-white border border-[#f3e8f1] rounded-2xl shadow-2xl overflow-hidden">
+                  <div className="absolute z-50 w-full mt-2 bg-white dark:bg-zinc-800 border border-[#f3e8f1] dark:border-zinc-700 rounded-2xl shadow-2xl overflow-hidden">
                     {filteredSearchStudents.map(s => (
-                      <button key={s.id} onClick={() => { setSelectedStudent(s); setStudentSearchTerm(s.full_name); }} className="w-full text-left p-4 hover:bg-[#f3e8f1] border-b border-[#f3e8f1] last:border-0">
-                        <p className="text-sm font-black text-[#6b165c] uppercase">{s.full_name}</p>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase">Class: {s.class_name}</p>
+                      <button key={s.id} onClick={() => { setSelectedStudent(s); setStudentSearchTerm(s.full_name); }} className="w-full text-left p-4 hover:bg-[#f3e8f1] dark:hover:bg-zinc-700 border-b border-[#f3e8f1] dark:border-zinc-700 last:border-0">
+                        <p className="text-sm font-black text-[#6b165c] dark:text-plum-100 uppercase">{s.full_name}</p>
+                        <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Class: {s.class_name}</p>
                       </button>
                     ))}
                   </div>
@@ -296,19 +296,19 @@ export default function TransportPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-[#a63d93] uppercase ml-2">2. Route</label>
-                  <select className="w-full mt-2 bg-[#f3e8f1]/50 border border-[#f3e8f1] p-4 rounded-2xl font-bold text-[#6b165c]" value={assignData.routeId} onChange={(e) => setAssignData({ ...assignData, routeId: e.target.value })}>
-                    <option value="">Select Route</option>
-                    {routes.map(r => <option key={r.id} value={r.id}>{r.route_number} - {r.route_name}</option>)}
+                  <label className="text-[10px] font-black text-[#a63d93] dark:text-plum-400 uppercase ml-2">2. Route</label>
+                  <select className="w-full mt-2 bg-[#f3e8f1]/50 dark:bg-zinc-800/50 border border-[#f3e8f1] dark:border-zinc-700 p-4 rounded-2xl font-bold text-[#6b165c] dark:text-white outline-none" value={assignData.routeId} onChange={(e) => setAssignData({ ...assignData, routeId: e.target.value })}>
+                    <option value="" className="dark:bg-zinc-900">Select Route</option>
+                    {routes.map(r => <option key={r.id} value={r.id} className="dark:bg-zinc-900">{r.route_number} - {r.route_name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-[#a63d93] uppercase ml-2">3. Monthly Fare</label>
-                  <input type="number" placeholder="₹ Amount" className="w-full mt-2 bg-[#f3e8f1]/50 border border-[#f3e8f1] p-4 rounded-2xl font-bold text-[#6b165c]" value={monthlyFee} onChange={(e) => setMonthlyFee(e.target.value)} />
+                  <label className="text-[10px] font-black text-[#a63d93] dark:text-plum-400 uppercase ml-2">3. Monthly Fare</label>
+                  <input type="number" placeholder="₹ Amount" className="w-full mt-2 bg-[#f3e8f1]/50 dark:bg-zinc-800/50 border border-[#f3e8f1] dark:border-zinc-700 p-4 rounded-2xl font-bold text-[#6b165c] dark:text-white outline-none placeholder:text-zinc-500" value={monthlyFee} onChange={(e) => setMonthlyFee(e.target.value)} />
                 </div>
               </div>
 
-              <button onClick={handleAssignStudent} disabled={loading} className="w-full py-5 bg-[#8f1e7a] text-white rounded-[1.5rem] font-black uppercase text-[11px] tracking-widest">
+              <button onClick={handleAssignStudent} disabled={loading} className="w-full py-5 bg-[#8f1e7a] text-white rounded-[1.5rem] font-black uppercase text-[11px] tracking-widest hover:brightness-110 active:scale-[0.98] transition-all">
                 {loading ? "Processing..." : "Confirm Assignment"}
               </button>
             </div>
@@ -318,44 +318,44 @@ export default function TransportPage() {
 
       {/* DETAILS MODAL */}
       {detailsModal && (
-        <div className="fixed inset-0 bg-[#6b165c]/40 backdrop-blur-md z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[3rem] w-full max-w-4xl p-10 shadow-2xl border border-[#f3e8f1] max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-[#6b165c]/40 dark:bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-[3rem] w-full max-w-4xl p-6 md:p-10 shadow-2xl border border-[#f3e8f1] dark:border-zinc-800 max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h2 className="text-2xl font-black text-[#6b165c] uppercase">{detailsModal.route_name}</h2>
-                <p className="text-[10px] font-bold text-[#a63d93] uppercase tracking-widest">{detailsModal.bus_number} • {detailsModal.driver_name}</p>
+                <h2 className="text-2xl font-black text-[#6b165c] dark:text-plum-100 uppercase">{detailsModal.route_name}</h2>
+                <p className="text-[10px] font-bold text-[#a63d93] dark:text-plum-400 uppercase tracking-widest">{detailsModal.bus_number} • {detailsModal.driver_name}</p>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => handlePrint(detailsModal)} className="p-3 bg-[#f3e8f1] text-[#8f1e7a] rounded-full hover:bg-[#8f1e7a] hover:text-white transition-all"><Printer size={18} /></button>
-                <button onClick={() => setDetailsModal(null)} className="p-3 bg-rose-50 text-rose-500 rounded-full hover:bg-rose-500 hover:text-white transition-all"><X size={18} /></button>
+                <button onClick={() => handlePrint(detailsModal)} className="p-3 bg-[#f3e8f1] dark:bg-zinc-800 text-[#8f1e7a] dark:text-plum-300 rounded-full hover:bg-[#8f1e7a] hover:text-white transition-all"><Printer size={18} /></button>
+                <button onClick={() => setDetailsModal(null)} className="p-3 bg-rose-50 dark:bg-rose-950/30 text-rose-500 rounded-full hover:bg-rose-500 hover:text-white transition-all"><X size={18} /></button>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-[#f3e8f1] text-[10px] font-black text-[#a63d93] uppercase tracking-widest">
+                  <tr className="border-b border-[#f3e8f1] dark:border-zinc-800 text-[10px] font-black text-[#a63d93] dark:text-plum-400 uppercase tracking-widest">
                     <th className="pb-4">Passenger</th>
                     <th className="pb-4">Class</th>
                     <th className="pb-4">Custom Fare</th>
                     <th className="pb-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#f3e8f1]">
+                <tbody className="divide-y divide-[#f3e8f1] dark:divide-zinc-800">
                   {students.filter(s => s.transport_route_id === detailsModal.id).map(std => {
                     const price = assignments.find(a => a.student_id === std.id)?.monthly_fare || "0";
                     return (
-                      <tr key={std.id} className="group">
+                      <tr key={std.id} className="group transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                         <td className="py-4">
-                          <p className="font-black text-[#6b165c] text-sm uppercase">{std.full_name}</p>
-                          <p className="text-[10px] font-bold text-slate-400">Guardian: {std.father_name}</p>
+                          <p className="font-black text-[#6b165c] dark:text-zinc-200 text-sm uppercase">{std.full_name}</p>
+                          <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500">Guardian: {std.father_name}</p>
                         </td>
-                        <td className="py-4 text-sm font-bold text-[#6b165c]">{std.class_name}</td>
-                        <td className="py-4 text-sm font-black text-[#8f1e7a]">₹{price}</td>
+                        <td className="py-4 text-sm font-bold text-[#6b165c] dark:text-zinc-300">{std.class_name}</td>
+                        <td className="py-4 text-sm font-black text-[#8f1e7a] dark:text-plum-300">₹{price}</td>
                         <td className="py-4 text-right">
                           <div className="flex justify-end gap-2">
-                            <a href={`tel:${std.parent_phone}`} className="p-2 bg-[#f3e8f1] text-[#8f1e7a] rounded-lg hover:bg-[#8f1e7a] hover:text-white transition-all"><Phone size={14} /></a>
-                            <button onClick={() => handleUnassignStudent(std.id, std.full_name)} className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition-all"><UserMinus size={14} /></button>
+                            <a href={`tel:${std.parent_phone}`} className="p-2 bg-[#f3e8f1] dark:bg-zinc-800 text-[#8f1e7a] dark:text-plum-300 rounded-lg hover:bg-[#8f1e7a] hover:text-white transition-all"><Phone size={14} /></a>
+                            <button onClick={() => handleUnassignStudent(std.id, std.full_name)} className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition-all"><UserMinus size={14} /></button>
                           </div>
                         </td>
                       </tr>
@@ -370,11 +370,11 @@ export default function TransportPage() {
 
       {/* ROUTE MODAL */}
       {routeModal && (
-        <div className="fixed inset-0 bg-[#6b165c]/40 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[3rem] w-full max-w-2xl p-10 shadow-2xl border border-[#f3e8f1]">
+        <div className="fixed inset-0 bg-[#6b165c]/40 dark:bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-[3rem] w-full max-w-2xl p-6 md:p-10 shadow-2xl border border-[#f3e8f1] dark:border-zinc-800">
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-black text-[#6b165c] uppercase">{editingId ? 'Modify' : 'New'} Route</h2>
-              <button onClick={() => setRouteModal(false)} className="p-2 bg-[#f3e8f1] rounded-full"><X size={20} /></button>
+              <h2 className="text-2xl font-black text-[#6b165c] dark:text-plum-100 uppercase">{editingId ? 'Modify' : 'New'} Route</h2>
+              <button onClick={() => setRouteModal(false)} className="p-2 bg-[#f3e8f1] dark:bg-zinc-800 dark:text-zinc-400 rounded-full transition-colors"><X size={20} /></button>
             </div>
             <div className="grid grid-cols-2 gap-6">
               <StyledInput label="Route ID" value={form.route_number} placeholder="R-101" onChange={v => setForm({ ...form, route_number: v })} />
@@ -384,7 +384,7 @@ export default function TransportPage() {
               <StyledInput label="Driver" value={form.driver_name} placeholder="Name" onChange={v => setForm({ ...form, driver_name: v })} />
               <StyledInput label="Contact" value={form.driver_contact} placeholder="+91" onChange={v => setForm({ ...form, driver_contact: v })} />
             </div>
-            <button onClick={handleSaveRoute} className="w-full mt-8 py-5 bg-[#8f1e7a] text-white rounded-[1.5rem] font-black uppercase text-[11px] shadow-xl">
+            <button onClick={handleSaveRoute} className="w-full mt-8 py-5 bg-[#8f1e7a] text-white rounded-[1.5rem] font-black uppercase text-[11px] shadow-xl hover:brightness-110 active:scale-[0.98] transition-all">
               {editingId ? 'Update Route' : 'Initialize Route'}
             </button>
           </div>
@@ -394,13 +394,20 @@ export default function TransportPage() {
   );
 }
 
+
 function StatCard({ label, value, icon }: any) {
   return (
-    <div className="bg-white p-6 rounded-[2rem] border border-[#f3e8f1] flex items-center gap-5">
-      <div className="w-12 h-12 bg-[#f3e8f1] text-[#8f1e7a] rounded-2xl flex items-center justify-center">{icon}</div>
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-[#f3e8f1] dark:border-slate-800 flex items-center gap-5 transition-colors">
+      <div className="w-12 h-12 bg-[#f3e8f1] dark:bg-slate-800 text-[#8f1e7a] dark:text-plum-300 rounded-2xl flex items-center justify-center">
+        {icon}
+      </div>
       <div>
-        <p className="text-[10px] font-black text-[#a63d93] uppercase tracking-widest">{label}</p>
-        <p className="text-xl font-black text-[#6b165c]">{value}</p>
+        <p className="text-[10px] font-black text-[#a63d93] dark:text-plum-400 uppercase tracking-widest">
+          {label}
+        </p>
+        <p className="text-xl font-black text-[#6b165c] dark:text-plum-100 transition-colors">
+          {value}
+        </p>
       </div>
     </div>
   );
@@ -414,10 +421,12 @@ type StyledInputProps = {
   onChange: (value: string) => void;
 };
 
+
+
 function StyledInput({ label, placeholder, value, type = "text", onChange }: StyledInputProps) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-black text-[#a63d93] uppercase ml-2 tracking-widest">
+      <label className="text-[10px] font-black text-[#a63d93] dark:text-plum-400 uppercase ml-2 tracking-widest">
         {label}
       </label>
 
@@ -426,7 +435,7 @@ function StyledInput({ label, placeholder, value, type = "text", onChange }: Sty
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-[#f3e8f1]/50 border border-[#f3e8f1] p-4 rounded-2xl font-bold outline-none focus:border-[#8f1e7a] transition-all text-sm text-[#6b165c]"
+        className="w-full bg-[#f3e8f1]/50 dark:bg-slate-800/50 border border-[#f3e8f1] dark:border-slate-700 p-4 rounded-2xl font-bold outline-none focus:border-[#8f1e7a] dark:focus:border-plum-500 transition-all text-sm text-[#6b165c] dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
       />
     </div>
   );

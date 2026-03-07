@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FiTruck, FiUser, FiPhone, FiMapPin, FiNavigation, FiInfo, FiAlertCircle } from "react-icons/fi";
+import { FiTruck,FiUser, FiUsers, FiPhone, FiMapPin, FiNavigation, FiInfo, FiAlertCircle } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 
 export default function ParentTransport() {
@@ -49,122 +49,194 @@ const stopList: string[] = route?.stops
   ? route.stops.split(",").map((s: string) => s.trim())
   : [];
 
-  return (
-    <div className="space-y-8 p-6 bg-white min-h-screen animate-in fade-in duration-700">
-      
-      {/* --- COMPACT SMALL HEADER --- */}
-      <header className="bg-brand-soft/40 rounded-[2rem] p-6 border border-brand-soft flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-brand-light rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand-soft">
-            <FiTruck size={20} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-brand-light tracking-tighter uppercase">Transport</h1>
-            <p className="text-[10px] font-bold text-brand-light/60 uppercase tracking-[0.2em]">Route & Vehicle Details</p>
-          </div>
+ return (
+  <div className="space-y-4 p-3 md:p-6 bg-[#fffcfd] dark:bg-slate-950 min-h-screen">
+
+    {/* HEADER */}
+    <header className="bg-white dark:bg-slate-900 rounded-2xl p-3 md:p-6 border border-brand-soft dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-3 shadow-sm">
+
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 md:w-14 md:h-14 bg-brand-light rounded-xl flex items-center justify-center text-white shadow-lg">
+          <FiTruck size={18} />
         </div>
-        <div className="flex gap-2">
-            <div className="bg-white/60 px-4 py-2 rounded-xl border border-brand-soft text-[10px] font-black text-brand-light uppercase tracking-widest">
-                Bus {route?.bus_number || 'N/A'}
-            </div>
-            <div className={`px-4 py-2 rounded-xl text-[10px] font-black text-white uppercase tracking-widest ${route?.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`}>
-                {route?.is_active ? 'On Track' : 'Inactive'}
-            </div>
-        </div>
-      </header>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => <div key={i} className="h-64 bg-brand-soft/10 animate-pulse rounded-[2.5rem]"></div>)}
-        </div>
-      ) : route ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* --- ROUTE CARD --- */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white border border-brand-soft p-8 rounded-[2.5rem] shadow-sm relative overflow-hidden">
-                <div className="relative z-10">
-                    <p className="text-[9px] font-black text-brand-light/40 uppercase tracking-widest mb-1">Assigned Route</p>
-                    <h2 className="text-3xl font-black text-brand-light uppercase tracking-tighter mb-6">
-                        Route {route.route_number}: {route.route_name}
-                    </h2>
+        <div>
+          <h1 className="text-lg md:text-2xl font-black text-slate-800 dark:text-slate-100 uppercase">
+            Transport
+          </h1>
 
-                    <div className="space-y-6">
-                        <div className="flex items-start gap-4">
-                            <div className="mt-1 w-10 h-10 rounded-xl bg-brand-soft flex items-center justify-center shrink-0">
-                                <FiNavigation className="text-brand-light" size={18} />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black text-brand-light/40 uppercase tracking-widest">Route Stops</p>
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                  {stopList.map((stop, idx) => (
-  <div key={idx} className="flex items-center gap-2 bg-brand-soft/30 px-3 py-1.5 rounded-lg border border-brand-soft">
-    <FiMapPin size={10} className="text-brand-light" />
-    <span className="text-[11px] font-bold text-brand-light uppercase">{stop}</span>
-  </div>
-))}
-
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <FiMapPin className="absolute -right-10 -bottom-10 text-brand-soft/20 rotate-12" size={200} />
-            </div>
-          </div>
-
-          {/* --- DRIVER & BUS INFO --- */}
-          <div className="space-y-6">
-             {/* DRIVER CARD */}
-             <div className="bg-brand-light p-8 rounded-[2.5rem] text-white shadow-xl shadow-brand-soft">
-                <p className="text-[9px] font-black opacity-60 uppercase tracking-widest mb-4">Driver Details</p>
-                <div className="flex items-center gap-4 mb-6">
-                    <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
-                        <FiUser size={24} />
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-black uppercase tracking-tight">{route.driver_name}</h3>
-                        <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">Primary Pilot</p>
-                    </div>
-                </div>
-                
-                <a 
-                    href={`tel:${route.driver_contact}`}
-                    className="w-full bg-white text-brand-light py-4 rounded-2xl flex items-center justify-center gap-3 font-black text-[11px] uppercase tracking-widest hover:bg-brand-accent transition-colors"
-                >
-                    <FiPhone size={16} /> Contact Driver
-                </a>
-             </div>
-
-             {/* BUS DETAILS */}
-             <div className="bg-white border border-brand-soft p-6 rounded-[2.5rem]">
-                <div className="flex items-center gap-3 mb-4">
-                    <FiInfo className="text-brand-light/40" />
-                    <span className="text-[10px] font-black text-brand-light/40 uppercase tracking-widest">Vehicle Info</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-brand-soft/20 p-4 rounded-2xl">
-                        <p className="text-[8px] font-black text-brand-light/40 uppercase mb-1">Bus Number</p>
-                        <p className="text-sm font-black text-brand-light">{route.bus_number}</p>
-                    </div>
-                    <div className="bg-brand-soft/20 p-4 rounded-2xl">
-                        <p className="text-[8px] font-black text-brand-light/40 uppercase mb-1">Capacity</p>
-                        <p className="text-sm font-black text-brand-light">{route.bus_capacity} Seats</p>
-                    </div>
-                </div>
-             </div>
-          </div>
-
-        </div>
-      ) : (
-        <div className="bg-white border-2 border-dashed border-brand-soft rounded-[3rem] py-20 text-center">
-          <FiTruck size={40} className="mx-auto text-brand-light/20 mb-4" />
-          <h3 className="text-xl font-black text-brand-light uppercase tracking-tight">No Transport Assigned</h3>
-          <p className="text-brand-light/50 text-[10px] font-bold uppercase tracking-widest mt-2 px-10">
-            It looks like your child is not currently registered for school transport.
+          <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Route & Vehicle Details
           </p>
         </div>
-      )}
-    </div>
-  );
+      </div>
+
+      <div className="flex gap-2">
+
+        <div className="bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg text-[9px] font-black text-slate-700 dark:text-slate-200 uppercase border border-brand-soft dark:border-slate-700">
+          Bus {route?.bus_number || "N/A"}
+        </div>
+
+        <div
+          className={`px-3 py-1.5 rounded-lg text-[9px] font-black text-white uppercase ${
+            route?.is_active ? "bg-emerald-500" : "bg-rose-500"
+          }`}
+        >
+          {route?.is_active ? "On Track" : "Inactive"}
+        </div>
+
+      </div>
+    </header>
+
+    {loading ? (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-40 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-2xl"
+          ></div>
+        ))}
+      </div>
+    ) : route ? (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+
+        {/* ROUTE INFO */}
+        <div className="lg:col-span-2 space-y-4">
+
+          <div className="bg-white dark:bg-slate-900 border border-brand-soft dark:border-slate-800 p-4 md:p-8 rounded-2xl shadow-sm">
+
+            <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+              Assigned Route
+            </p>
+
+            <h2 className="text-xl md:text-3xl font-black text-slate-800 dark:text-slate-100 uppercase mb-3 md:mb-6">
+              Route {route.route_number}: {route.route_name}
+            </h2>
+
+            <div className="grid grid-cols-3 gap-2 md:gap-4">
+
+              <div className="bg-slate-50 dark:bg-slate-800 p-3 md:p-5 rounded-xl text-center">
+                <FiMapPin className="mx-auto text-brand mb-1 md:mb-2" size={16}/>
+                <p className="text-[8px] font-black text-slate-400 uppercase">
+                  Route
+                </p>
+                <p className="font-black text-sm md:text-base text-slate-800 dark:text-slate-100">
+                  {route.route_number}
+                </p>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800 p-3 md:p-5 rounded-xl text-center">
+                <FiTruck className="mx-auto text-brand mb-1 md:mb-2" size={16}/>
+                <p className="text-[8px] font-black text-slate-400 uppercase">
+                  Bus
+                </p>
+                <p className="font-black text-sm md:text-base text-slate-800 dark:text-slate-100">
+                  {route.bus_number}
+                </p>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800 p-3 md:p-5 rounded-xl text-center">
+                <FiUsers className="mx-auto text-brand mb-1 md:mb-2" size={16}/>
+                <p className="text-[8px] font-black text-slate-400 uppercase">
+                  Seats
+                </p>
+                <p className="font-black text-sm md:text-base text-slate-800 dark:text-slate-100">
+                  {route.bus_capacity}
+                </p>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        {/* DRIVER CARD */}
+        <div className="space-y-4">
+
+          <div className="bg-brand-light p-4 md:p-8 rounded-2xl text-white shadow-xl">
+
+            <p className="text-[8px] md:text-[9px] font-black opacity-60 uppercase mb-3 md:mb-6">
+              Driver Details
+            </p>
+
+            <div className="flex items-center gap-3 mb-3 md:mb-6">
+
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-xl flex items-center justify-center">
+                <FiUser size={20} />
+              </div>
+
+              <div>
+                <h3 className="text-base md:text-xl font-black uppercase">
+                  {route.driver_name}
+                </h3>
+
+                <p className="text-[9px] opacity-70 uppercase">
+                  Primary Driver
+                </p>
+              </div>
+
+            </div>
+
+            <a
+              href={`tel:${route.driver_contact}`}
+              className="w-full bg-white text-brand-light py-2.5 md:py-4 rounded-lg flex items-center justify-center gap-2 font-black text-[10px] md:text-[11px] uppercase"
+            >
+              <FiPhone size={14} />
+              Contact Driver
+            </a>
+          </div>
+
+          {/* BUS DETAILS */}
+          <div className="bg-white dark:bg-slate-900 border border-brand-soft dark:border-slate-800 p-4 md:p-6 rounded-2xl">
+
+            <div className="flex items-center gap-2 mb-3 md:mb-6">
+              <FiInfo className="text-slate-400" size={16}/>
+              <span className="text-[9px] font-black text-slate-400 uppercase">
+                Vehicle Info
+              </span>
+            </div>
+
+            <div className="space-y-2 md:space-y-4">
+
+              <div className="flex justify-between bg-slate-50 dark:bg-slate-800 p-2.5 md:p-4 rounded-lg">
+                <span className="text-slate-400 text-[10px] font-bold uppercase">
+                  Bus Number
+                </span>
+                <span className="font-black text-sm text-slate-800 dark:text-slate-100">
+                  {route.bus_number}
+                </span>
+              </div>
+
+              <div className="flex justify-between bg-slate-50 dark:bg-slate-800 p-2.5 md:p-4 rounded-lg">
+                <span className="text-slate-400 text-[10px] font-bold uppercase">
+                  Capacity
+                </span>
+                <span className="font-black text-sm text-slate-800 dark:text-slate-100">
+                  {route.bus_capacity} Seats
+                </span>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    ) : (
+      <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl py-12 text-center">
+
+        <FiTruck size={32} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+
+        <h3 className="text-lg font-black text-slate-700 dark:text-slate-200 uppercase">
+          No Transport Assigned
+        </h3>
+
+        <p className="text-slate-400 text-[10px] font-bold uppercase mt-2 px-6">
+          Your child is not registered for school transport.
+        </p>
+
+      </div>
+    )}
+  </div>
+);
 }

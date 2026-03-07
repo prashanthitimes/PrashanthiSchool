@@ -42,7 +42,20 @@ export default function AdminParentsPage() {
         setLoading(true)
         try {
             const { data: stu } = await supabase.from('students').select('id, full_name, class_name, section')
-            const { data: par } = await supabase.from('parents').select(`*, students:child_id (full_name, class_name, section)`)
+            const { data: par, error } = await supabase
+                .from('parents')
+                .select(`
+        *,
+        students!parents_child_fkey (
+            full_name, 
+            class_name, 
+            section
+        )
+    `);
+            // ADD THIS LINE HERE:
+            console.log("Database Data:", par);
+            if (error) console.error("Fetch Error:", error);
+
             setStudents(stu || [])
             setParents(par || [])
         } catch (error) {
@@ -58,15 +71,30 @@ export default function AdminParentsPage() {
 
     // --- LOGIC: FILTERING & SEARCH ---
     const filteredParents = useMemo(() => {
+        // If there are no parents yet, stop here
+        if (!parents || parents.length === 0) return [];
+
         return parents.filter(p => {
-            const matchesSearch = p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.phone_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.students?.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
+            // 1. Get search values safely
+            const pName = (p.full_name || '').toLowerCase();
+            const pPhone = (p.phone_number || '').toLowerCase();
+            // Look for student name, but use "N/A" if the link is broken
+            const sName = (p.students?.full_name || 'n/a').toLowerCase();
+            const search = searchQuery.toLowerCase();
+
+            // 2. Check if it matches search text
+            const matchesSearch = pName.includes(search) ||
+                pPhone.includes(search) ||
+                sName.includes(search);
+
+            // 3. Check if it matches Class/Section dropdowns
+            // If dropdown is empty (''), we show everything
             const matchesClass = tableClassFilter === '' || p.students?.class_name === tableClassFilter;
             const matchesSection = tableSectionFilter === '' || p.students?.section === tableSectionFilter;
+
             return matchesSearch && matchesClass && matchesSection;
-        })
-    }, [parents, searchQuery, tableClassFilter, tableSectionFilter])
+        });
+    }, [parents, searchQuery, tableClassFilter, tableSectionFilter]);
 
     const availableClasses = useMemo(() => [...new Set(students.map(s => s.class_name))].sort(), [students])
     const availableSectionsForModal = useMemo(() => {
@@ -74,9 +102,16 @@ export default function AdminParentsPage() {
     }, [students, modalSelectedClass])
 
     const studentsForModal = useMemo(() => {
-        return students.filter(s => s.class_name === modalSelectedClass && s.section === modalSelectedSection)
-    }, [students, modalSelectedClass, modalSelectedSection])
+        if (!modalSelectedClass && !modalSelectedSection) {
+            return students; // show all students
+        }
 
+        return students.filter(
+            s =>
+                (!modalSelectedClass || s.class_name === modalSelectedClass) &&
+                (!modalSelectedSection || s.section === modalSelectedSection)
+        );
+    }, [students, modalSelectedClass, modalSelectedSection]);
     // --- CREDENTIAL GENERATOR ---
     const generateUniqueCreds = (parentName: string, studentId: string) => {
         if (!parentName || !studentId) return;
@@ -243,13 +278,13 @@ export default function AdminParentsPage() {
             setModalSelectedClass(parent.students.class_name)
             setModalSelectedSection(parent.students.section)
         }
-      setFormData({
-    full_name: parent.full_name,
-    relation: parent.relation,
-    phone_number: parent.phone_number,
-    child_id: parent.child_id,
-    temp_password: parent.temp_password
-})
+        setFormData({
+            full_name: parent.full_name,
+            relation: parent.relation,
+            phone_number: parent.phone_number,
+            child_id: parent.child_id,
+            temp_password: parent.temp_password
+        })
         setIsModalOpen(true)
     }
 
@@ -260,78 +295,96 @@ export default function AdminParentsPage() {
         else { toast.success("Parent deleted"); fetchInitialData(); }
     }
 
+    // --- UPDATED SAVE LOGIC ---
     async function handleSave(e: React.FormEvent) {
-        e.preventDefault()
-        if (!formData.child_id) return toast.error("Please select a student")
-        setSaving(true)
+        e.preventDefault();
+        if (!formData.child_id) return toast.error("Please select a student");
+
+        setSaving(true);
+
+        // Create a payload that matches your SQL Column names exactly
+        const payload = {
+            full_name: formData.full_name,
+            relation: formData.relation,
+            phone_number: formData.phone_number,
+            child_id: formData.child_id,
+            temp_password: formData.temp_password,
+            user_id: `user_${Math.random().toString(36).slice(2, 11)}`
+        };
+
         try {
             if (isEditMode && selectedId) {
-                const { error } = await supabase.from('parents').update(formData).eq('id', selectedId)
-                if (error) throw error
-                toast.success("Account updated")
+                const { error } = await supabase
+                    .from('parents')
+                    .update(payload)
+                    .eq('id', selectedId);
+                if (error) throw error;
+                toast.success("Account updated");
             } else {
-                const { error } = await supabase.from('parents').insert([formData])
-                if (error) throw error
-                toast.success("New parent added")
+                const { error } = await supabase
+                    .from('parents')
+                    .insert([payload]);
+                if (error) throw error;
+                toast.success("New parent added");
             }
-            setIsModalOpen(false)
-            fetchInitialData()
+            setIsModalOpen(false);
+            fetchInitialData();
         } catch (err: any) {
-            toast.error("Error: " + err.message)
-        } finally { setSaving(false) }
+            toast.error("Database Error: " + err.message);
+        } finally {
+            setSaving(false);
+        }
     }
 
     return (
-        <div className="min-h-screen bg-[#fdfafc] pt-6 md:pt-12 pb-20 px-4 md:px-6">
+        <div className="min-h-screen transition-colors duration-300 bg-[#fdfafc] dark:bg-slate-950 pt-6 md:pt-12 pb-20 px-4 md:px-6">
             <Toaster position="top-center" richColors />
 
-            <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
+            <div className="max-w-8xl mx-auto space-y-4 md:space-y-6">
 
                 {/* --- ENHANCED HEADER SECTION --- */}
-                <header className="bg-white p-5 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-[#e9d1e4] shadow-sm mb-4 md:mb-8">
+                <header className="bg-white dark:bg-slate-900 p-5 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-[#e9d1e4] dark:border-slate-800 shadow-sm mb-4 md:mb-8 transition-colors">
                     <div className="flex flex-col lg:flex-row justify-between items-center gap-6 md:gap-8">
 
                         {/* Branding & Stats Group */}
                         <div className="flex items-center gap-4 md:gap-5 w-full lg:w-auto">
-                            <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-[#fdfafc] to-[#f5e6f1] text-[#d487bd] rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center border border-[#e9d1e4] shadow-inner shrink-0">
-                                {/* We use a single size in the prop, and scale it via CSS classes */}
+                            <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-[#fdfafc] to-[#f5e6f1] dark:from-slate-800 dark:to-slate-900 text-[#d487bd] rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center border border-[#e9d1e4] dark:border-slate-700 shadow-inner shrink-0">
                                 <FiUsers className="w-7 h-7 md:w-10 md:h-10" />
                             </div>
                             <div>
-                                <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tighter uppercase">
+                                <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">
                                     PARENT<span className="text-[#d487bd]">HUB</span>
                                 </h1>
                                 <div className="flex items-center gap-2 md:gap-3 mt-1">
                                     <p className="text-[#d487bd] font-bold text-[9px] md:text-[10px] tracking-wider md:tracking-[0.2em] uppercase opacity-80">
                                         Portal Access
                                     </p>
-                                    <span className="h-1 w-1 rounded-full bg-slate-300"></span>
-                                    <p className="text-slate-400 font-bold text-[9px] md:text-[10px] uppercase tracking-widest">
+                                    <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                                    <p className="text-slate-400 dark:text-slate-500 font-bold text-[9px] md:text-[10px] uppercase tracking-widest">
                                         {parents.length} Accounts
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Action Buttons Group - Scrollable on mobile if needed */}
+                        {/* Action Buttons Group */}
                         <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2 md:gap-3 w-full lg:w-auto">
                             <input type="file" ref={fileInputRef} onChange={handleImportExcel} accept=".xlsx, .xls" className="hidden" />
 
-                            {/* Secondary Actions Group */}
                             <div className="flex gap-2">
-                                <button onClick={handleClearAll} className="bg-rose-50 text-rose-500 border border-rose-100 p-3 md:p-4 rounded-xl md:rounded-2xl hover:bg-rose-500 hover:text-white transition-all" title="Clear All">
+                                <button onClick={handleClearAll} className="bg-rose-50 dark:bg-rose-950/30 text-rose-500 border border-rose-100 dark:border-rose-900/50 p-3 md:p-4 rounded-xl md:rounded-2xl hover:bg-rose-500 hover:text-white transition-all" title="Clear All">
                                     <FiAlertTriangle size={18} />
                                 </button>
-                                <button onClick={downloadSampleExcel} className="bg-[#fdfafc] text-slate-600 border border-[#e9d1e4]/50 px-3 md:px-5 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+                                <button onClick={downloadSampleExcel} className="bg-[#fdfafc] dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-[#e9d1e4]/50 dark:border-slate-700 px-3 md:px-5 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
                                     <FiInfo size={16} className="text-[#d487bd]" /> <span className="hidden sm:inline">Sample</span>
                                 </button>
                             </div>
 
-                            <button onClick={() => fileInputRef.current?.click()} className="bg-white border-2 border-slate-100 text-slate-600 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all">
+                            <button onClick={() => fileInputRef.current?.click()} className="bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all">
                                 <FiUpload size={16} className="text-emerald-500" /> Import
                             </button>
 
-                            <button onClick={downloadCSV} className="bg-slate-800 text-white px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 active:scale-95 transition-all">
+                            <button onClick={downloadCSV} className="bg-slate-800 dark:bg-slate-700 text-white px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 active:scale-95 transition-all">
                                 <FiDownload size={16} /> <span className="hidden sm:inline">{tableClassFilter ? `Export ${tableClassFilter}` : 'Export All'}</span><span className="sm:hidden">Export</span>
                             </button>
 
@@ -343,13 +396,13 @@ export default function AdminParentsPage() {
                 </header>
 
                 {/* SEARCH & FILTER BAR */}
-                <div className="bg-white p-3 md:p-4 rounded-[1.5rem] md:rounded-[2rem] border border-[#e9d1e4] flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4">
+                <div className="bg-white dark:bg-slate-900 p-3 md:p-4 rounded-[1.5rem] md:rounded-[2rem] border border-[#e9d1e4] dark:border-slate-800 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 transition-colors">
                     <div className="flex-1 relative">
                         <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Search parents..."
-                            className="w-full pl-11 pr-4 py-3 md:py-4 bg-[#fdfafc] rounded-xl border-none font-bold text-sm outline-none focus:ring-2 ring-[#e9d1e4]"
+                            className="w-full pl-11 pr-4 py-3 md:py-4 bg-[#fdfafc] dark:bg-slate-800 text-slate-800 dark:text-white rounded-xl border-none font-bold text-sm outline-none focus:ring-2 ring-[#e9d1e4] dark:ring-slate-700 transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -359,7 +412,7 @@ export default function AdminParentsPage() {
                         <select
                             value={tableClassFilter}
                             onChange={(e) => setTableClassFilter(e.target.value)}
-                            className="flex-1 md:flex-none bg-[#fdfafc] border-none rounded-xl px-3 py-3 md:py-4 font-bold text-[10px] md:text-xs uppercase outline-none cursor-pointer whitespace-nowrap"
+                            className="flex-1 md:flex-none bg-[#fdfafc] dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-none rounded-xl px-3 py-3 md:py-4 font-bold text-[10px] md:text-xs uppercase outline-none cursor-pointer whitespace-nowrap"
                         >
                             <option value="">Classes</option>
                             {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
@@ -367,7 +420,7 @@ export default function AdminParentsPage() {
                         <select
                             value={tableSectionFilter}
                             onChange={(e) => setTableSectionFilter(e.target.value)}
-                            className="flex-1 md:flex-none bg-[#fdfafc] border-none rounded-xl px-3 py-3 md:py-4 font-bold text-[10px] md:text-xs uppercase outline-none cursor-pointer"
+                            className="flex-1 md:flex-none bg-[#fdfafc] dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-none rounded-xl px-3 py-3 md:py-4 font-bold text-[10px] md:text-xs uppercase outline-none cursor-pointer"
                         >
                             <option value="">Sections</option>
                             {[...new Set(parents.map(p => p.students?.section).filter(Boolean))].sort().map(s => (
@@ -378,11 +431,11 @@ export default function AdminParentsPage() {
                 </div>
 
                 {/* TABLE / CARD SECTION */}
-                <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-[#e9d1e4] overflow-hidden shadow-sm">
+                <div className="bg-white dark:bg-slate-900 rounded-[2rem] md:rounded-[3rem] border border-[#e9d1e4] dark:border-slate-800 overflow-hidden shadow-sm transition-colors">
                     {/* Desktop Table View */}
                     <div className="hidden md:block">
                         <table className="w-full border-separate border-spacing-y-2 px-6 pb-6">
-                            <thead className="bg-[#fdfafc]">
+                            <thead className="bg-[#fdfafc] dark:bg-slate-800/50">
                                 <tr className="text-[10px] font-black text-[#d487bd] uppercase tracking-widest">
                                     <th className="px-8 py-6 text-left">Guardian</th>
                                     <th className="px-8 py-6 text-left">Credentials</th>
@@ -397,30 +450,29 @@ export default function AdminParentsPage() {
                                     <tr><td colSpan={4} className="p-20 text-center font-bold text-slate-400">No records found</td></tr>
                                 ) : (
                                     filteredParents.map((p) => (
-                                        <tr key={p.id} className="group transition-all hover:bg-[#fdfafc]">
+                                        <tr key={p.id} className="group transition-all hover:bg-[#fdfafc] dark:hover:bg-slate-800/40">
                                             <td className="px-8 py-6 rounded-l-[2rem]">
-                                                <p className="font-black text-slate-800">{p.full_name}</p>
-                                                <p className="text-sm font-bold text-slate-500 flex items-center gap-2 mt-1"><FiPhone size={12} /> {p.phone_number}</p>
+                                                <p className="font-black text-slate-800 dark:text-slate-200">{p.full_name}</p>
+                                                <p className="text-sm font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-1">{p.relation}</p>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-<p className="text-[10px] text-slate-400 font-bold uppercase">Phone: {p.phone_number}</p>
-                                                    <p className="text-[10px] text-[#d487bd] font-mono font-bold">Pass: {p.temp_password}</p>
+                                                <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">Phone: {p.phone_number}</p>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[#d487bd] border border-[#e9d1e4]"><GraduationCap size={14} /></div>
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-[#d487bd] border border-[#e9d1e4] dark:border-slate-700"><GraduationCap size={14} /></div>
                                                     <div>
-                                                        <p className="text-sm font-black text-slate-700">{p.students?.full_name}</p>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">{p.students?.class_name} - {p.students?.section}</p>
+                                                        <p className="text-sm font-black text-slate-700 dark:text-slate-300">{p.students?.full_name}</p>
+                                                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">{p.students?.class_name} - {p.students?.section}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-right rounded-r-[2rem]">
                                                 <div className="flex justify-end gap-2">
-                                                    <button onClick={() => handleEditClick(p)} className="p-3 bg-white border border-[#e9d1e4] text-[#d487bd] rounded-xl hover:bg-[#d487bd] hover:text-white transition-all"><FiEdit3 size={16} /></button>
-                                                    <button onClick={() => handleDelete(p.id)} className="p-3 bg-white border border-rose-100 text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all"><FiTrash2 size={16} /></button>
+                                                    <button onClick={() => handleEditClick(p)} className="p-3 bg-white dark:bg-slate-800 border border-[#e9d1e4] dark:border-slate-700 text-[#d487bd] rounded-xl hover:bg-[#d487bd] hover:text-white transition-all"><FiEdit3 size={16} /></button>
+                                                    <button onClick={() => handleDelete(p.id)} className="p-3 bg-white dark:bg-slate-800 border border-rose-100 dark:border-rose-900/40 text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all"><FiTrash2 size={16} /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -431,133 +483,129 @@ export default function AdminParentsPage() {
                     </div>
 
                     {/* Mobile Card View */}
-                    <div className="md:hidden divide-y divide-[#e9d1e4]/30">
-                        {loading ? (
-                            <div className="p-10 text-center"><Loader2 className="animate-spin mx-auto text-[#d487bd]" /></div>
-                        ) : filteredParents.length === 0 ? (
-                            <div className="p-10 text-center font-bold text-slate-400 text-sm">No records found matching filters</div>
-                        ) : (
-                            filteredParents.map((p) => (
-                                <div key={p.id} className="p-5 space-y-4">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-black text-slate-800">{p.full_name}</p>
-                                            <p className="text-xs font-bold text-slate-500 flex items-center gap-2 mt-1"><FiPhone size={10} /> {p.phone_number}</p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => handleEditClick(p)} className="p-2.5 bg-[#fdfafc] border border-[#e9d1e4] text-[#d487bd] rounded-lg"><FiEdit3 size={14} /></button>
-                                            <button onClick={() => handleDelete(p.id)} className="p-2.5 bg-rose-50 text-rose-400 rounded-lg"><FiTrash2 size={14} /></button>
-                                        </div>
+                    <div className="md:hidden divide-y divide-[#e9d1e4]/30 dark:divide-slate-800">
+                        {filteredParents.map((p) => (
+                            <div key={p.id} className="p-5 space-y-4">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="font-black text-slate-800 dark:text-slate-200">{p.full_name}</p>
+                                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-1"><FiPhone size={10} /> {p.phone_number}</p>
                                     </div>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="bg-[#fdfafc] p-3 rounded-xl border border-slate-100">
-                                            <p className="text-[9px] text-slate-400 font-bold uppercase">Student</p>
-                                            <p className="text-xs font-black text-slate-700 truncate">{p.students?.full_name}</p>
-                                            <p className="text-[9px] text-[#d487bd] font-bold uppercase">{p.students?.class_name}-{p.students?.section}</p>
-                                        </div>
-                                        <div className="bg-slate-900 p-3 rounded-xl">
-                                            <p className="text-[9px] text-slate-400 font-bold uppercase">Credentials</p>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase">
-                                                Phone: {p.phone_number}
-                                            </p>                                            <p className="text-[10px] text-[#d487bd] font-mono font-bold truncate">PW: {p.temp_password}</p>
-                                        </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleEditClick(p)} className="p-2.5 bg-[#fdfafc] dark:bg-slate-800 border border-[#e9d1e4] dark:border-slate-700 text-[#d487bd] rounded-lg"><FiEdit3 size={14} /></button>
+                                        <button onClick={() => handleDelete(p.id)} className="p-2.5 bg-rose-50 dark:bg-rose-950/30 text-rose-400 rounded-lg"><FiTrash2 size={14} /></button>
                                     </div>
                                 </div>
-                            ))
-                        )}
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-[#fdfafc] dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">Student</p>
+                                        <p className="text-xs font-black text-slate-700 dark:text-slate-300 truncate">{p.students?.full_name}</p>
+                                        <p className="text-[9px] text-[#d487bd] font-bold uppercase">{p.students?.class_name}-{p.students?.section}</p>
+                                    </div>
+                                    <div className="bg-slate-900 dark:bg-black p-3 rounded-xl">
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase">Credentials</p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase truncate">Ph: {p.phone_number}</p>
+                                        <p className="text-[10px] text-[#d487bd] font-mono font-bold truncate">PW: {p.temp_password}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
-                {/* FORM MODAL - Improved for Mobile */}
+                {/* FORM MODAL */}
                 {isModalOpen && (
-                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4">
-                        <div className="bg-white w-full max-w-2xl rounded-t-[2.5rem] md:rounded-[3rem] shadow-2xl border-t md:border border-[#e9d1e4] overflow-hidden animate-in slide-in-from-bottom md:zoom-in-95 duration-300 max-h-[92vh] flex flex-col">
-                            <div className="p-6 md:p-8 border-b bg-[#fdfafc] flex justify-between items-center shrink-0">
+                    <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+                        <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-t-[2.5rem] md:rounded-[3rem] shadow-2xl border-t md:border border-[#e9d1e4] dark:border-slate-800 overflow-hidden animate-in slide-in-from-bottom md:zoom-in-95 duration-300 max-h-[92vh] flex flex-col">
+                            <div className="p-6 md:p-8 border-b dark:border-slate-800 bg-[#fdfafc] dark:bg-slate-800/50 flex justify-between items-center shrink-0">
                                 <div>
-                                    <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase">{isEditMode ? 'Edit' : 'New'} Parent</h2>
+                                    <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white uppercase">{isEditMode ? 'Edit' : 'New'} Parent</h2>
                                     <p className="text-[9px] md:text-[10px] font-bold text-[#d487bd] uppercase tracking-widest mt-1">Set portal access credentials</p>
                                 </div>
-                                <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-[#e9d1e4] text-slate-400"><FiX size={20} /></button>
+                                <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-[#e9d1e4] dark:border-slate-700 text-slate-400"><FiX size={20} /></button>
                             </div>
 
                             <form onSubmit={handleSave} className="p-6 md:p-10 space-y-6 md:space-y-8 overflow-y-auto">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+
+                                    {/* Guardian Name */}
                                     <div className="space-y-1.5">
-                                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase ml-2">Guardian Name</label>
-                                        <input required type="text" value={formData.full_name}
-                                            onChange={(e) => {
-                                                setFormData({ ...formData, full_name: e.target.value });
-                                                if (formData.child_id) generateUniqueCreds(e.target.value, formData.child_id);
-                                            }}
-                                            className="w-full bg-slate-50 border-2 border-transparent focus:border-[#e9d1e4] focus:bg-white rounded-xl md:rounded-2xl p-3 md:p-4 font-bold outline-none text-sm md:text-base" />
+                                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase ml-2">
+                                            Guardian Name
+                                        </label>
+                                        <input
+                                            required
+                                            type="text"
+                                            value={formData.full_name}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, full_name: e.target.value })
+                                            }
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent
+focus:border-[#e9d1e4] dark:focus:border-slate-700 focus:bg-white
+dark:focus:bg-slate-800 text-slate-800 dark:text-white rounded-xl
+md:rounded-2xl p-3 md:p-4 font-bold outline-none"
+                                        />
                                     </div>
+
+                                    {/* Relation */}
                                     <div className="space-y-1.5">
-                                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase ml-2">Relation</label>
-                                        <select required value={formData.relation}
-                                            onChange={(e) => setFormData({ ...formData, relation: e.target.value })}
-                                            className="w-full bg-slate-50 border-2 border-transparent focus:border-[#e9d1e4] focus:bg-white rounded-xl md:rounded-2xl p-3 md:p-4 font-bold outline-none text-sm md:text-base">
+                                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase ml-2">
+                                            Relation
+                                        </label>
+                                        <select
+                                            required
+                                            value={formData.relation}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, relation: e.target.value })
+                                            }
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent
+focus:border-[#e9d1e4] dark:focus:border-slate-700 focus:bg-white
+dark:focus:bg-slate-800 text-slate-800 dark:text-white rounded-xl
+md:rounded-2xl p-3 md:p-4 font-bold outline-none"
+                                        >
                                             <option value="">Select Relation</option>
                                             <option value="Father">Father</option>
                                             <option value="Mother">Mother</option>
                                             <option value="Guardian">Guardian</option>
                                         </select>
                                     </div>
-                                    <div className="space-y-1.5 md:col-span-2">
-                                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase ml-2">Phone Number</label>
-                                        <input required type="tel" value={formData.phone_number}
-                                            onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                                            className="w-full bg-slate-50 border-2 border-transparent focus:border-[#e9d1e4] focus:bg-white rounded-xl md:rounded-2xl p-3 md:p-4 font-bold outline-none text-sm md:text-base" />
+
+                                    {/* Phone Number */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase ml-2">
+                                            Phone Number
+                                        </label>
+                                        <input
+                                            required
+                                            type="text"
+                                            value={formData.phone_number}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, phone_number: e.target.value })
+                                            }
+                                            placeholder="Enter phone number"
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent
+focus:border-[#e9d1e4] dark:focus:border-slate-700 focus:bg-white
+dark:focus:bg-slate-800 text-slate-800 dark:text-white rounded-xl
+md:rounded-2xl p-3 md:p-4 font-bold outline-none"
+                                        />
                                     </div>
+
+
                                 </div>
 
-                                <div className="p-5 md:p-8 bg-[#fdfafc] rounded-[1.5rem] md:rounded-[2.5rem] border border-[#e9d1e4] space-y-4 md:space-y-6">
+                                <div className="p-5 md:p-8 bg-[#fdfafc] dark:bg-slate-800/30 rounded-[1.5rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 space-y-4 md:space-y-6">
                                     <div className="flex items-center gap-2 text-[#d487bd]">
                                         <FiFilter size={14} /><span className="text-[10px] font-black uppercase">Find Student</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                        <select
-                                            value={modalSelectedClass}
-                                            onChange={(e) => { setModalSelectedClass(e.target.value); setModalSelectedSection(''); }}
-                                            className="w-full bg-white border border-[#e9d1e4] rounded-xl p-3 text-xs md:text-sm font-bold"
-                                        >
-                                            <option value="">Class</option>
-                                            {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
-                                        <select
-                                            disabled={!modalSelectedClass}
-                                            value={modalSelectedSection}
-                                            onChange={(e) => setModalSelectedSection(e.target.value)}
-                                            className="w-full bg-white border border-[#e9d1e4] rounded-xl p-3 text-xs md:text-sm font-bold disabled:opacity-50"
-                                        >
-                                            <option value="">Section</option>
-                                            {availableSectionsForModal.map(s => <option key={s} value={s}>{s}</option>)}
-                                        </select>
-                                    </div>
                                     <select
-                                        required disabled={!modalSelectedSection}
+                                        required
                                         value={formData.child_id}
-                                        onChange={(e) => {
-                                            setFormData({ ...formData, child_id: e.target.value });
-                                            generateUniqueCreds(formData.full_name, e.target.value);
-                                        }}
-                                        className="w-full bg-white border-2 border-[#d487bd]/20 focus:border-[#d487bd] rounded-xl md:rounded-2xl p-3 md:p-4 font-bold outline-none disabled:opacity-50 text-xs md:text-sm">
+                                        onChange={(e) => setFormData({ ...formData, child_id: e.target.value })}
+                                        className="w-full bg-white dark:bg-slate-800 border-2 border-[#d487bd]/20 focus:border-[#d487bd] text-slate-800 dark:text-white rounded-xl md:rounded-2xl p-3 md:p-4 font-bold outline-none text-xs md:text-sm">
                                         <option value="">Select Student Name</option>
-                                        {studentsForModal.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                                        {studentsForModal.map(s => <option key={s.id} value={s.id}>{s.full_name} ({s.class_name})</option>)}
                                     </select>
-                                </div>
-
-                                <div className="p-5 bg-slate-900 rounded-[1.5rem] md:rounded-[2rem] space-y-4">
-                                    <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                        <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/10 overflow-hidden">
-                                            <p className="text-[8px] font-bold text-slate-400 uppercase">Login Phone</p>
-                                            <p className="text-xs font-bold text-white">{formData.phone_number}</p>
-                                        </div>
-                                        <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/10 overflow-hidden">
-                                            <p className="text-[8px] font-bold text-slate-400 uppercase">Temp Password</p>
-                                            <p className="text-[10px] md:text-xs font-mono font-bold text-[#d487bd] truncate">{formData.temp_password || '...'}</p>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <button disabled={saving} className="w-full bg-[#d487bd] hover:bg-[#c36fa8] text-white h-[65px] md:h-[75px] rounded-xl md:rounded-[2rem] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 transition-all shrink-0 mb-4">
@@ -568,7 +616,7 @@ export default function AdminParentsPage() {
                     </div>
                 )}
             </div>
-
         </div>
-    )
+    );
+
 }
