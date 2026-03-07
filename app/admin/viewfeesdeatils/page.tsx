@@ -103,13 +103,14 @@ export default function PrincipalFeesPage() {
   // Export CSV Function
   const exportToCSV = () => {
     const headers = ["Student Name", "Class", "Total Paid", "Total Due", "Status"];
-    const rows = studentData.map(s => [
-      s.name,
-      s.class,
-      s.paid,
-      s.totalDue,
-      s.status
-    ]);
+    const rows = studentData
+      .filter((s): s is NonNullable<typeof s> => s !== null)
+      .map(s => [
+        s.name,
+        s.class,
+        s.paid,
+        s.totalDue,
+      ]);
 
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
