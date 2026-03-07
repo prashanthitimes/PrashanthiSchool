@@ -155,11 +155,11 @@ export default function PrincipalFeesPage() {
               <div className="flex xl:flex items-center gap-4 w-full sm:w-auto justify-around sm:justify-end px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl md:bg-transparent md:border-r md:border-slate-100 dark:md:border-slate-800 md:mr-4 md:px-6">
                 <div className="text-center sm:text-right">
                   <p className="text-[8px] md:text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase">Collected</p>
-                  <p className="text-sm md:text-lg font-black text-emerald-600 dark:text-emerald-400">₹{studentData.reduce((a, b) => a + b.paid, 0).toLocaleString()}</p>
+                  <p className="text-sm md:text-lg font-black text-emerald-600 dark:text-emerald-400">₹{studentData.reduce((a, b) => a + (b?.paid ?? 0), 0).toLocaleString()}</p>
                 </div>
                 <div className="text-center sm:text-right">
                   <p className="text-[8px] md:text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase">Outstanding</p>
-                  <p className="text-sm md:text-lg font-black text-orange-500 dark:text-orange-400">₹{studentData.reduce((a, b) => a + b.totalDue, 0).toLocaleString()}</p>
+                  <p className="text-sm md:text-lg font-black text-orange-500 dark:text-orange-400">₹{studentData.reduce((a, b) => a + (b?.paid ?? 0), 0).toLocaleString()}</p>
                 </div>
               </div>
 
