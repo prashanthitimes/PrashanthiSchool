@@ -85,7 +85,7 @@ export default function TeacherDashboard() {
 
             {/* WELCOME TEXT - Single line forced by removing <br/> and adding whitespace-nowrap if needed */}
             <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-800 dark:text-slate-100 mb-3 md:mb-4 tracking-tighter uppercase leading-tight">
-              Welcome, {teacherData?.full_name?.split(' ')[0] || "Teacher"}
+              Welcome, {teacherData?.full_name || "Teacher"}
             </h1>
 
             <p className="text-slate-400 dark:text-slate-400 text-sm md:text-lg font-bold leading-relaxed">

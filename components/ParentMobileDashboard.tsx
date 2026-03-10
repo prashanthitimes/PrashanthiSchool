@@ -10,7 +10,7 @@ const items = [
   { title: "Time Table", img: "/timetable.png", link: "/parent/timetable" },
   { title: "Exams", img: "/exam.png", link: "/parent/exams" },
   { title: "Syllabus", img: "/syllabus.jpg", link: "/parent/syllabus" },
-  { title: "Marks", img: "/marks.jpg", link: "/parent/marks" },
+  { title: "Report Card", img: "/marks.jpg", link: "/parent/marks" },
   { title: "Calendar", img: "/calendar.jpg", link: "/parent/calendar" },
   { title: "Fees", img: "/fees.jpg", link: "/parent/fees" },
   { title: "Transport", img: "/bus.jpg", link: "/parent/transport" },

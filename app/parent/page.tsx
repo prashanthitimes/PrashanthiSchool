@@ -23,7 +23,6 @@ export default function ParentDashboard() {
     feeStatus: "Paid",
   });
 
-  // Get localStorage values in client-side effect
   useEffect(() => {
     setParentName(localStorage.getItem('parentName'));
     setChildId(localStorage.getItem('childId'));
@@ -70,10 +69,14 @@ export default function ParentDashboard() {
     }
   }
 
-  if (!childId) return <p>Loading...</p>; // avoid render before localStorage is loaded
+  if (!childId) return <p className="p-10">Loading...</p>;
 
   return (
-    <div className="space-y-10 p-6 pt-10 bg-white min-h-screen animate-in fade-in duration-700">
+    /* FIX: Added pt-[env(safe-area-inset-top)] to handle the mobile status bar 
+       and increased the base padding-top to ensure it never overlaps.
+    */
+    <div className="space-y-10 p-6 bg-white animate-in fade-in duration-700 pt-[calc(env(safe-area-inset-top)+2.5rem)]">
+      
       {/* --- SOFT BRAND PARENT BANNER --- */}
       <section className="relative overflow-hidden bg-brand-soft/40 rounded-[2.5rem] p-10 md:p-14 border border-brand-soft">
         <div className="absolute -top-10 -right-10 w-64 h-64 bg-brand-light/5 rounded-full blur-3xl"></div>
@@ -102,8 +105,6 @@ export default function ParentDashboard() {
         </div>
       </section>
 
-
-
       {/* --- QUICK STATS GRID --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
@@ -114,8 +115,8 @@ export default function ParentDashboard() {
         ]
           .map((stat, index) => (
             <Link href={stat.path} key={index} className="bg-white p-8 rounded-[2.5rem] border border-brand-soft hover:bg-brand-soft/20 transition-all group flex flex-col gap-4">
-              <div className="text-brand-light group-hover:scale-110 transition-transform duration-300"><stat.icon size={28} />
-
+              <div className="text-brand-light group-hover:scale-110 transition-transform duration-300">
+                <stat.icon size={28} />
               </div>
               <div>
                 <p className="text-[10px] uppercase font-black text-brand-light/40 tracking-[0.2em]">{stat.label}</p>
@@ -129,7 +130,6 @@ export default function ParentDashboard() {
 
       {/* --- MANAGEMENT COMMAND CENTER --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-
         {/* Academic Overview */}
         <div className="bg-white rounded-[2.5rem] border border-brand-soft p-8 space-y-6">
           <div className="flex items-center gap-3 text-brand-light">
@@ -168,7 +168,7 @@ export default function ParentDashboard() {
           </div>
         </div>
 
-        {/* Communication Block (High Contrast) */}
+        {/* Communication Block */}
         <div className="bg-brand-light rounded-[2.5rem] p-8 text-white space-y-6 shadow-xl shadow-brand-soft">
           <div className="flex items-center gap-3">
             <FiBell size={20} />
@@ -192,9 +192,7 @@ export default function ParentDashboard() {
               </Link>
             ))}
           </div>
-
         </div>
-
       </div>
     </div>
   );

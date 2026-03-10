@@ -226,7 +226,6 @@ export default function AttendancePage() {
                 {students.map((s, idx) => (
                   <div key={s.id} className="flex items-center justify-between p-5 hover:bg-brand-soft/10 dark:hover:bg-brand/5 transition-colors group">
                     <div className="flex items-center gap-4">
-                      <span className="text-[10px] font-black text-brand-soft dark:text-slate-700 w-4">{idx + 1}</span>
                       <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-black text-sm
                         ${attendanceData[s.id] === 'present' 
                            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
@@ -241,25 +240,32 @@ export default function AttendancePage() {
                     </div>
 
                     <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-xl gap-1 border border-slate-100 dark:border-slate-800">
-                      <button 
-                        onClick={() => setAttendanceData(prev => ({...prev, [s.id]: 'present'}))}
-                        className={`px-4 py-2 rounded-lg text-[9px] font-black transition-all flex items-center gap-1.5
-                          ${attendanceData[s.id] === 'present' 
-                            ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-50 dark:border-emerald-500/20' 
-                            : 'text-slate-300 dark:text-slate-600 hover:text-slate-400'}`}
-                      >
-                        <FiUserCheck size={12} /> PRESENT
-                      </button>
-                      <button 
-                        onClick={() => setAttendanceData(prev => ({...prev, [s.id]: 'absent'}))}
-                        className={`px-4 py-2 rounded-lg text-[9px] font-black transition-all flex items-center gap-1.5
-                          ${attendanceData[s.id] === 'absent' 
-                            ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-50 dark:border-rose-500/20' 
-                            : 'text-slate-300 dark:text-slate-600 hover:text-slate-400'}`}
-                      >
-                        <FiUserX size={12} /> ABSENT
-                      </button>
-                    </div>
+  {/* PRESENT BUTTON */}
+  <button 
+    onClick={() => setAttendanceData(prev => ({...prev, [s.id]: 'present'}))}
+    className={`px-3 sm:px-4 py-2 rounded-lg text-[10px] sm:text-[9px] font-black transition-all flex items-center justify-center gap-1.5 min-w-[40px]
+      ${attendanceData[s.id] === 'present' 
+        ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-50 dark:border-emerald-500/20' 
+        : 'text-slate-300 dark:text-slate-600 hover:text-slate-400'}`}
+  >
+    <FiUserCheck size={14} className="sm:size-[12px]" /> 
+    <span className="hidden sm:inline">PRESENT</span>
+    <span className="inline sm:hidden">P</span>
+  </button>
+
+  {/* ABSENT BUTTON */}
+  <button 
+    onClick={() => setAttendanceData(prev => ({...prev, [s.id]: 'absent'}))}
+    className={`px-3 sm:px-4 py-2 rounded-lg text-[10px] sm:text-[9px] font-black transition-all flex items-center justify-center gap-1.5 min-w-[40px]
+      ${attendanceData[s.id] === 'absent' 
+        ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-50 dark:border-rose-500/20' 
+        : 'text-slate-300 dark:text-slate-600 hover:text-slate-400'}`}
+  >
+    <FiUserX size={14} className="sm:size-[12px]" /> 
+    <span className="hidden sm:inline">ABSENT</span>
+    <span className="inline sm:hidden">A</span>
+  </button>
+</div>
                   </div>
                 ))}
               </div>

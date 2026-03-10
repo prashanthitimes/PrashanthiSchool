@@ -17,13 +17,11 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const [teacherData, setTeacherData] = useState({ name: 'Teacher', dept: 'Faculty' })
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Sync menu with route
   useEffect(() => {
     const path = pathname.split('/').pop() || 'dashboard'
     setActiveMenu(path === 'teacher' ? 'dashboard' : path)
   }, [pathname])
 
-  // Load teacher data
   useEffect(() => {
     const savedName = localStorage.getItem('teacherName')
     const savedDept = localStorage.getItem('teacherDept')
@@ -32,14 +30,12 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     }
   }, [])
 
-  // Scroll effect
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -67,13 +63,17 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
       <div className="flex-1 flex flex-col min-h-screen relative lg:ml-64 w-full">
         
-        {/* HEADER */}
+        {/* HEADER - ADDED SAFE AREA PADDING TOP */}
         <header
+          style={{ 
+            paddingTop: 'env(safe-area-inset-top)',
+            height: isScrolled ? 'calc(env(safe-area-inset-top) + 4rem)' : 'calc(env(safe-area-inset-top) + 5rem)' 
+          }}
           className={`fixed top-0 right-0 z-40 px-3 md:px-8 flex items-center justify-between
           w-full lg:w-[calc(100%-16rem)] transition-all duration-300
           ${isScrolled 
-              ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm border-b dark:border-slate-800 h-16' 
-              : 'bg-white lg:bg-transparent h-20'}`}
+              ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm border-b dark:border-slate-800' 
+              : 'bg-white lg:bg-transparent'}`}
         >
           {/* LEFT SIDE */}
           <div className="flex items-center gap-2 min-w-0">
@@ -125,8 +125,11 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           </div>
         </header>
 
-        {/* PAGE CONTENT */}
-        <main className="px-4 pb-10 mt-20 flex-1">
+        {/* PAGE CONTENT - INCREASED TOP MARGIN TO ACCOUNT FOR TALLER HEADER */}
+        <main 
+          style={{ marginTop: 'calc(env(safe-area-inset-top) + 5.5rem)' }}
+          className="px-4 pb-10 flex-1"
+        >
           <div className="max-w-8xl mx-auto">
             {children}
           </div>

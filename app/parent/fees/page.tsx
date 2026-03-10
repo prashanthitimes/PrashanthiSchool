@@ -178,11 +178,145 @@ export default function ParentFees() {
 
 
             {activeTab === "pay" ? (
+                /* On Mobile: Flex-col with Order 1 (Form) and Order 2 (Bank)
+                   On Desktop: lg:grid-cols-3 with natural order
+                */
+                <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 md:gap-8">
+                    {/* --- NEW NOTICE HEADER --- */}
+                    <div className="order-1 lg:col-span-3 flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 p-3 rounded-2xl mb-2">
+                        <Clock size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                        <p className="text-[10px] md:text-xs font-bold text-amber-700 dark:text-amber-300 italic uppercase tracking-tight">
+                            (Receipt will be generated after 24 hours of working day)
+                        </p>
+                    </div>
+                    {/* 1. PAYMENT FORM (FEE DETAILS) - Appears FIRST on mobile */}
+                    <div className="order-1 lg:order-2 lg:col-span-2 bg-slate-900 dark:bg-slate-950 rounded-3xl md:rounded-[3rem] p-6 md:p-10 text-white shadow-2xl">
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                        <h2 className="text-xl md:text-2xl font-black italic mb-6">
+                            Make a Payment
+                        </h2>
 
-                    {/* BANK INFO */}
-                    <div className="bg-white dark:bg-slate-900 border border-brand-soft dark:border-slate-700 rounded-3xl p-6 md:p-8 h-fit">
+                        {/* FEE TYPES */}
+                        <div className="mb-8">
+                            <label className="text-[10px] font-black uppercase opacity-40 mb-4 block">
+                                Select Fee Type
+                            </label>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {classFees.map(f => {
+                                    const status = getFeeStatus(f.fee_type)
+                                    const isDisabled = status !== "available"
+
+                                    return (
+                                        <button
+                                            key={f.id}
+                                            type="button"
+                                            disabled={isDisabled}
+                                            onClick={() => setSelectedFeeTypes(prev =>
+                                                prev.includes(f.fee_type)
+                                                    ? prev.filter(t => t !== f.fee_type)
+                                                    : [...prev, f.fee_type]
+                                            )}
+                                            className={`relative p-4 md:p-5 rounded-2xl border-2 text-left transition-all
+                                    ${isDisabled
+                                                    ? 'opacity-30 grayscale cursor-not-allowed bg-white/5 border-transparent'
+                                                    : selectedFeeTypes.includes(f.fee_type)
+                                                        ? 'bg-brand-light border-brand-light scale-[0.98]'
+                                                        : 'bg-white/5 border-white/10'
+                                                }`}
+                                        >
+                                            <div className="flex justify-between items-start mb-1">
+                                                <div className="flex items-center gap-2 max-w-[70%]">
+                                                    {f.is_transport && (
+                                                        <Bus size={12} className="shrink-0 text-brand-light" />
+                                                    )}
+                                                    <span className="text-[9px] md:text-[10px] font-black uppercase truncate">
+                                                        {f.fee_type}
+                                                    </span>
+                                                </div>
+                                                {status !== "available" && (
+                                                    <span className={`text-[8px] px-2 py-0.5 rounded font-black text-white
+                                            ${status === 'verified' ? 'bg-green-500' : 'bg-amber-500'}`}>
+                                                        {status.toUpperCase()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-lg md:text-xl font-black">
+                                                ₹{Number(f.amount).toLocaleString()}
+                                            </p>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        {/* INPUTS */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black opacity-40 uppercase">
+                                    UTR Number
+                                </label>
+                                <input
+                                    value={utr}
+                                    onChange={e => setUtr(e.target.value)}
+                                    className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-sm outline-none focus:border-brand-light"
+                                    placeholder="12 Digit ID"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black opacity-40 uppercase">
+                                    Payment Date
+                                </label>
+                                <input
+                                    type="date"
+                                    value={payDate}
+                                    onChange={e => setPayDate(e.target.value)}
+                                    className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-sm outline-none focus:border-brand-light"
+                                />
+                            </div>
+                        </div>
+
+                        {/* UPLOAD */}
+                        <div className="mb-8 border-2 border-dashed border-white/10 rounded-2xl p-6 text-center hover:bg-white/5 active:bg-white/10 transition-colors">
+                            <input
+                                type="file"
+                                onChange={e => setFile(e.target.files?.[0] || null)}
+                                className="hidden"
+                                id="fileUp"
+                                accept="image/*"
+                            />
+                            <label htmlFor="fileUp" className="cursor-pointer flex flex-col items-center gap-2">
+                                <Upload size={24} className="text-brand-light" />
+                                <span className="text-xs font-bold opacity-70 break-all">
+                                    {file ? file.name : "Tap to Upload Screenshot"}
+                                </span>
+                            </label>
+                        </div>
+
+                        {/* TOTAL & SUBMIT */}
+                        <div className="flex flex-col md:flex-row justify-between items-center border-t border-white/10 pt-6 gap-4">
+                            <div className="text-center md:text-left">
+                                <p className="text-[10px] font-black opacity-40 uppercase">
+                                    Total Amount
+                                </p>
+                                <p className="text-3xl md:text-4xl font-black text-brand-light italic">
+                                    ₹{calculatedTotal.toLocaleString()}
+                                </p>
+                            </div>
+
+                            <button
+                                disabled={uploading || calculatedTotal === 0}
+                                onClick={handlePaymentSubmit}
+                                className="w-full md:w-auto bg-white text-slate-900 px-10 py-4 rounded-xl font-black uppercase text-[11px] shadow-xl active:scale-95 transition-all disabled:opacity-50"
+                            >
+                                {uploading ? "SUBMITTING..." : "CONFIRM PAYMENT"}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 2. BANK INFO (QR CODE) - Appears BELOW the form on mobile */}
+                    <div className="order-2 lg:order-1 bg-white dark:bg-slate-900 border border-brand-soft dark:border-slate-700 rounded-3xl p-6 md:p-8 h-fit">
 
                         <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">
                             Payment Destination
@@ -203,6 +337,7 @@ export default function ParentFees() {
                                 Payment configuration not found
                             </p>
                         )}
+
                         <div className="grid grid-cols-1 gap-2 text-[11px]">
                             <BankRow label="Bank" value={paymentConfig?.bank_name} />
                             <BankRow label="A/C" value={paymentConfig?.account_number} />
@@ -211,208 +346,9 @@ export default function ParentFees() {
 
                     </div>
 
-
-                    {/* PAYMENT FORM */}
-
-                    <div className="lg:col-span-2 bg-slate-900 dark:bg-slate-950 rounded-3xl md:rounded-[3rem] p-6 md:p-10 text-white shadow-2xl">
-
-                        <h2 className="text-xl md:text-2xl font-black italic mb-6">
-                            Make a Payment
-                        </h2>
-
-
-                        {/* FEE TYPES */}
-
-                        <div className="mb-8">
-
-                            <label className="text-[10px] font-black uppercase opacity-40 mb-4 block">
-                                Select Fee Type
-                            </label>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-                                {classFees.map(f => {
-
-                                    const status = getFeeStatus(f.fee_type)
-                                    const isDisabled = status !== "available"
-
-                                    return (
-
-                                        <button
-                                            key={f.id}
-                                            type="button"
-                                            disabled={isDisabled}
-
-                                            onClick={() => setSelectedFeeTypes(prev =>
-                                                prev.includes(f.fee_type)
-                                                    ? prev.filter(t => t !== f.fee_type)
-                                                    : [...prev, f.fee_type]
-                                            )}
-
-                                            className={`
-
-relative p-4 md:p-5 rounded-2xl border-2 text-left transition-all
-
-${isDisabled
-                                                    ? 'opacity-30 grayscale cursor-not-allowed bg-white/5 border-transparent'
-                                                    : selectedFeeTypes.includes(f.fee_type)
-                                                        ? 'bg-brand-light border-brand-light scale-[0.98]'
-                                                        : 'bg-white/5 border-white/10'
-                                                }
-
-`}
-                                        >
-
-                                            <div className="flex justify-between items-start mb-1">
-
-                                                <div className="flex items-center gap-2 max-w-[70%]">
-
-                                                    {f.is_transport && (
-                                                        <Bus size={12} className="shrink-0 text-brand-light" />
-                                                    )}
-
-                                                    <span className="text-[9px] md:text-[10px] font-black uppercase truncate">
-                                                        {f.fee_type}
-                                                    </span>
-
-                                                </div>
-
-                                                {status !== "available" && (
-
-                                                    <span className={`text-[8px] px-2 py-0.5 rounded font-black text-white
-${status === 'verified' ? 'bg-green-500' : 'bg-amber-500'}
-`}>
-
-                                                        {status.toUpperCase()}
-
-                                                    </span>
-
-                                                )}
-
-                                            </div>
-
-                                            <p className="text-lg md:text-xl font-black">
-                                                ₹{Number(f.amount).toLocaleString()}
-                                            </p>
-
-                                        </button>
-
-                                    )
-
-                                })}
-
-                            </div>
-
-                        </div>
-
-
-
-                        {/* INPUTS */}
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
-
-                            <div className="space-y-2">
-
-                                <label className="text-[10px] font-black opacity-40 uppercase">
-                                    UTR Number
-                                </label>
-
-                                <input
-                                    value={utr}
-                                    onChange={e => setUtr(e.target.value)}
-
-                                    className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-sm outline-none focus:border-brand-light"
-
-                                    placeholder="12 Digit ID"
-                                />
-
-                            </div>
-
-
-                            <div className="space-y-2">
-
-                                <label className="text-[10px] font-black opacity-40 uppercase">
-                                    Payment Date
-                                </label>
-
-                                <input
-                                    type="date"
-                                    value={payDate}
-                                    onChange={e => setPayDate(e.target.value)}
-
-                                    className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-sm outline-none focus:border-brand-light"
-                                />
-
-                            </div>
-
-                        </div>
-
-
-
-                        {/* UPLOAD */}
-
-                        <div className="mb-8 border-2 border-dashed border-white/10 rounded-2xl p-6 text-center hover:bg-white/5 active:bg-white/10 transition-colors">
-
-                            <input
-                                type="file"
-                                onChange={e => setFile(e.target.files?.[0] || null)}
-                                className="hidden"
-                                id="fileUp"
-                                accept="image/*"
-                            />
-
-                            <label htmlFor="fileUp" className="cursor-pointer flex flex-col items-center gap-2">
-
-                                <Upload size={24} className="text-brand-light" />
-
-                                <span className="text-xs font-bold opacity-70 break-all">
-                                    {file ? file.name : "Tap to Upload Screenshot"}
-                                </span>
-
-                            </label>
-
-                        </div>
-
-
-
-                        {/* TOTAL */}
-
-                        <div className="flex flex-col md:flex-row justify-between items-center border-t border-white/10 pt-6 gap-4">
-
-                            <div className="text-center md:text-left">
-
-                                <p className="text-[10px] font-black opacity-40 uppercase">
-                                    Total Amount
-                                </p>
-
-                                <p className="text-3xl md:text-4xl font-black text-brand-light italic">
-                                    ₹{calculatedTotal.toLocaleString()}
-                                </p>
-
-                            </div>
-
-
-                            <button
-                                disabled={uploading || calculatedTotal === 0}
-
-                                onClick={handlePaymentSubmit}
-
-                                className="w-full md:w-auto bg-white text-slate-900 px-10 py-4 rounded-xl font-black uppercase text-[11px] shadow-xl active:scale-95 transition-all disabled:opacity-50"
-                            >
-
-                                {uploading ? "SUBMITTING..." : "CONFIRM PAYMENT"}
-
-                            </button>
-
-                        </div>
-
-                    </div>
-
                 </div>
-
             ) : (
 
-                /* HISTORY */
 
                 <div className="space-y-8">
 
