@@ -443,7 +443,7 @@ export default function FeesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+    <div className="bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       <div className="max-w-8xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 py-4 space-y-8 animate-in fade-in duration-500">
         <Toaster position="top-right" />
 

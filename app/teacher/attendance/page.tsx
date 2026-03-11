@@ -111,7 +111,7 @@ export default function AttendancePage() {
   }
 
  return (
-    <div className="max-w-8xl mx-auto px-4 py-6 space-y-6 bg-[#fdfcfd] dark:bg-slate-950 min-h-screen transition-colors duration-300">
+    <div className="max-w-8xl mx-auto px-4 py-6 space-y-6 bg-[#fdfcfd] dark:bg-slate-950 transition-colors duration-300">
       
       {/* Top Banner - Soft Lavender to Deep Purple Look */}
       <div className="bg-brand-soft dark:bg-brand/20 rounded-[2rem] p-6 text-brand-dark dark:text-brand-soft shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden border border-brand-light/10 dark:border-brand/20">

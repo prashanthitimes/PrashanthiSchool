@@ -337,7 +337,7 @@ export default function StudentManagement() {
     }));
   };
   return (
-    <div className="min-h-screen bg-[#fdfafc] dark:bg-slate-950 p-4 lg:p-10 font-sans transition-colors duration-300">
+    <div className="bg-[#fdfafc] dark:bg-slate-950 p-4 lg:p-10 font-sans transition-colors duration-300">
       <Toaster position="top-center" richColors />
 
       <div className="max-w-9xl mx-auto space-y-6 lg:space-y-8 animate-in fade-in duration-500">

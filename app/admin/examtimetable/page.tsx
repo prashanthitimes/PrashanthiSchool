@@ -83,7 +83,7 @@ export default function ExamTimetableManager() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-10 space-y-6 md:space-y-8 transition-colors duration-300">
+    <div className="bg-slate-50 dark:bg-slate-950 p-4 md:p-10 space-y-6 md:space-y-8 transition-colors duration-300">
       <Toaster position="top-right" richColors />
 
       {/* HEADER */}
@@ -324,7 +324,7 @@ export default function ExamTimetableManager() {
         @media print {
             aside, nav, [class*="sidebar"], [class*="Header"], header, .print\:hidden, button { display: none !important; }
             body { background: white !important; margin: 0 !important; padding: 0 !important; }
-            .min-h-screen { min-height: 0 !important; padding: 0 !important; }
+            .{ min-height: 0 !important; padding: 0 !important; }
             .max-w-7xl { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
             .rounded-[3rem], .rounded-[1.5rem] { border-radius: 0 !important; }
             .shadow-2xl { box-shadow: none !important; }

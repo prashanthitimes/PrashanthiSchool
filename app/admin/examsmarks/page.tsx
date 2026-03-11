@@ -123,7 +123,7 @@ export default function ExamMarksManager() {
   const pendingCount = marksData.filter(m => m.status === 'Pending').length;
 
 return (
-    <div className="min-h-screen bg-[#fcfcfd] dark:bg-slate-950 p-6 md:p-10 transition-colors duration-300">
+    <div className="bg-[#fcfcfd] dark:bg-slate-950 p-6 md:p-10 transition-colors duration-300">
       <Toaster position="top-right" richColors />
 
       {/* HEADER */}

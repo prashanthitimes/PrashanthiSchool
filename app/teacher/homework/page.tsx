@@ -147,7 +147,7 @@ export default function HomeworkPage() {
         return diff > -86400000 && diff < 172800000;
     });
 return (
-        <div className="min-h-screen bg-[#FDFCFD] dark:bg-slate-950 pb-20 relative transition-colors duration-300">
+        <div className="bg-[#FDFCFD] dark:bg-slate-950 pb-20 relative transition-colors duration-300">
 
             {/* --- MODAL POPUP --- */}
             {viewingHw && (

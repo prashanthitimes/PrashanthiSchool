@@ -171,7 +171,7 @@ const filteredAssignments = assignments.filter(a => {
   );
 
   return (
-    <div className="max-w-9xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 py-4 space-y-8 animate-in fade-in duration-700 bg-[#fffcfd] dark:bg-slate-950 min-h-screen transition-colors duration-300">
+    <div className="max-w-9xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 py-4 space-y-8 animate-in fade-in duration-700 bg-[#fffcfd] dark:bg-slate-950 transition-colors duration-300">
       <Toaster position="top-center" richColors />
 
       {/* HEADER */}

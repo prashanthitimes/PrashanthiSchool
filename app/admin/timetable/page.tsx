@@ -268,7 +268,7 @@ export default function TimeTablePage() {
     await fetchTimetable()
   }
   return (
-    <div className="max-w-7xl mx-auto mt-4 md:mt-10 px-3 py-2 space-y-4 md:space-y-6 bg-[#fffcfd] dark:bg-slate-950 min-h-screen transition-colors duration-300">
+    <div className="max-w-7xl mx-auto mt-4 md:mt-10 px-3 py-2 space-y-4 md:space-y-6 bg-[#fffcfd] dark:bg-slate-950 transition-colors duration-300">
 
       {/* HEADER */}
       <header className="flex flex-col lg:flex-row items-start lg:items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-6 py-5 md:px-8 md:py-6 rounded-[1.5rem] md:rounded-[2.5rem] border border-brand-accent dark:border-slate-800 shadow-sm gap-4">

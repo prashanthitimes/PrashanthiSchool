@@ -73,7 +73,7 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="space-y-6 md:space-y-10 p-4 md:p-6 pt-6 md:pt-10 bg-[#fffcfd] dark:bg-slate-950 min-h-screen animate-in fade-in duration-700 transition-colors duration-300">
+    <div className="space-y-6 md:space-y-10 p-4 md:p-6 pt-6 md:pt-10 bg-[#fffcfd] dark:bg-slate-950 animate-in fade-in duration-700 transition-colors duration-300">
 
       {/* --- SOFT BRAND TEACHER BANNER --- */}
       <section className="relative overflow-hidden bg-brand-soft/20 dark:bg-brand/10 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-14 border border-[#e9d1e4] dark:border-slate-800 transition-colors duration-300">

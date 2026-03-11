@@ -79,7 +79,7 @@ export default function TeacherClassList() {
         (s.father_name || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
     return (
-        <div className="min-h-screen bg-[#FDFCFD] dark:bg-slate-950 pb-32 transition-colors duration-300">
+        <div className="bg-[#FDFCFD] dark:bg-slate-950 pb-32 transition-colors duration-300">
 
             {/* --- HEADER --- */}
             <div className="px-6 pt-6">

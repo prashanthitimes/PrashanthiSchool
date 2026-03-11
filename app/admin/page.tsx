@@ -62,7 +62,7 @@ export default function AdminDashboard() {
   ];
 
 return (
-  <div className="space-y-6 md:space-y-10 p-4 md:p-6 pt-12 md:pt-20 min-h-screen transition-colors duration-500
+  <div className="space-y-6 md:space-y-10 p-4 md:p-6 pt-12 md:pt-20 transition-colors duration-500
     bg-[#fffcfd] dark:bg-slate-950 text-slate-900 dark:text-slate-200">
     
     {/* --- BRAND BANNER --- */}

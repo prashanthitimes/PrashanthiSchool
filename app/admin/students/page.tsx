@@ -147,7 +147,7 @@ export default function AdminStudentDirectory() {
 
 return (
     // Main Container: Swaps from a soft off-white to deep slate
-    <div className="max-w-9xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-6 md:space-y-8 min-h-screen transition-colors duration-500
+    <div className="max-w-9xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-6 md:space-y-8 transition-colors duration-500
         bg-[#fcfcfd] dark:bg-slate-950 text-slate-900 dark:text-slate-200">
         
         <Toaster position="top-center" richColors theme="dark" />

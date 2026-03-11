@@ -86,7 +86,7 @@ export default function ExamSyllabusPage() {
     }
 
     return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 transition-colors duration-300">
+    <div className="bg-slate-50 dark:bg-slate-950 pb-20 transition-colors duration-300">
       
       {/* --- HEADER --- */}
       <div className="px-4 md:px-6 pt-4 md:pt-6">

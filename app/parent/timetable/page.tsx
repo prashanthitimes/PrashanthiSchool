@@ -80,7 +80,7 @@ export default function StudentTimetable() {
 
 return (
   /* MAIN CANVAS: Locked width to screen to prevent horizontal overflow */
-  <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden px-3 pt-6 pb-24 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+  <div className="w-full max-w-[100vw] overflow-x-hidden px-3 pt-6 pb-24 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
     
     {/* HEADER SECTION - Redesigned to be compact and stay within phone bounds */}
     <div className="relative bg-[#722366] rounded-[2rem] p-5 mb-5 text-white shadow-lg overflow-hidden border border-white/5">

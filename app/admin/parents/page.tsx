@@ -337,7 +337,7 @@ export default function AdminParentsPage() {
     }
 
     return (
-        <div className="min-h-screen transition-colors duration-300 bg-[#fdfafc] dark:bg-slate-950 pt-6 md:pt-12 pb-20 px-4 md:px-6">
+        <div className="transition-colors duration-300 bg-[#fdfafc] dark:bg-slate-950 pt-6 md:pt-12 pb-20 px-4 md:px-6">
             <Toaster position="top-center" richColors />
 
             <div className="max-w-8xl mx-auto space-y-4 md:space-y-6">

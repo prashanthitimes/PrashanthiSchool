@@ -147,7 +147,7 @@ export default function PaymentConfiguration() {
     }
 
     return (
-        <div className="max-w-8xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-200 transition-colors duration-300">
+        <div className="max-w-8xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 transition-colors duration-300">
             <Toaster position="top-right" />
 
             {/* HEADER SECTION */}

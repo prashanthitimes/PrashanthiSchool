@@ -27,7 +27,7 @@ export default function Home() {
   }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
+    <div className="flex flex-col items-center justify-center bg-slate-50">
       {/* Decorative Background Blur */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-soft/20 blur-[100px] rounded-full" />
 

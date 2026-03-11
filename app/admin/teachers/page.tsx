@@ -199,7 +199,7 @@ export default function TeacherManagement() {
   };
 
 return (
-  <div className="max-w-10xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-6 md:space-y-8 min-h-screen transition-colors duration-500
+  <div className="max-w-10xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-6 md:space-y-8 transition-colors duration-500
     bg-[#fcfcfd] dark:bg-slate-950 text-slate-900 dark:text-slate-200">
     
     <Toaster richColors position="top-center" theme="dark" />

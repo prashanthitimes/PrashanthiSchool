@@ -55,7 +55,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8F9FD] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-x-hidden transition-colors duration-300">
+    <div className="flex bg-[#F8F9FD] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-x-hidden transition-colors duration-300">
       <AdminSidebar
         activeMenu={activeMenu}
         setActiveMenu={setActiveMenu}
@@ -63,7 +63,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         setIsOpen={setIsSidebarOpen}
       />
 
-      <div className="flex-1 flex flex-col min-h-screen relative lg:ml-64 w-full">
+      <div className="flex-1 flex flex-col relative lg:ml-64 w-full">
         {/* --- FIXED HEADER WITH SAFE AREA --- */}
         <header
           style={{ 

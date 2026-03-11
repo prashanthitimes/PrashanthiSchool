@@ -111,7 +111,7 @@ export default function ExamsPage() {
   };
 
   return (
-    <div className="p-6 mt-10 space-y-8 max-w-[1200px] mx-auto min-h-screen bg-[#FCFAFC] dark:bg-slate-950 transition-colors duration-300">
+    <div className="p-6 mt-10 space-y-8 max-w-[1200px] mx-auto bg-[#FCFAFC] dark:bg-slate-950 transition-colors duration-300">
 
       {/* HEADER */}
       <header className="flex flex-col md:flex-row items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-8 py-6 rounded-[2.5rem] border border-brand-soft/30 dark:border-slate-800 shadow-sm">

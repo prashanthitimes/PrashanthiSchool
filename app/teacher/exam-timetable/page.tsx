@@ -93,7 +93,7 @@ export default function TeacherExamTimetable() {
     }
 
  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 md:p-10 relative transition-colors duration-300">
+    <div className="bg-slate-50 dark:bg-slate-950 p-6 md:p-10 relative transition-colors duration-300">
         {/* --- HEADER --- */}
         <div className="bg-brand-soft dark:bg-slate-900 p-10 rounded-[3rem] border border-brand-light/10 dark:border-slate-800 shadow-sm mb-10">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">

@@ -85,7 +85,7 @@ export default function AttendanceAdminPage() {
     })
 
     return (
-        <div className="p-4 md:p-6 mt-16 md:mt-10 space-y-6 max-w-[1400px] mx-auto min-h-screen bg-[#FCFAFC] dark:bg-slate-950 transition-colors duration-300">
+        <div className="p-4 md:p-6 mt-16 md:mt-10 space-y-6 max-w-[1400px] mx-auto bg-[#FCFAFC] dark:bg-slate-950 transition-colors duration-300">
 
             {/* HEADER SECTION */}
             <header className="bg-white dark:bg-slate-900 p-4 md:px-8 md:py-6 rounded-3xl md:rounded-[2.5rem] border border-brand-soft/30 dark:border-slate-800 shadow-sm transition-colors">

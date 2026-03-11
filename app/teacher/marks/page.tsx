@@ -168,7 +168,7 @@ export default function MarksEntryPage() {
     )
 
 return (
-    <div className="min-h-screen bg-[#FDFCFD] dark:bg-slate-950 pb-32 transition-colors duration-300">
+    <div className="bg-[#FDFCFD] dark:bg-slate-950 pb-32 transition-colors duration-300">
       
       {/* --- HEADER --- */}
       <div className="px-6 pt-6">

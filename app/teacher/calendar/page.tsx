@@ -57,7 +57,7 @@ export default function AcademicCalendar() {
     const selectedDayEvents = events.filter(e => e.start_date === selectedDate)
 
  return (
-    <div className="min-h-screen bg-[#FDFCFD] dark:bg-slate-950 p-4 md:p-10 pb-20 transition-colors duration-300">
+    <div className="bg-[#FDFCFD] dark:bg-slate-950 p-4 md:p-10 pb-20 transition-colors duration-300">
         {/* --- HEADER --- */}
         {/* Keeping the purple but adding a slight dark-mode gradient shift */}
         <div className="bg-[#722366] dark:bg-gradient-to-br dark:from-[#5a1c51] dark:to-[#43153d] p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl mb-6 md:mb-10 text-white flex flex-col md:flex-row justify-between items-center gap-4">

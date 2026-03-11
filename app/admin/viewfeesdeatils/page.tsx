@@ -121,7 +121,7 @@ export default function PrincipalFeesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fffcfd] dark:bg-slate-950 transition-colors duration-300">
+    <div className="bg-[#fffcfd] dark:bg-slate-950 transition-colors duration-300">
       <div className="max-w-9xl mx-auto py-6 md:py-10 px-4 md:px-6 space-y-6 md:space-y-8">
 
         {/* --- ENHANCED HEADER SECTION --- */}

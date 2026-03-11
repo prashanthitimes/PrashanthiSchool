@@ -81,7 +81,7 @@ export default function AssignmentsPage() {
     const upcomingDeadlines = history.filter(a => a.due_date === todayISO);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-32 transition-colors duration-300">
+    <div className="bg-slate-50 dark:bg-slate-950 pb-32 transition-colors duration-300">
       
       {/* --- ASSIGNMENT DETAILS MODAL --- */}
       {viewingAssignment && (
