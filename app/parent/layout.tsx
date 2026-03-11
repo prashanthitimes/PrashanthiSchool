@@ -56,18 +56,18 @@ export default function ParentLayout({
 
   return (
     /* MAIN CANVAS BACKGROUND: bg-[#fffcfd] | dark:bg-slate-950 */
-    <div className="flex min-h-screen bg-[#fffcfd] dark:bg-slate-950 font-sans transition-colors duration-500">
+    <div className="flex  bg-[#fffcfd] dark:bg-slate-950 font-sans transition-colors duration-500">
 
       {/* DESKTOP SIDEBAR */}
       <div className="hidden lg:block">
         <ParentSidebar />      </div>
 
       {/* MAIN CONTAINER */}
-      <div className="flex-1 flex flex-col min-h-screen relative lg:ml-64">
+      <div className="flex-1 flex flex-col  relative lg:ml-64">
 
         {/* ENHANCED HEADER */}
         <header
-          className={`sticky top-0 z-40 px-4 md:px-8 h-12 md:h-14 flex items-center justify-between transition-all duration-300
+          className={`sticky top-[20px] z-40 px-4 md:px-8 h-12 md:h-14 flex items-center justify-between transition-all duration-300
   ${isScrolled ? 'bg-white/90 shadow-sm' : 'bg-transparent'}`}
         >
           {/* LEFT: BACK BUTTON OR MOBILE BRANDING */}
@@ -90,7 +90,7 @@ export default function ParentLayout({
             </div>
 
             <h2 className="hidden lg:block text-xl font-black text-slate-800 dark:text-slate-100 capitalize">
-{pathname.split('/').pop()?.replace('-', ' ')}            </h2>
+              {pathname.split('/').pop()?.replace('-', ' ')}            </h2>
           </div>
 
           {/* RIGHT: THEME TOGGLE, LOGOUT, PROFILE */}
@@ -144,7 +144,7 @@ export default function ParentLayout({
 
         {/* CONTENT AREA */}
         {/* CONTENT AREA */}
-        <main className={`px-4 md:px-8 flex-1 w-full ${pathname === "/parent" ? "pb-4 pt-2" : "pb-4 pt-2"}`}>
+        <main className={`px-4 md:px-8 flex-1 w-full ${pathname === "/parent" ? "pb-4 pt-8 md:pt-8" : "pb-4 pt-6 md:pt-8"}`}>
           {pathname === "/parent" && (
             <div className="lg:hidden">
               {/* Reduced margin-bottom from mb-6 to mb-2 */}

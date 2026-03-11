@@ -50,7 +50,7 @@ export default function ParentNotices() {
   };
 
 return (
-  <div className="w-full space-y-6 p-4 bg-[#fffcfd] dark:bg-slate-950 min-h-screen animate-in fade-in duration-700">
+  <div className="w-full space-y-6 p-4 bg-[#fffcfd] dark:bg-slate-950  animate-in fade-in duration-700">
     
     {/* --- WIDE HEADER --- */}
     <div className="bg-brand-soft/30 dark:bg-slate-900 p-6 rounded-[2rem] border border-brand-soft dark:border-slate-800 flex items-center justify-between relative overflow-hidden">

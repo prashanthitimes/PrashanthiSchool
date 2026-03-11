@@ -73,7 +73,7 @@ export default function SchoolContact() {
   };
 
 return (
-  <div className="space-y-8 p-6 bg-[#fffcfd] dark:bg-slate-950 min-h-screen animate-in fade-in duration-700">
+  <div className="space-y-8 p-6 bg-[#fffcfd] dark:bg-slate-950  animate-in fade-in duration-700">
 
     {/* --- SMALL COMPACT HEADER --- */}
     <header className="bg-brand-soft/40 dark:bg-slate-900 rounded-[2rem] p-6 border border-brand-soft dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">

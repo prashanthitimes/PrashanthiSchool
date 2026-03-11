@@ -103,27 +103,30 @@ export default function ParentAttendance() {
   return (
     /* MAIN CANVAS: bg-[#fffcfd] | dark:bg-slate-950 */
     <div className=" bg-[#fffcfd] dark:bg-slate-950 pb-12 transition-colors duration-300">
+{/* HEADER: bg-slate-50 | dark:bg-slate-900 */}
+<div className="bg-slate-50 dark:bg-slate-900 p-4 md:p-8 rounded-b-2xl md:rounded-b-[3rem] shadow-lg border-b border-slate-200 dark:border-slate-800">
+  <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
+    
+    {/* Left Side: Logo/Title */}
+    <div className="flex items-center gap-2">
+      <FiActivity className="text-emerald-500 dark:text-emerald-400 text-lg md:text-xl shrink-0" />
+      <h1 className="font-bold text-base md:text-xl text-slate-800 dark:text-slate-100 leading-tight">
+        Attendance Portal
+      </h1>
+    </div>
 
-      {/* HEADER: bg-slate-50 | dark:bg-slate-900 */}
-      <div className="bg-slate-50 dark:bg-slate-900 p-6 md:p-10 rounded-b-[3rem] shadow-xl border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <FiActivity className="text-emerald-500 dark:text-emerald-400 text-xl" />
-            <h1 className="font-bold text-lg md:text-xl text-slate-800 dark:text-slate-100">
-              Student Portal
-            </h1>
-          </div>
+    {/* Right Side: Meta Info */}
+    <div className="text-right shrink-0">
+      <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+        Attendance
+      </p>
+      <p className="text-[11px] md:text-sm font-bold text-slate-800 dark:text-slate-200">
+        2025-26
+      </p>
+    </div>
 
-          <div className="text-right">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-              Attendance Tracking
-            </p>
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-              Academic Year 2025-26
-            </p>
-          </div>
-        </div>
-      </div>
+  </div>
+</div>
 
       {/* MAIN CONTAINER */}
       <div className="max-w-7xl mx-auto px-4 mt-8">
@@ -291,7 +294,7 @@ function StatTile({ label, value, color, bg, icon }: any) {
       {/* Icon: Smaller and more subtle */}
       {icon && (
         <div className={`mb-1 opacity-80 ${color}`}>
-{React.cloneElement(icon as React.ReactElement<{ size?: number }>, { size: 16 })}
+          {React.cloneElement(icon as React.ReactElement<{ size?: number }>, { size: 16 })}
         </div>
       )}
 

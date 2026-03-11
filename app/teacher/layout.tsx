@@ -52,7 +52,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8F9FD] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-x-hidden">
+    <div className="flex  bg-[#F8F9FD] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-x-hidden">
       
       <TeacherSidebar
         activeMenu={activeMenu}
@@ -61,7 +61,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         setIsOpen={setIsSidebarOpen}
       />
 
-      <div className="flex-1 flex flex-col min-h-screen relative lg:ml-64 w-full">
+      <div className="flex-1 flex flex-col  relative lg:ml-64 w-full">
         
         {/* HEADER - ADDED SAFE AREA PADDING TOP */}
         <header
@@ -69,7 +69,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
             paddingTop: 'env(safe-area-inset-top)',
             height: isScrolled ? 'calc(env(safe-area-inset-top) + 4rem)' : 'calc(env(safe-area-inset-top) + 5rem)' 
           }}
-          className={`fixed top-0 right-0 z-40 px-3 md:px-8 flex items-center justify-between
+          className={`fixed top-[20px] right-0 z-40 px-3 md:px-8 flex items-center justify-between
           w-full lg:w-[calc(100%-16rem)] transition-all duration-300
           ${isScrolled 
               ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm border-b dark:border-slate-800' 

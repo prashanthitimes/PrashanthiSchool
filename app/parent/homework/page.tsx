@@ -50,7 +50,7 @@ export default function ParentHomework() {
 
   return (
     /* Main Page Canvas: bg-[#fffcfd] | dark:bg-slate-950 */
-    <div className="space-y-8 p-6 bg-[#fffcfd] dark:bg-slate-950 min-h-screen animate-in fade-in duration-700 transition-colors duration-300">
+    <div className="space-y-8 p-6 bg-[#fffcfd] dark:bg-slate-950  animate-in fade-in duration-700 transition-colors duration-300">
 
       {/* --- REDUCED COMPACT HEADER --- */}
       {/* bg-slate-50 / dark:bg-slate-800/50 for secondary backgrounds */}

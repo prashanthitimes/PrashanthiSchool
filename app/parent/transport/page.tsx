@@ -50,7 +50,7 @@ const stopList: string[] = route?.stops
   : [];
 
  return (
-  <div className="space-y-4 p-3 md:p-6 bg-[#fffcfd] dark:bg-slate-950 min-h-screen">
+  <div className="space-y-4 p-3 md:p-6 bg-[#fffcfd] dark:bg-slate-950 ">
 
     {/* HEADER */}
     <header className="bg-white dark:bg-slate-900 rounded-2xl p-3 md:p-6 border border-brand-soft dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-3 shadow-sm">

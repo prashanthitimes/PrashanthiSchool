@@ -76,14 +76,14 @@ export default function ExamTimetable() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
+    <div className="flex flex-col items-center justify-center  bg-slate-50">
       <div className="w-10 h-10 border-4 border-brand/20 border-t-brand rounded-full animate-spin mb-4"></div>
       <p className="text-brand text-xs font-black uppercase tracking-widest animate-pulse">Syncing Schedule...</p>
     </div>
   );
 
   return (
-  <div className="p-4 md:p-10 bg-[#fffcfd] dark:bg-slate-950 min-h-screen font-sans pb-24 transition-colors duration-300">
+  <div className="p-4 md:p-10 bg-[#fffcfd] dark:bg-slate-950  font-sans pb-24 transition-colors duration-300">
 
     {/* Action Header - Optimized for Mobile */}
     <div className="max-w-8xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

@@ -21,7 +21,7 @@ const items = [
 export default function ParentMobileDashboard() {
   return (
     /* Main Canvas Background: bg-[#fffcfd] | dark:bg-slate-950 */
-    <div className="lg:hidden min-h-screen bg-[#fffcfd] dark:bg-slate-950 transition-colors duration-300 pt-8">
+    <div className="lg:hidden bg-[#fffcfd] dark:bg-slate-950 transition-colors duration-300 pt-8">
 
       {/* 1. Icon Grid Section */}
       <div className="px-4">
