@@ -53,7 +53,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="flex  bg-[#F8F9FD] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-x-hidden">
-      
+
       <TeacherSidebar
         activeMenu={activeMenu}
         setActiveMenu={setActiveMenu}
@@ -62,18 +62,21 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       />
 
       <div className="flex-1 flex flex-col  relative lg:ml-64 w-full">
-        
+
         {/* HEADER - ADDED SAFE AREA PADDING TOP */}
         <header
-          style={{ 
-            paddingTop: 'env(safe-area-inset-top)',
-            height: isScrolled ? 'calc(env(safe-area-inset-top) + 4rem)' : 'calc(env(safe-area-inset-top) + 5rem)' 
+          style={{
+            /* We add the 20px here so it's part of the solid background */
+            paddingTop: 'calc(env(safe-area-inset-top) + 20px)',
+            height: isScrolled
+              ? 'calc(env(safe-area-inset-top) + 20px + 4rem)'
+              : 'calc(env(safe-area-inset-top) + 20px + 5rem)'
           }}
-          className={`fixed top-[20px] right-0 z-40 px-3 md:px-8 flex items-center justify-between
-          w-full lg:w-[calc(100%-16rem)] transition-all duration-300
-          ${isScrolled 
-              ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm border-b dark:border-slate-800' 
-              : 'bg-white lg:bg-transparent'}`}
+          className={`fixed top-0 right-0 z-40 px-3 md:px-8 flex items-center justify-between
+    w-full lg:w-[calc(100%-16rem)] transition-all duration-300
+    ${isScrolled
+              ? 'bg-white shadow-sm border-b dark:bg-slate-900 dark:border-slate-800'
+              : 'bg-white'}`} /* Removed transparent and blur classes */
         >
           {/* LEFT SIDE */}
           <div className="flex items-center gap-2 min-w-0">
@@ -126,7 +129,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         </header>
 
         {/* PAGE CONTENT - INCREASED TOP MARGIN TO ACCOUNT FOR TALLER HEADER */}
-        <main 
+        <main
           style={{ marginTop: 'calc(env(safe-area-inset-top) + 5.5rem)' }}
           className="px-4 pb-10 flex-1"
         >
