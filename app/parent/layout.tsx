@@ -85,7 +85,7 @@ export default function ParentLayout({
               </div>
               <div className="flex flex-col">
                 <h1 className="text-[13px] font-black text-slate-800 dark:text-slate-100 leading-none uppercase">Prashanti Vidyalaya</h1>
-                <span className="text-[9px] font-bold text-brand dark:text-brand-soft tracking-tighter uppercase opacity-70">Parental Panel</span>
+                <span className="text-[9px] font-bold text-brand dark:text-brand-soft tracking-tighter uppercase opacity-70">Parent Panel</span>
               </div>
             </div>
 
