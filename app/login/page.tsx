@@ -193,33 +193,31 @@ export default function UnifiedLoginPage() {
 
         {/* STEP 1 ROLE */}
 
-        {step === 1 && (
+     {/* STEP 1 ROLE */}
+{step === 1 && (
+  <div className="space-y-4">
+    <RoleButton
+      icon="/principalicon.png"
+      title="Administrator"
+      desc="Manage school operations"
+      onClick={() => handleRoleSelect('admin')}
+    />
 
-          <div className="space-y-4">
+    <RoleButton
+      icon="/teachericon.jpg"
+      title="Teacher / Faculty"
+      desc="Access classroom & grades"
+      onClick={() => handleRoleSelect('teacher')}
+    />
 
-            <RoleButton
-              icon={<FiUsers size={22} />}
-              title="Administrator"
-              desc="Manage school operations"
-              onClick={() => handleRoleSelect('admin')}
-            />
-
-            <RoleButton
-              icon={<FiBook size={22} />}
-              title="Teacher / Faculty"
-              desc="Access classroom & grades"
-              onClick={() => handleRoleSelect('teacher')}
-            />
-
-            <RoleButton
-              icon={<FiUser size={22} />}
-              title="Parent / Guardian"
-              desc="Track student progress"
-              onClick={() => handleRoleSelect('parent')}
-            />
-
-          </div>
-        )}
+    <RoleButton
+      icon="/parneticon.jpg"
+      title="Parent / Guardian"
+      desc="Track student progress"
+      onClick={() => handleRoleSelect('parent')}
+    />
+  </div>
+)}
 
 
         {/* STEP 2 LOGIN */}
@@ -384,16 +382,22 @@ export default function UnifiedLoginPage() {
 }
 
 function RoleButton({ icon, title, desc, onClick }: any) {
-
   return (
-
     <button
       onClick={onClick}
       className="w-full group flex items-center gap-4 p-4 rounded-2xl border-2 border-brand-accent/30 hover:border-brand-light hover:bg-brand-soft/20 transition-all text-left"
     >
-
-      <div className="w-12 h-12 rounded-xl bg-brand-soft/30 group-hover:bg-brand group-hover:text-white flex items-center justify-center text-brand">
-        {icon}
+      <div className="w-12 h-12 rounded-xl bg-slate-50 group-hover:bg-brand/10 flex items-center justify-center text-brand overflow-hidden relative border border-slate-100">
+        {typeof icon === 'string' ? (
+          <Image 
+            src={icon} 
+            alt={title} 
+            fill 
+            className="object-cover p-1 group-hover:scale-110 transition-transform" 
+          />
+        ) : (
+          icon
+        )}
       </div>
 
       <div className="flex-1">
@@ -402,9 +406,7 @@ function RoleButton({ icon, title, desc, onClick }: any) {
       </div>
 
       <FiChevronRight className="text-brand-soft group-hover:text-brand" />
-
     </button>
-
   )
 }
 

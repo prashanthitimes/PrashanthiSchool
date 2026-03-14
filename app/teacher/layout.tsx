@@ -72,7 +72,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
               ? 'calc(env(safe-area-inset-top) + 20px + 4rem)'
               : 'calc(env(safe-area-inset-top) + 20px + 5rem)'
           }}
-          className={`fixed top-0 right-0 z-40 px-3 md:px-8 flex items-center justify-between
+          className={`fixed  top-3 md:top-0  right-0 z-40 px-3 md:px-8 flex items-center justify-between
     w-full lg:w-[calc(100%-16rem)] transition-all duration-300
     ${isScrolled
               ? 'bg-white shadow-sm border-b dark:bg-slate-900 dark:border-slate-800'

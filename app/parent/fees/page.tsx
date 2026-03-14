@@ -202,52 +202,60 @@ export default function ParentFees() {
                                 Select Fee Type
                             </label>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {classFees.map(f => {
-                                    const status = getFeeStatus(f.fee_type)
-                                    const isDisabled = status !== "available"
+                            {/* Changed grid-cols-2/3/4 to grid-cols-1 or just a flex-col */}
+                           <div className="flex flex-col gap-1.5"> {/* Smaller gap between rows */}
+  {classFees.map((f) => {
+    const status = getFeeStatus(f.fee_type)
+    const isDisabled = status !== "available"
 
-                                    return (
-                                        <button
-                                            key={f.id}
-                                            type="button"
-                                            disabled={isDisabled}
-                                            onClick={() => setSelectedFeeTypes(prev =>
-                                                prev.includes(f.fee_type)
-                                                    ? prev.filter(t => t !== f.fee_type)
-                                                    : [...prev, f.fee_type]
-                                            )}
-                                            className={`relative p-4 md:p-5 rounded-2xl border-2 text-left transition-all
-                                    ${isDisabled
-                                                    ? 'opacity-30 grayscale cursor-not-allowed bg-white/5 border-transparent'
-                                                    : selectedFeeTypes.includes(f.fee_type)
-                                                        ? 'bg-brand-light border-brand-light scale-[0.98]'
-                                                        : 'bg-white/5 border-white/10'
-                                                }`}
-                                        >
-                                            <div className="flex justify-between items-start mb-1">
-                                                <div className="flex items-center gap-2 max-w-[70%]">
-                                                    {f.is_transport && (
-                                                        <Bus size={12} className="shrink-0 text-brand-light" />
-                                                    )}
-                                                    <span className="text-[9px] md:text-[10px] font-black uppercase truncate">
-                                                        {f.fee_type}
-                                                    </span>
-                                                </div>
-                                                {status !== "available" && (
-                                                    <span className={`text-[8px] px-2 py-0.5 rounded font-black text-white
-                                            ${status === 'verified' ? 'bg-green-500' : 'bg-amber-500'}`}>
-                                                        {status.toUpperCase()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-lg md:text-xl font-black">
-                                                ₹{Number(f.amount).toLocaleString()}
-                                            </p>
-                                        </button>
-                                    )
-                                })}
-                            </div>
+    return (
+      <button
+        key={f.id}
+        type="button"
+        disabled={isDisabled}
+        onClick={() =>
+          setSelectedFeeTypes((prev) =>
+            prev.includes(f.fee_type)
+              ? prev.filter((t) => t !== f.fee_type)
+              : [...prev, f.fee_type]
+          )
+        }
+        className={`relative w-full px-3 py-2 rounded-lg border text-left transition-all flex items-center justify-between
+        ${
+          isDisabled
+            ? "opacity-40 grayscale cursor-not-allowed bg-white/5 border-transparent"
+            : selectedFeeTypes.includes(f.fee_type)
+            ? "bg-brand-light/20 border-brand-light" 
+            : "bg-white/5 border-white/10"
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {f.is_transport && (
+              <Bus size={12} className="shrink-0 text-brand-light" />
+            )}
+            <span className="text-[9px] font-black uppercase tracking-tight">
+              {f.fee_type}
+            </span>
+          </div>
+
+          {status !== "available" && (
+            <span
+              className={`text-[7px] px-1 py-0.5 rounded-sm font-black text-white
+              ${status === "verified" ? "bg-green-500" : "bg-amber-500"}`}
+            >
+              {status.toUpperCase()}
+            </span>
+          )}
+        </div>
+
+        <p className="text-sm font-black">
+          ₹{Number(f.amount).toLocaleString()}
+        </p>
+      </button>
+    )
+  })}
+</div>
                         </div>
 
                         {/* INPUTS */}

@@ -66,10 +66,10 @@ export default function ParentLayout({
       <div className="flex-1 flex flex-col  relative lg:ml-64">
 
         {/* ENHANCED HEADER */}
-     <header
-  className={`sticky top-0 pt-[20px] z-40 px-4 md:px-8 h-[68px] md:h-[74px] flex items-center justify-between transition-all duration-300
+        <header
+          className={`sticky  top-3 md:top-0 pt-[20px] z-40 px-4 md:px-8 h-[68px] md:h-[74px] flex items-center justify-between transition-all duration-300
   ${isScrolled ? 'bg-white shadow-sm' : 'bg-white'}`}
->
+        >
           {/* LEFT: BACK BUTTON OR MOBILE BRANDING */}
           <div className="flex items-center gap-3">
             <button

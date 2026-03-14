@@ -35,7 +35,7 @@ export default function Home() {
     <div className="relative z-10 flex flex-col items-center text-center">
       
       {/* 1. School Logo */}
-      <div className="mb-8 animate-bounce transition-all">
+      <div className="mb-8 transition-all">
         <div className="w-24 h-24 relative p-1 rounded-3xl bg-white shadow-xl border border-brand-soft/30">
           <Image 
             src="/Schoollogo.jpg" 
