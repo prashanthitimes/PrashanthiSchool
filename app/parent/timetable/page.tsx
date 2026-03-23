@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { FiClock, FiCalendar, FiDownload, FiInfo } from "react-icons/fi";
+import { FiDownload, FiClock, FiChevronDown, FiCalendar } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
 
@@ -19,15 +19,16 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 export default function StudentTimetable() {
   const [timetable, setTimetable] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const [studentInfo, setStudentInfo] = useState<any>(null);
-  const [activeDay, setActiveDay] = useState(DAYS[0]); // For mobile view
-  const tableRef = useRef(null);
+  const [expandedDay, setExpandedDay] = useState<string>("");
+  
+  const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
-    // Set active day to current day if it's a school day
     const today = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
-    if (DAYS.includes(today)) setActiveDay(today);
+    setExpandedDay(DAYS.includes(today) ? today : "Monday");
   }, []);
 
   async function fetchData() {
@@ -44,172 +45,176 @@ export default function StudentTimetable() {
 
       setStudentInfo({ class: classNum, section: sectionStr, name: student.full_name });
 
-      const { data: ttData } = await supabase
-        .from("timetable")
-        .select(`*, subjects(*)`)
-        .eq("class", classNum)
-        .ilike("section", sectionStr);
-
+      const { data: ttData } = await supabase.from("timetable").select(`*, subjects(*)`).eq("class", classNum).ilike("section", sectionStr);
       setTimetable(ttData || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); } finally { setLoading(false); }
   }
 
   const downloadImage = async () => {
-    if (tableRef.current) {
-      const canvas = await html2canvas(tableRef.current, { scale: 2 });
+    if (!exportRef.current) return;
+    try {
+      setDownloading(true);
+      // We temporarily show the hidden export div to capture it
+      const canvas = await html2canvas(exportRef.current, { 
+        scale: 2, 
+        useCORS: true, 
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
       const link = document.createElement("a");
-      link.download = `Timetable_${studentInfo?.name}.png`;
+      link.download = `Timetable_${studentInfo?.name || 'Student'}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
+    } catch (err) {
+      console.error("Download failed", err);
+    } finally {
+      setDownloading(false);
     }
   };
 
-  const getSubjectColor = (subjectName: string) => {
-    const name = subjectName?.toLowerCase() || "";
-    if (name.includes('science')) return 'bg-pink-50 border-pink-100 text-pink-600';
-    if (name.includes('math')) return 'bg-blue-50 border-blue-100 text-blue-600';
-    if (name.includes('english')) return 'bg-amber-50 border-amber-100 text-amber-600';
-    return 'bg-cyan-50 border-cyan-100 text-cyan-600';
+  const getSubColor = (name: string = "") => {
+    const n = name.toLowerCase();
+    if (n.includes('sci')) return 'bg-rose-50 border-rose-100 text-rose-700';
+    if (n.includes('math')) return 'bg-indigo-50 border-indigo-100 text-indigo-700';
+    if (n.includes('eng')) return 'bg-amber-50 border-amber-100 text-amber-700';
+    return 'bg-slate-50 border-slate-200 text-slate-600';
   };
 
-  if (loading) return <div className="p-20 text-center text-[#722366] font-black animate-pulse uppercase tracking-widest">Generating Table...</div>;
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+        <p className="text-[10px] font-black text-brand uppercase tracking-widest">Syncing Schedule</p>
+      </div>
+    </div>
+  );
 
-return (
-  /* MAIN CANVAS: Locked width to screen to prevent horizontal overflow */
-  <div className="w-full max-w-[100vw] overflow-x-hidden px-3 pt-6 pb-24 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-    
-    {/* HEADER SECTION - Redesigned to be compact and stay within phone bounds */}
-    <div className="relative bg-[#722366] rounded-[2rem] p-5 mb-5 text-white shadow-lg overflow-hidden border border-white/5">
-      <div className="relative z-10">
-        
-        {/* Top Row: Title and Class/Sec Badges */}
-        <div className="flex justify-between items-start gap-2 mb-4">
-          <div className="flex-1">
-            <p className="text-[7px] uppercase font-black opacity-60 tracking-[0.2em] mb-1">Academic</p>
-            <h2 className="text-xl font-black tracking-tighter uppercase leading-none">
-              Timetable
-            </h2>
+  return (
+    <div className="min-h-screen bg-slate-50 md:bg-white pb-24">
+      
+      {/* HEADER */}
+      <div className="bg-brand p-6 md:p-10 text-white md:rounded-b-[3rem] shadow-xl relative overflow-hidden">
+        <div className="max-w-7xl mx-auto flex justify-between items-center relative z-10">
+          <div>
+            <h1 className="text-2xl md:text-4xl font-black uppercase tracking-tighter">Time Table</h1>
+            <p className="text-[10px] md:text-xs font-bold opacity-80 uppercase tracking-widest mt-1">
+              {studentInfo?.name} • Class {studentInfo?.class}-{studentInfo?.section}
+            </p>
           </div>
-          <div className="flex gap-1">
-            <div className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-lg text-[8px] font-black border border-white/10">
-              C-{studentInfo?.class}
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-lg text-[8px] font-black border border-white/10">
-              S-{studentInfo?.section}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Row: Student Name and Save Button */}
-        <div className="flex items-center justify-between pt-4 border-t border-white/10">
-          <div className="flex-1 min-w-0">
-            <p className="text-[7px] font-bold opacity-50 uppercase tracking-widest mb-0.5">Student Name</p>
-            <h3 className="text-xs font-black uppercase truncate pr-3">
-              {studentInfo?.name}
-            </h3>
-          </div>
-
-          <button
+          <button 
             onClick={downloadImage}
-            className="flex items-center justify-center h-9 w-9 bg-white text-[#722366] active:scale-90 rounded-xl transition-all shadow-md shrink-0"
+            disabled={downloading}
+            className="p-3 bg-white text-brand rounded-2xl shadow-lg active:scale-90 transition-transform disabled:opacity-50"
           >
-            <FiDownload size={16} />
+            {downloading ? <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" /> : <FiDownload size={22} />}
           </button>
         </div>
       </div>
-    </div>
 
-    {/* FIXED DAY SELECTOR: Uses first 3 letters and stays within screen width */}
-    <div className="flex justify-between items-center gap-1 mb-6 px-1">
-      {DAYS.map((day) => (
-        <button
-          key={day}
-          onClick={() => setActiveDay(day)}
-          className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-tight transition-all border ${
-            activeDay === day
-              ? 'bg-[#722366] text-white border-[#722366] shadow-md'
-              : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'
-          }`}
-        >
-          {day.substring(0, 3)}
-        </button>
-      ))}
-    </div>
-
-    {/* MAIN VIEW AREA */}
-    <div className="max-w-full">
-      
-      {/* MOBILE LIST VIEW (Always visible on mobile) */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between px-1 mb-1">
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-3 bg-[#722366] rounded-full" />
-            <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">
-              {activeDay} Schedule
-            </span>
-          </div>
-          <span className="text-[8px] font-bold text-slate-400 uppercase">
-            {PERIODS.length} Slots
-          </span>
+      <div className="max-w-7xl mx-auto px-4 mt-6 md:mt-10">
+        
+        {/* --- DESKTOP VIEW (Visible only on md+) --- */}
+        <div className="hidden md:grid grid-cols-6 gap-4">
+          {DAYS.map((day) => (
+            <div key={day} className="flex flex-col gap-3 bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm">
+              <div className="py-2 bg-slate-100 rounded-xl text-center text-[10px] font-black uppercase text-slate-500 tracking-widest">{day}</div>
+              {PERIODS.map((slot) => {
+                const entry = timetable.find(t => t.day.trim().toLowerCase() === day.toLowerCase() && t.period === slot.id);
+                return (
+                  <div key={slot.id} className={`p-3 rounded-2xl border flex flex-col gap-1 min-h-[95px] ${entry ? getSubColor(entry.subjects?.name) : 'bg-slate-50/30 border-dashed border-slate-200 opacity-40'}`}>
+                    <span className="text-[8px] font-black opacity-40 uppercase tracking-tighter">P{slot.id}</span>
+                    <h4 className="text-[10px] font-black uppercase leading-tight line-clamp-2">{entry?.subjects?.name || "—"}</h4>
+                    <span className="text-[7px] font-bold mt-auto opacity-60 italic">{slot.time.split('-')[0]}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
-        {PERIODS.map((slot) => {
-          const entry = timetable.find(
-            t => t.day.trim().toLowerCase() === activeDay.toLowerCase() && t.period === slot.id
-          );
+        {/* --- MOBILE VIEW (Accordion) --- */}
+        <div className="md:hidden space-y-3">
+          {DAYS.map((day) => {
+            const isExpanded = expandedDay === day;
+            const isToday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()) === day;
 
-          return (
-            <div
-              key={slot.id}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-2.5 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transition-all"
-            >
-              {/* Time Column: Fixed width to prevent content shifting */}
-              <div className="w-12 flex flex-col items-center justify-center border-r border-slate-50 dark:border-slate-800 pr-2 shrink-0">
-                <span className="text-[10px] font-black text-[#722366] leading-none">P{slot.id}</span>
-                <span className="text-[7px] font-bold text-slate-400 mt-1 uppercase">{slot.time.split('-')[0]}</span>
-              </div>
-
-              {/* Subject Content: Uses flex-1 and min-w-0 to force truncation */}
-              <div className="flex-1 min-w-0">
-                {entry ? (
-                  <div className={`w-full p-2.5 rounded-xl border ${getSubjectColor(entry.subjects?.name)}`}>
-                    <h4 className="text-[11px] font-black uppercase truncate dark:text-slate-900 leading-tight">
-                      {entry.subjects?.subject_name || entry.subjects?.name}
-                    </h4>
-                    <div className="flex justify-between items-center mt-0.5">
-                      <p className="text-[8px] font-bold opacity-60 dark:text-slate-800 truncate">
-                        {entry.subjects?.subject_code || entry.subjects?.code}
-                      </p>
-                      <span className="text-[7px] font-black opacity-30 dark:text-slate-900">
-                        {slot.time.split('-')[1]}
-                      </span>
-                    </div>
+            return (
+              <div key={day} className={`rounded-3xl border overflow-hidden transition-all duration-300 ${isExpanded ? 'bg-white border-brand shadow-xl' : 'bg-white border-slate-200 shadow-sm opacity-80'}`}>
+                <button 
+                  onClick={() => setExpandedDay(isExpanded ? "" : day)}
+                  className={`w-full flex justify-between items-center p-5 text-left ${isToday && !isExpanded ? 'bg-brand/5' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${isToday ? 'bg-brand animate-pulse' : 'bg-slate-300'}`} />
+                    <span className={`text-sm font-black uppercase tracking-widest ${isExpanded ? 'text-brand' : 'text-slate-600'}`}>{day}</span>
                   </div>
-                ) : (
-                  <div className="w-full py-2.5 px-3 border border-dashed border-slate-100 dark:border-slate-800 rounded-xl flex items-center">
-                    <span className="text-[9px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-tighter">No Class</span>
+                  <FiChevronDown className={`transition-transform duration-300 ${isExpanded ? 'rotate-180 text-brand' : 'text-slate-400'}`} />
+                </button>
+
+                {isExpanded && (
+                  <div className="p-4 pt-0 space-y-3 animate-in fade-in slide-in-from-top-2">
+                    {PERIODS.map((slot) => {
+                      const entry = timetable.find(t => t.day.trim().toLowerCase() === day.toLowerCase() && t.period === slot.id);
+                      return (
+                        <div key={slot.id} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${entry ? getSubColor(entry.subjects?.name) : 'bg-slate-50 border-slate-100 opacity-50'}`}>
+                          <div className="w-10 text-center border-r border-black/5 pr-3">
+                            <p className="text-[10px] font-black leading-none">P{slot.id}</p>
+                            <p className="text-[7px] font-bold uppercase opacity-50 mt-1">Slot</p>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-[11px] font-black uppercase tracking-tight">{entry?.subjects?.name || "Free Period"}</h4>
+                            <div className="flex items-center gap-1 mt-1 opacity-60">
+                              <FiClock size={8} />
+                              <span className="text-[8px] font-bold italic">{slot.time}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      {/* FOOTER BRANDING (Mobile Optimized) */}
-      <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col items-center gap-1 opacity-40">
-        <span className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-800 dark:text-slate-100 text-center">
-          Official Schedule
-        </span>
-        <span className="text-[7px] font-bold uppercase tracking-[0.2em] text-slate-500">
-          Academic Session 2026
-        </span>
+        {/* --- HIDDEN EXPORT CANVAS --- */}
+        {/* This div is invisible to the user but used by html2canvas for the download image */}
+        <div style={{ position: 'absolute', left: '-9999px', top: '0' }}>
+          <div ref={exportRef} className="p-10 bg-white min-w-[1200px]">
+            <div className="mb-8 border-b-4 border-brand pb-6 flex justify-between items-end">
+                <div>
+                    <h2 className="text-5xl font-black uppercase text-brand italic">Weekly Schedule</h2>
+                    <p className="text-xl font-bold text-slate-400 uppercase mt-2">{studentInfo?.name} • Class {studentInfo?.class}-{studentInfo?.section}</p>
+                </div>
+                <div className="text-right">
+                    <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Academic Session 2026</p>
+                </div>
+            </div>
+            <div className="grid grid-cols-6 gap-4">
+              {DAYS.map((day) => (
+                <div key={day} className="flex flex-col gap-4">
+                  <div className="py-3 bg-brand text-white rounded-xl text-center text-sm font-black uppercase tracking-widest">{day}</div>
+                  {PERIODS.map((slot) => {
+                    const entry = timetable.find(t => t.day.trim().toLowerCase() === day.toLowerCase() && t.period === slot.id);
+                    return (
+                      <div key={slot.id} className={`p-4 rounded-2xl border-2 flex flex-col gap-2 min-h-[120px] ${entry ? getSubColor(entry.subjects?.name) : 'bg-slate-50 border-dashed border-slate-200'}`}>
+                        <span className="text-[10px] font-black opacity-40 uppercase">Period {slot.id}</span>
+                        <h4 className="text-sm font-black uppercase leading-tight">{entry?.subjects?.name || "—"}</h4>
+                        <span className="text-[10px] font-bold mt-auto opacity-60 italic">{slot.time}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <div className="mt-10 pt-6 border-t border-slate-100 text-center">
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">Official Student Portal Generated Schedule</p>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
-  </div>
-);
+  );
 }

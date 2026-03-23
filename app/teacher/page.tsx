@@ -3,20 +3,19 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  FiUsers, FiCheckSquare, FiBookOpen, FiClock,
-  FiCalendar, FiArrowRight, FiChevronRight, FiBell, FiEdit3
+  FiUsers, FiLayers, FiBriefcase, 
+  FiArrowRight, FiChevronRight, FiBell, FiEdit3, FiCalendar, FiBookOpen 
 } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 
 export default function TeacherDashboard() {
-  const [stats, setStats] = useState({
-    myStudents: 0,
-    pendingAssignments: 0,
-    classesToday: 0,
-    attendanceRate: "96%",
-  });
   const [loading, setLoading] = useState(true);
   const [teacherData, setTeacherData] = useState<any>(null);
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    assignedClasses: 0,
+    department: "Assigning...", // Default placeholder
+  });
 
   useEffect(() => {
     fetchTeacherDashboardData();
@@ -28,42 +27,54 @@ export default function TeacherDashboard() {
       const userEmail = localStorage.getItem('teacherEmail');
       if (!userEmail) return;
 
-      const { data: teacher } = await supabase
+      // 1. FETCH TEACHER PROFILE
+      const { data: teacher, error: tError } = await supabase
         .from("teachers")
         .select("*")
         .eq("email", userEmail)
         .single();
 
+      if (tError) throw tError;
+
       if (teacher) {
         setTeacherData(teacher);
+
+        // 2. FETCH SUBJECT ASSIGNMENTS
         const { data: assignments } = await supabase
           .from("subject_assignments")
-          .select(`*, subjects(name)`)
+          .select(`class_name, section`)
           .eq("teacher_id", teacher.id);
 
+        let studentCount = 0;
+        let classCount = 0;
+
         if (assignments && assignments.length > 0) {
-          let totalStudents = 0;
-          for (const item of assignments) {
+          // Get unique class-section combinations
+          const uniqueClasses = Array.from(
+            new Set(assignments.map(a => `${a.class_name}|${a.section}`))
+          );
+          classCount = uniqueClasses.length;
+
+          // 3. FETCH STUDENT COUNT FOR ASSIGNED CLASSES
+          for (const item of uniqueClasses) {
+            const [cName, cSection] = item.split('|');
             const { count } = await supabase
               .from("students")
               .select("*", { count: "exact", head: true })
-              .eq("class_name", item.class_name)
-              .eq("section", item.section);
-            totalStudents += (count || 0);
+              .eq("class_name", cName)
+              .eq("section", cSection)
+              .eq("status", "active");
+            
+            studentCount += (count || 0);
           }
-
-          const { count: pendingSyllabus } = await supabase
-            .from("exam_syllabus")
-            .select("*", { count: "exact", head: true })
-            .eq("teacher_id", teacher.id);
-
-          setStats({
-            myStudents: totalStudents,
-            pendingAssignments: pendingSyllabus || 0,
-            classesToday: assignments.length,
-            attendanceRate: "98%",
-          });
         }
+
+        // 4. UPDATE STATS WITH REAL DATA
+        setStats({
+          totalStudents: studentCount,
+          assignedClasses: classCount,
+          department: teacher.department || "Not Set", // Fetches from your DB
+        });
       }
     } catch (error) {
       console.error("Dashboard error:", error);
@@ -73,146 +84,105 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="space-y-6 md:space-y-10 p-4 md:p-6 pt-6 md:pt-10 bg-[#fffcfd] dark:bg-slate-950 animate-in fade-in duration-700 transition-colors duration-300">
+    <div className="space-y-6 md:space-y-10 p-4 md:p-6 pt-6 md:pt-10 bg-[#fffcfd] dark:bg-slate-950 animate-in fade-in duration-700 transition-colors">
 
-      {/* --- SOFT BRAND TEACHER BANNER --- */}
-      <section className="relative overflow-hidden bg-brand-soft/20 dark:bg-brand/10 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-14 border border-[#e9d1e4] dark:border-slate-800 transition-colors duration-300">
-        {/* Decorative Background Element */}
+      {/* --- HERO BANNER --- */}
+      <section className="relative overflow-hidden bg-brand-soft/20 dark:bg-brand/10 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-14 border border-[#e9d1e4] dark:border-slate-800">
         <div className="absolute -top-10 -right-10 w-48 md:w-64 h-48 md:h-64 bg-brand/5 rounded-full blur-3xl"></div>
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8">
           <div className="max-w-3xl text-center md:text-left">
-
-            {/* WELCOME TEXT - Single line forced by removing <br/> and adding whitespace-nowrap if needed */}
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-800 dark:text-slate-100 mb-3 md:mb-4 tracking-tighter uppercase leading-tight">
-              Welcome, {teacherData?.full_name || "Teacher"}
+            <p className="text-brand font-black text-[10px] tracking-[0.3em] uppercase mb-2">Teacher Dashboard</p>
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-800 dark:text-slate-100 mb-2 tracking-tighter uppercase leading-tight">
+              Hello, {teacherData?.full_name || "Teacher"}
             </h1>
-
-            <p className="text-slate-400 dark:text-slate-400 text-sm md:text-lg font-bold leading-relaxed">
-              System active for <span className="text-brand dark:text-brand-soft underline decoration-2 underline-offset-4">{stats.classesToday} assigned classes</span>.
+            <p className="text-slate-500 dark:text-slate-400 font-bold text-sm md:text-lg">
+              Authorized personnel for the <span className="text-brand underline decoration-2 underline-offset-4">{stats.department}</span> department.
             </p>
 
-            {/* BUTTONS - Forced into one line using flex-row and smaller padding/text on mobile */}
             <div className="mt-6 md:mt-8 flex flex-row gap-2 md:gap-4 items-center justify-center md:justify-start">
-              <Link
-                href="/teacher/attendance"
-                className="flex-1 sm:flex-none bg-brand text-white px-3 sm:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-tighter sm:tracking-[0.2em] shadow-lg shadow-brand/20 hover:scale-105 transition-all flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap"
-              >
-                Attendance <FiArrowRight className="hidden sm:block" />
+              <Link href="/teacher/attendance" className="flex-1 sm:flex-none bg-brand text-white px-5 sm:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] uppercase tracking-wider shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2">
+                Mark Attendance <FiArrowRight className="hidden sm:block" />
               </Link>
-
-              <Link
-                href="/teacher/marks"
-                className="flex-1 sm:flex-none bg-white dark:bg-slate-900 border border-[#e9d1e4] dark:border-slate-800 text-slate-800 dark:text-slate-100 px-3 sm:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-tighter sm:tracking-[0.2em] hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-center whitespace-nowrap"
-              >
-                Grades
+              <Link href="/teacher/profile" className="flex-1 sm:flex-none bg-white dark:bg-slate-900 border border-[#e9d1e4] dark:border-slate-800 text-slate-800 dark:text-slate-100 px-5 sm:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] uppercase tracking-wider hover:bg-slate-50 transition-all text-center">
+                My Profile
               </Link>
             </div>
-          </div>
-
-          {/* Desktop/Tablet Date Card */}
-          <div className="hidden md:block bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-[#e9d1e4] dark:border-slate-800 shadow-sm text-center min-w-[160px]">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 mb-2 font-black">Today's Date</p>
-            <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100 italic">
-              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}
-            </p>
           </div>
         </div>
       </section>
 
-      {/* --- QUICK STATS GRID (3 ITEMS JUSTIFIED) --- */}
-      <div className="grid grid-cols-3 gap-3 md:gap-6 w-full">
+      {/* --- RECTIFIED STATS GRID --- */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 w-full">
         {[
-          { label: "Students", count: stats.myStudents, Icon: FiUsers, path: '/teacher/students' },
-          { label: "Syllabus", count: stats.pendingAssignments, Icon: FiCheckSquare, path: '/teacher/syllabus' },
-          { label: "Attendance", count: stats.attendanceRate, Icon: FiBookOpen, path: '/teacher/attendance' },
+          { label: "My Students", value: stats.totalStudents, Icon: FiUsers, color: "text-blue-500", bg: "bg-blue-500/5" },
+          { label: "Department", value: stats.department, Icon: FiBriefcase, color: "text-brand", bg: "bg-brand/5" },
+          { label: "Total Classes", value: stats.assignedClasses, Icon: FiLayers, color: "text-purple-500", bg: "bg-purple-500/5" },
         ].map((stat, index) => (
-          <Link
-            href={stat.path}
-            key={index}
-            className="bg-white dark:bg-slate-900 p-4 md:p-8 rounded-[1.2rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 hover:border-brand dark:hover:border-brand-soft transition-all group flex flex-col items-center md:items-start gap-1 md:gap-4 shadow-sm"
-          >
-            {/* Icon: Brand color in light, soft brand in dark */}
-            <div className="text-brand dark:text-brand-soft group-hover:scale-110 transition-transform duration-300">
-              <stat.Icon size={18} className="md:w-[28px] md:h-[28px]" />
+          <div key={index} className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 flex flex-row sm:flex-col items-center sm:items-start gap-4 shadow-sm">
+            <div className={`${stat.bg} ${stat.color} p-3 md:p-4 rounded-2xl`}>
+              <stat.Icon size={24} />
             </div>
-
-            <div className="text-center md:text-left overflow-hidden w-full">
-              {/* Label: Metadata color text-slate-400 */}
-              <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-tight md:tracking-[0.2em] truncate">
+            <div>
+              <p className="text-[9px] md:text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">
                 {stat.label}
               </p>
-              {/* Count: Primary heading colors */}
-              <p className="text-base md:text-4xl font-black text-slate-800 dark:text-slate-100 mt-0.5 md:mt-1 tracking-tighter">
-                {loading ? "..." : stat.count}
+              <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tighter uppercase">
+                {loading ? "..." : stat.value}
               </p>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
 
-      {/* --- TEACHER COMMAND CENTER (2 COLUMNS ON MOBILE) --- */}
+     
+
+      {/* --- COMMAND CENTER --- */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8">
-
-        {/* Academic Management */}
-        <div className="bg-white dark:bg-slate-900 rounded-[1.2rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 p-4 md:p-8 space-y-3 md:space-y-6 shadow-sm transition-colors">
-          <div className="flex items-center gap-2 md:gap-3 text-brand dark:text-brand-soft">
-            <FiEdit3 size={16} className="md:w-[18px]" />
-            <h3 className="font-black uppercase text-[8px] md:text-xs tracking-widest text-slate-800 dark:text-slate-100 truncate">Academic</h3>
+        <div className="bg-white dark:bg-slate-900 rounded-[1.2rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 p-4 md:p-8 space-y-4 md:space-y-6 shadow-sm">
+          <div className="flex items-center gap-2 text-brand">
+            <FiEdit3 size={18} />
+            <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest text-slate-800 dark:text-slate-100">Academic</h3>
           </div>
-          <div className="grid grid-cols-1 gap-1.5 md:gap-2">
-            {[
-              { label: "Exam Marks", path: "/teacher/marks" },
-              { label: "Assignments", path: "/teacher/homework" },
-              { label: "Syllabus", path: "/teacher/syllabus" }
-            ].map((item) => (
-              <Link href={item.path} key={item.label} className="w-full text-left p-2.5 md:p-4 rounded-lg md:rounded-2xl bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 font-bold text-[8px] md:text-[11px] uppercase hover:bg-brand/10 dark:hover:bg-brand/20 transition-all flex justify-between items-center group">
-                <span className="truncate">{item.label}</span>
-                <FiChevronRight className="text-slate-400 group-hover:translate-x-1 transition-all hidden md:block" />
+          <div className="grid grid-cols-1 gap-2">
+            {[{ label: "Exam Marks", path: "/teacher/marks" }, { label: "Assignments", path: "/teacher/homework" }, { label: "Class Roster", path: "/teacher/students" }].map((item) => (
+              <Link href={item.path} key={item.label} className="w-full text-left p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 font-bold text-[9px] md:text-[11px] uppercase hover:bg-brand/10 transition-all flex justify-between items-center group">
+                {item.label} <FiChevronRight className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </Link>
             ))}
           </div>
         </div>
 
-        {/* My Schedule & Roster */}
-        <div className="bg-white dark:bg-slate-900 rounded-[1.2rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 p-4 md:p-8 space-y-3 md:space-y-6 shadow-sm transition-colors">
-          <div className="flex items-center gap-2 md:gap-3 text-brand dark:text-brand-soft">
-            <FiCalendar size={16} className="md:w-[18px]" />
-            <h3 className="font-black uppercase text-[8px] md:text-xs tracking-widest text-slate-800 dark:text-slate-100 truncate">Schedule</h3>
+        <div className="bg-white dark:bg-slate-900 rounded-[1.2rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 p-4 md:p-8 space-y-4 md:space-y-6 shadow-sm">
+          <div className="flex items-center gap-2 text-brand">
+            <FiCalendar size={18} />
+            <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest text-slate-800 dark:text-slate-100">Operations</h3>
           </div>
-          <div className="grid grid-cols-1 gap-1.5 md:gap-2">
-            {[
-              { label: "Timetable", path: "/teacher/timetable" },
-              { label: "Directory", path: "/teacher/students" },
-              { label: "Attendance", path: "/teacher/attendance" }
-            ].map((item) => (
-              <Link href={item.path} key={item.label} className="w-full text-left p-2.5 md:p-4 rounded-lg md:rounded-2xl bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 font-bold text-[8px] md:text-[11px] uppercase hover:bg-brand/10 dark:hover:bg-brand/20 transition-all flex justify-between items-center group">
-                <span className="truncate">{item.label}</span>
-                <FiChevronRight className="text-slate-400 group-hover:translate-x-1 transition-all hidden md:block" />
+          <div className="grid grid-cols-1 gap-2">
+            {[{ label: "Timetable", path: "/teacher/timetable" }, { label: "Daily Attendance", path: "/teacher/attendance" }, { label: "Syllabus Track", path: "/teacher/syllabus" }].map((item) => (
+              <Link href={item.path} key={item.label} className="w-full text-left p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 font-bold text-[9px] md:text-[11px] uppercase hover:bg-brand/10 transition-all flex justify-between items-center group">
+                {item.label} <FiChevronRight className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </Link>
             ))}
           </div>
         </div>
 
-        {/* Staff Portal - Occupies full width on mobile if items are odd, or stays in grid */}
-        <div className="col-span-2 md:col-span-1 bg-brand dark:bg-brand rounded-[1.2rem] md:rounded-[2.5rem] p-4 md:p-8 text-white space-y-3 md:space-y-6 shadow-xl shadow-brand/20">
-          <div className="flex items-center gap-2 md:gap-3">
-            <FiBell size={16} className="md:w-[18px]" />
-            <h3 className="font-black uppercase text-[8px] md:text-xs tracking-widest text-white/80">Staff Portal</h3>
+        <div className="col-span-2 md:col-span-1 bg-brand rounded-[1.2rem] md:rounded-[2.5rem] p-6 md:p-8 text-white space-y-4 shadow-xl shadow-brand/20">
+          <div className="flex items-center gap-2">
+            <FiBell size={18} />
+            <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest opacity-80">School Portal</h3>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-1 gap-1.5 md:gap-2">
-            {[
-              { label: "Notices", path: "/teacher/notices", Icon: FiBell },
-              { label: "Calendar", path: "/teacher/calendar", Icon: FiCalendar },
-            ].map((item) => (
-              <Link href={item.path} key={item.label} className="w-full text-left p-2.5 md:p-4 rounded-lg md:rounded-2xl bg-white/10 text-white font-bold text-[8px] md:text-[11px] uppercase hover:bg-white/20 transition-all flex justify-between items-center group">
-                <span className="truncate">{item.label}</span>
-                <item.Icon size={12} className="opacity-50 md:size-[16px]" />
-              </Link>
-            ))}
+          <div className="space-y-3">
+            <Link href="/teacher/notices" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/5">
+              <p className="text-[10px] font-black uppercase tracking-wider mb-1">Notice Board</p>
+              <p className="text-[11px] opacity-80 font-medium">View official circulars and holiday updates.</p>
+            </Link>
+            <Link href="/teacher/profile" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/5">
+              <p className="text-[10px] font-black uppercase tracking-wider mb-1">Settings</p>
+              <p className="text-[11px] opacity-80 font-medium">Update profile and contact information.</p>
+            </Link>
           </div>
         </div>
-
       </div>
     </div>
   );

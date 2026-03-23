@@ -8,76 +8,111 @@ import {
 } from 'react-icons/fi'
 import { RiParentLine } from 'react-icons/ri' // Optional: if you have remix-icons, otherwise FiUser is fine
 
+// ... existing imports
+
 export default function TeacherClassList() {
     const [allocations, setAllocations] = useState<any[]>([])
     const [selectedAllocation, setSelectedAllocation] = useState<any>(null)
     const [students, setStudents] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
+    // Add state to store the current year string
+    const [currentAcademicYear, setCurrentAcademicYear] = useState<string>('')
 
     useEffect(() => {
-        fetchTeacherAllocations()
+        initData()
     }, [])
 
-   async function fetchTeacherAllocations() {
+    async function initData() {
+        setLoading(true)
+        // 1. Fetch the Academic Year from school_settings
+        const { data: settings } = await supabase
+            .from('school_settings')
+            .select('academic_start_year, academic_end_year')
+            .eq('id', 1)
+            .single()
 
-    const email = localStorage.getItem('teacherEmail')
-
-    if (!email) {
-        console.log("Teacher not logged in")
-        window.location.href = '/login'
-        return
-    }
-
-    const { data: teacher, error: teacherError } = await supabase
-        .from('teachers')
-        .select('id')
-        .eq('email', email)
-        .single()
-
-    if (teacherError || !teacher) {
-        console.log("Teacher not found in database", teacherError)
-        setLoading(false)
-        return
-    }
-
-    const { data: allocated } = await supabase
-        .from('subject_assignments')
-       .select(`
-    id, class_name, section, academic_year, subject_id
-`)
-        .eq('teacher_id', teacher.id)
-
-    setAllocations(allocated || [])
-
-    if (allocated && allocated.length > 0) {
-        handleClassSelect(allocated[0])
-    }
-
-    setLoading(false)
+      if (settings) {
+    const yearString = `${settings.academic_start_year}-${settings.academic_end_year}`
+    console.log("Searching for Academic Year:", yearString); // CHECK THIS IN BROWSER CONSOLE
+    setCurrentAcademicYear(yearString)
+    await fetchTeacherAllocations(yearString)
 }
+    }
 
-    async function handleClassSelect(allocation: any) {
+    async function fetchTeacherAllocations(yearString: string) {
+        const email = localStorage.getItem('teacherEmail')
+        if (!email) {
+            window.location.href = '/login'
+            return
+        }
+
+        const { data: teacher, error: teacherError } = await supabase
+            .from('teachers')
+            .select('id')
+            .eq('email', email)
+            .single()
+
+        if (teacherError || !teacher) {
+            setLoading(false)
+            return
+        }
+
+        const { data: allocated } = await supabase
+            .from('subject_assignments')
+            .select(`
+                id, 
+                class_name, 
+                section, 
+                academic_year, 
+                subject_id,
+                subjects ( name )
+            `)
+            .eq('teacher_id', teacher.id)
+            // Filter assignments to only show current year if needed
+           // .eq('academic_year', yearString)
+
+        setAllocations(allocated || [])
+
+        if (allocated && allocated.length > 0) {
+            // Pass the yearString explicitly to ensure it uses the fresh data
+            handleClassSelect(allocated[0], yearString)
+        } else {
+            setLoading(false)
+        }
+    }
+
+    async function handleClassSelect(allocation: any, yearOverride?: string) {
         setSelectedAllocation(allocation)
         setLoading(true)
 
-        const { data: studentList } = await supabase
+        // Use the override (from init) or the state value
+        const targetYear = yearOverride || currentAcademicYear;
+
+        const { data: studentList, error } = await supabase
             .from('students')
             .select('*')
             .eq('class_name', allocation.class_name)
             .eq('section', allocation.section)
-            .eq('academic_year', allocation.academic_year)
+            .eq('academic_year', targetYear) // Dynamic search based on school_settings
             .order('roll_number', { ascending: true })
+
+        if (error) console.error("Query Error:", error.message);
 
         setStudents(studentList || [])
         setLoading(false)
     }
 
-    const filteredStudents = students.filter(s =>
-        (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (s.student_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (s.father_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    )
+const filteredStudents = students.filter((stu) => {
+        const search = searchTerm.toLowerCase();
+        return (
+            stu.full_name?.toLowerCase().includes(search) ||
+            stu.student_id?.toLowerCase().includes(search) ||
+            stu.father_name?.toLowerCase().includes(search) ||
+            stu.village?.toLowerCase().includes(search)
+        );
+    });
+
     return (
         <div className="bg-[#FDFCFD] dark:bg-slate-950 pb-32 transition-colors duration-300">
 
@@ -171,8 +206,10 @@ export default function TeacherClassList() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div>
-                                                    <p className="font-black text-slate-700 dark:text-slate-200 text-sm">{stu.full_name}</p>
-                                                    <p className="text-[10px] font-bold text-brand-light dark:text-slate-500 uppercase">{stu.student_id}</p>
+                                                    <p className="font-black text-slate-700 dark:text-slate-200 text-sm capitalize">
+                                                        {stu.full_name}
+                                                    </p>            
+                                                                                            <p className="text-[10px] font-bold text-brand-light dark:text-slate-500 uppercase">{stu.student_id}</p>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">

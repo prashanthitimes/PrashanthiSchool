@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   FiHome, FiUser, FiEdit3, FiActivity, FiCheckSquare,
   FiCalendar, FiCreditCard, FiBell, FiTruck, FiPhoneCall,
-  FiBookOpen, FiClock, FiMap, FiSun, FiMoon, 
+  FiBookOpen, FiClock, FiMap, FiSun, FiMoon,
   FiImage // 1. Added FiImage for the gallery icon
 } from 'react-icons/fi'
 import { usePathname } from 'next/navigation'
@@ -30,7 +30,7 @@ export default function ParentSidebar() {
     { id: 'homework', label: 'Homework', icon: <FiEdit3 />, path: '/parent/homework' },
     { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/parent/attendance' },
     // 2. Added Gallery Item here
-    { id: 'gallery', label: 'School Gallery', icon: <FiImage />, path: '/parent/gallery' }, 
+    { id: 'gallery', label: 'School Gallery', icon: <FiImage />, path: '/parent/gallery' },
     { id: 'class-timetable', label: 'Class Time Table', icon: <FiClock />, path: '/parent/timetable' },
     { id: 'exam-timetable', label: 'Exam Time Table', icon: <FiCalendar />, path: '/parent/exams' },
     { id: 'syllabus', label: 'Exam Syllabus', icon: <FiBookOpen />, path: '/parent/syllabus' },
@@ -48,7 +48,11 @@ export default function ParentSidebar() {
       {/* --- SIDEBAR HEADER --- */}
       <div className="p-6 flex flex-col items-center border-b border-white/10 dark:bg-slate-900 ">
         <img src="/Schoollogo.jpg" className="w-14 mb-2 rounded-full border-2 border-white/20 dark:border-slate-700 p-1 bg-white" alt="School Logo" />
-        <h2 className="font-bold text-center text-sm dark:text-slate-100 uppercase tracking-tight">Prashanti Vidyalaya</h2>
+        <h2 className="font-bold text-center text-sm dark:text-slate-100 uppercase tracking-tight">  Prashanti Vidyalaya & High School.</h2>
+        <span className={`text-[9px] tracking-[0.2em] uppercase mt-1 font-bold
+            ${isDarkMode ? 'text-slate-500' : 'text-white/60'}`}>
+          Parent Portal
+        </span>
       </div>
 
       {/* --- NAVIGATION --- */}

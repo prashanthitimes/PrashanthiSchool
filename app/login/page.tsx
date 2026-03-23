@@ -76,51 +76,46 @@ if (role === 'admin') {
 
       /* ---------------- PARENT LOGIN ---------------- */
       /* ---------------- PARENT LOGIN ---------------- */
-      else if (role === 'parent') {
-        const { data: parents, error } = await supabase
-          .from('parents')
-          .select('*') // This includes full_name from your schema
-          .eq('phone_number', phone.trim())
+ /* ---------------- PARENT LOGIN ---------------- */
+else if (role === 'parent') {
 
-        if (error || !parents || parents.length === 0) {
-          setErrorMsg('No parent found with this phone number.')
-          return
-        }
+  const { data: students, error } = await supabase
+    .from('students')
+    .select('id, full_name, class_name, section, mobile_no')
+    .eq('mobile_no', phone.trim())
+    .eq('status', 'active')
 
-        const childrenList: any[] = []
+  if (error || !students || students.length === 0) {
+    setErrorMsg('No student found with this phone number.')
+    setLoading(false)
+    return
+  }
 
-        for (const p of parents) {
-          const { data: student } = await supabase
-            .from('students')
-            .select('id, full_name, class_name, section')
-            .eq('id', p.child_id)
-            .single()
+  const childrenList = students.map((student: any) => ({
+    childId: student.id,
+    childName: student.full_name,
+    class: student.class_name,
+    section: student.section,
+    parentPhone: student.mobile_no
+  }))
 
-          if (student) {
-            childrenList.push({
-              parentId: p.id,
-              parentName: p.full_name, // Store the name from the parents table
-              childId: student.id,
-              childName: student.full_name,
-              class: student.class_name,
-              section: student.section
-            })
-          }
-        }
+  // ✅ If only ONE child → direct login
+  if (childrenList.length === 1) {
+    const child = childrenList[0]
 
-        if (childrenList.length === 1) {
-          const child = childrenList[0]
-          localStorage.setItem('userRole', 'parent')
-          localStorage.setItem('parentId', child.parentId)
-          localStorage.setItem('parentName', child.parentName) // Save Parent Name
-          localStorage.setItem('childId', child.childId)
-          localStorage.setItem('childName', child.childName)
-          router.push('/parent')
-        } else {
-          setChildren(childrenList)
-          setShowChildSelect(true)
-        }
-      }
+    localStorage.setItem('userRole', 'parent')
+    localStorage.setItem('parentPhone', child.parentPhone)
+    localStorage.setItem('childId', child.childId)
+    localStorage.setItem('childName', child.childName)
+
+    router.push('/parent')
+  } 
+  // ✅ Multiple children → show selection
+  else {
+    setChildren(childrenList)
+    setShowChildSelect(true)
+  }
+}
 
       /* ---------------- TEACHER LOGIN ---------------- */
 
@@ -331,14 +326,13 @@ if (role === 'admin') {
                 {children.map((child, index) => (
                   <button
                     key={index}
-                    onClick={() => {
-                      localStorage.setItem('userRole', 'parent')
-                      localStorage.setItem('parentId', child.parentId)
-                      localStorage.setItem('parentName', child.parentName)
-                      localStorage.setItem('childId', child.childId)
-                      localStorage.setItem('childName', child.childName)
-                      router.push('/parent')
-                    }}
+                   onClick={() => {
+  localStorage.setItem('userRole', 'parent')
+  localStorage.setItem('parentPhone', child.parentPhone)
+  localStorage.setItem('childId', child.childId)
+  localStorage.setItem('childName', child.childName)
+  router.push('/parent')
+}}
                     className="w-full group flex items-center gap-4 p-4 rounded-2xl border-2 border-transparent hover:border-brand bg-slate-50 hover:bg-brand-soft/20 transition-all duration-200 text-left"
                   >
                     {/* Initial Circle */}

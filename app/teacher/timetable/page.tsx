@@ -105,7 +105,7 @@ export default function TeacherTimetable() {
   return (
     <div className="space-y-4">
       {/* Action Bar */}
-      <div className="flex justify-between items-center px-2">
+      <div className="flex justify-between items-center px-4 mt-10">
         <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
           <FiCalendar className="text-brand dark:text-brand-soft" /> Weekly Schedule
         </h2>

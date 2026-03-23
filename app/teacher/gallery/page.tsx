@@ -1,8 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { FiImage, FiCalendar, FiFilter, FiMaximize2, FiX } from 'react-icons/fi'
+import { 
+    FiImage, FiCalendar, FiMaximize2, 
+    FiX, FiDownload, FiChevronLeft, FiChevronRight,
+    FiInfo, FiArrowLeft
+} from 'react-icons/fi'
 
 interface GalleryItem {
     id: string
@@ -13,168 +17,239 @@ interface GalleryItem {
     description: string
 }
 
+interface SchoolSettings {
+    school_name: string
+    academic_start_year: number
+    academic_end_year: number
+}
+
 export default function StudentGalleryPage() {
     const [albums, setAlbums] = useState<GalleryItem[]>([])
+    const [schoolInfo, setSchoolInfo] = useState<SchoolSettings | null>(null)
     const [loading, setLoading] = useState(true)
     const [selectedCategory, setSelectedCategory] = useState('All')
-    const [selectedImage, setSelectedImage] = useState<string | null>(null)
-
+    
+    // Lightbox State
+    const [activeAlbum, setActiveAlbum] = useState<GalleryItem | null>(null)
+    const [photoIndex, setPhotoIndex] = useState(0)
+    
+    const touchStartX = useRef<number | null>(null)
     const categories = ['All', 'Events', 'Sports', 'Academic', 'Campus']
 
     useEffect(() => {
-        fetchGallery()
+        const loadInitialData = async () => {
+            setLoading(true)
+            await Promise.all([fetchGallery(), fetchSchoolSettings()])
+            setLoading(false)
+        }
+        loadInitialData()
     }, [])
 
-    async function fetchGallery() {
-        setLoading(true)
-        const { data, error } = await supabase
-            .from('gallery')
-            .select('*')
-            .order('event_date', { ascending: false })
+    async function fetchSchoolSettings() {
+        const { data } = await supabase.from('school_settings').select('*').eq('id', 1).single()
+        if (data) setSchoolInfo(data)
+    }
 
-        if (error) {
-            console.error('Error fetching gallery:', error)
-        } else {
-            setAlbums(data || [])
-        }
-        setLoading(false)
+    async function fetchGallery() {
+        const { data, error } = await supabase.from('gallery').select('*').order('event_date', { ascending: false })
+        if (!error) setAlbums(data || [])
+    }
+
+    const nextPhoto = useCallback(() => {
+        if (!activeAlbum) return
+        setPhotoIndex((prev) => (prev + 1) % activeAlbum.image_urls.length)
+    }, [activeAlbum])
+
+    const prevPhoto = useCallback(() => {
+        if (!activeAlbum) return
+        setPhotoIndex((prev) => (prev - 1 + activeAlbum.image_urls.length) % activeAlbum.image_urls.length)
+    }, [activeAlbum])
+
+    // Swipe Support
+    const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX }
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (!touchStartX.current) return
+        const touchEndX = e.changedTouches[0].clientX
+        const diff = touchStartX.current - touchEndX
+        if (Math.abs(diff) > 50) diff > 0 ? nextPhoto() : prevPhoto()
+        touchStartX.current = null
+    }
+
+    const handleDownload = async (url: string) => {
+        const response = await fetch(url)
+        const blob = await response.blob()
+        const link = document.createElement('a')
+        link.href = window.URL.createObjectURL(blob)
+        link.download = `school-memory-${Date.now()}.jpg`
+        link.click()
     }
 
     const filteredAlbums = selectedCategory === 'All' 
         ? albums 
-        : albums.filter(album => album.category === selectedCategory)
+        : albums.filter(a => a.category === selectedCategory)
 
     return (
-        <div className="min-h-screen p-4 md:p-8 mt-16 md:mt-10 bg-[#FCFAFC] dark:bg-slate-950 transition-colors duration-300">
+        <div className=" bg-gray-50 dark:bg-slate-950 pb-10 transition-colors duration-300">
             
-            {/* HEADER */}
-            <header className="max-w-7xl mx-auto mb-10">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">
-                            School Gallery
-                        </h1>
-                        <p className="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mt-1">
-                            Capturing Moments & Memories
-                        </p>
-                    </div>
+            {/* --- HEADER --- */}
+            <header className="bg-white dark:bg-slate-900 border-b border-brand-soft sticky top-0 z-40">
+                <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="flex items-center gap-4 self-start md:self-auto">
+                            <div className="bg-brand-soft p-2.5 rounded-2xl text-brand">
+                                <FiImage size={24} />
+                            </div>
+                            <div className="min-w-0">
+                                <h1 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">
+                                    {schoolInfo?.school_name || 'Gallery'}
+                                </h1>
+                                <div className="flex items-center gap-2">
+                                    <span className="bg-brand/10 text-brand text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
+                                        Session {schoolInfo?.academic_start_year}-{schoolInfo?.academic_end_year}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
 
-                    {/* Category Filter */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-                        <FiFilter className="text-indigo-500 shrink-0" />
-                        {categories.map((cat) => (
-                            <button
-                                key={cat}
-                                onClick={() => setSelectedCategory(cat)}
-                                className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0
-                                    ${selectedCategory === cat 
-                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
-                                        : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800 hover:border-indigo-200'
-                                    }`}
+                        {/* Category Toggle (Mobile Dropdown / Desktop Pills) */}
+                        <div className="w-full md:w-auto">
+                            <select 
+                                value={selectedCategory} 
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                                className="md:hidden w-full bg-brand-accent/50 border border-brand-soft rounded-xl px-4 py-3 text-sm font-bold text-brand uppercase outline-none focus:ring-2 focus:ring-brand-light"
                             >
-                                {cat}
-                            </button>
-                        ))}
+                                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                            </select>
+
+                            <nav className="hidden md:flex gap-2">
+                                {categories.map(cat => (
+                                    <button 
+                                        key={cat} 
+                                        onClick={() => setSelectedCategory(cat)}
+                                        className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-2 
+                                        ${selectedCategory === cat 
+                                            ? 'bg-brand border-brand text-white shadow-lg' 
+                                            : 'bg-white dark:bg-slate-800 border-brand-soft text-brand-light hover:bg-brand-accent'}`}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
                     </div>
                 </div>
             </header>
 
-            {/* GALLERY GRID */}
-            <main className="max-w-7xl mx-auto">
+            {/* --- GRID (2 in one row on mobile) --- */}
+            <main className="max-w-7xl mx-auto px-3 md:px-6 mt-6 md:mt-10">
                 {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="h-64 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-[2rem]"></div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                            <div key={i} className="aspect-[4/5] bg-brand-soft/20 animate-pulse rounded-3xl" />
                         ))}
                     </div>
                 ) : (
-                    <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-8">
                         {filteredAlbums.map((album) => (
                             <div 
                                 key={album.id} 
-                                className="break-inside-avoid bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl transition-all group"
+                                className="group bg-white dark:bg-slate-900 rounded-[1.8rem] md:rounded-[2.5rem] border border-brand-soft overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                             >
-                                {/* Thumbnail / Primary Image */}
-                                <div className="relative aspect-video overflow-hidden bg-slate-100 dark:bg-slate-800">
-                                    {album.image_urls?.[0] ? (
-                                        <img 
-                                            src={album.image_urls[0]} 
-                                            alt={album.album_title}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                                            onClick={() => setSelectedImage(album.image_urls[0])}
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                            <FiImage size={48} />
-                                        </div>
-                                    )}
-                                    <div className="absolute top-4 left-4">
-                                        <span className="px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest text-indigo-600 shadow-sm">
-                                            {album.category}
-                                        </span>
+                                <div 
+                                    className="relative aspect-square md:aspect-[4/5] m-1.5 md:m-3 rounded-[1.3rem] md:rounded-[2rem] overflow-hidden cursor-pointer"
+                                    onClick={() => { setActiveAlbum(album); setPhotoIndex(0); }}
+                                >
+                                    <img 
+                                        src={album.image_urls[0]} 
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                        alt={album.album_title}
+                                    />
+                                    <div className="absolute inset-0 bg-brand-dark/10 group-hover:bg-brand-dark/30 transition-colors flex items-center justify-center">
+                                        <FiMaximize2 className="text-white opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all" size={30} />
                                     </div>
-                                    {album.image_urls.length > 1 && (
-                                        <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] text-white font-bold">
-                                            +{album.image_urls.length - 1} Photos
-                                        </div>
-                                    )}
+                                    <div className="absolute top-2 right-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[8px] font-black text-brand uppercase shadow-sm">
+                                        {album.image_urls.length} Photos
+                                    </div>
                                 </div>
-
-                                {/* Album Details */}
-                                <div className="p-6">
-                                    <div className="flex items-center gap-2 text-slate-400 mb-2">
-                                        <FiCalendar size={12} />
-                                        <span className="text-[10px] font-bold uppercase tracking-tighter">
-                                            {new Date(album.event_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                                        </span>
-                                    </div>
-                                    <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 leading-tight mb-2 uppercase">
+                                <div className="px-4 pb-5 md:px-6 md:pb-8">
+                                    <h3 className="text-xs md:text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight line-clamp-1">
                                         {album.album_title}
                                     </h3>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
-                                        {album.description}
-                                    </p>
-                                    
-                                    {/* Small Preview Dots for other images in album */}
-                                    <div className="mt-4 flex gap-2 overflow-x-auto no-scrollbar">
-                                        {album.image_urls.slice(1, 5).map((url, idx) => (
-                                            <button 
-                                                key={idx}
-                                                onClick={() => setSelectedImage(url)}
-                                                className="w-10 h-10 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 hover:ring-2 ring-indigo-500 transition-all shrink-0"
-                                            >
-                                                <img src={url} className="w-full h-full object-cover" alt="preview" />
-                                            </button>
-                                        ))}
+                                    <div className="flex items-center gap-1.5 mt-2 opacity-60">
+                                        <FiCalendar size={10} className="text-brand-light" />
+                                        <span className="text-[9px] font-bold uppercase tracking-tighter">
+                                            {new Date(album.event_date).toLocaleDateString()}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
-
-                {!loading && filteredAlbums.length === 0 && (
-                    <div className="py-20 text-center">
-                        <FiImage className="mx-auto text-slate-300 dark:text-slate-700 mb-4" size={48} />
-                        <p className="text-slate-400 font-black text-xs uppercase tracking-widest">No photos found in this category</p>
-                    </div>
-                )}
             </main>
 
-            {/* LIGHTBOX MODAL */}
-            {selectedImage && (
-                <div className="fixed inset-0 z-[100] bg-slate-950/95 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <button 
-                        onClick={() => setSelectedImage(null)}
-                        className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
-                    >
-                        <FiX size={24} />
-                    </button>
-                    <img 
-                        src={selectedImage} 
-                        className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-300"
-                        alt="Full Preview"
-                    />
+            {/* --- LIGHTBOX SLIDER --- */}
+            {activeAlbum && (
+                <div 
+                    className="fixed inset-0 z-[100] bg-brand-dark/95 backdrop-blur-xl flex flex-col items-center justify-center p-2 md:p-6 select-none touch-none"
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                >
+                    {/* Top UI */}
+                    <div className="absolute top-4 left-4 right-4 flex justify-between items-center text-white z-50">
+                        <div className="flex flex-col">
+                            <h2 className="font-black uppercase tracking-tight text-xs md:text-lg truncate max-w-[200px]">{activeAlbum.album_title}</h2>
+                            <p className="text-brand-soft text-[10px] font-black uppercase tracking-widest">
+                                {photoIndex + 1} / {activeAlbum.image_urls.length}
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => handleDownload(activeAlbum.image_urls[photoIndex])} className="p-3 bg-white/10 hover:bg-brand-light rounded-2xl transition-all">
+                                <FiDownload size={20}/>
+                            </button>
+                            <button onClick={() => setActiveAlbum(null)} className="p-3 bg-brand-light hover:bg-rose-500 rounded-2xl transition-all shadow-xl">
+                                <FiX size={20}/>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Main Photo */}
+                    <div className="relative w-full h-[65vh] md:h-[75vh] flex items-center justify-center">
+                        <button onClick={prevPhoto} className="hidden md:flex absolute -left-16 items-center justify-center w-14 h-14 text-white/30 hover:text-white hover:bg-white/10 rounded-full transition-all">
+                            <FiChevronLeft size={48} />
+                        </button>
+                        
+                        <img 
+                            key={photoIndex}
+                            src={activeAlbum.image_urls[photoIndex]} 
+                            className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-500"
+                            alt="View"
+                        />
+
+                        <button onClick={nextPhoto} className="hidden md:flex absolute -right-16 items-center justify-center w-14 h-14 text-white/30 hover:text-white hover:bg-white/10 rounded-full transition-all">
+                            <FiChevronRight size={48} />
+                        </button>
+                    </div>
+
+                    {/* Navigation Buttons for Mobile */}
+                    <div className="flex md:hidden w-full justify-between px-10 mt-4 text-white">
+                         <button onClick={prevPhoto} className="p-4 bg-white/10 rounded-full"><FiChevronLeft size={30}/></button>
+                         <button onClick={nextPhoto} className="p-4 bg-white/10 rounded-full"><FiChevronRight size={30}/></button>
+                    </div>
+
+                    {/* Bottom Thumbnails */}
+                    <div className="w-full flex gap-3 overflow-x-auto py-6 px-4 no-scrollbar justify-start md:justify-center mt-auto">
+                        {activeAlbum.image_urls.map((url, i) => (
+                            <button 
+                                key={i} 
+                                onClick={() => setPhotoIndex(i)}
+                                className={`relative w-14 h-14 md:w-20 md:h-20 rounded-xl overflow-hidden border-2 shrink-0 transition-all duration-300 
+                                ${photoIndex === i ? 'border-brand-light scale-110 shadow-lg shadow-brand/40' : 'border-transparent opacity-30'}`}
+                            >
+                                <img src={url} className="w-full h-full object-cover" />
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

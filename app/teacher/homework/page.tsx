@@ -63,17 +63,17 @@ export default function HomeworkPage() {
 
         if (!teacher) return
 
-        const payload = {
-            title: homeworkForm.title,
-            description: homeworkForm.description,
-            due_date: homeworkForm.dueDate,
-            teacher_id: teacher.id,
-            class_name: selectedSlot.class,
-            section: selectedSlot.section,
-            period: selectedSlot.period,   // ✅ THIS FIXES THE ERROR
-            subject_id: selectedSlot.subject_id ?? selectedSlot.subjects?.id,
-            assigned_date: new Date().toISOString().split('T')[0]
-        }
+    const payload = {
+    title: homeworkForm.title,
+    description: homeworkForm.description,
+    due_date: homeworkForm.dueDate,
+    teacher_id: teacher.id, // 👈 UNCOMMENT THIS: It is required for your schema
+    class_name: selectedSlot.class,
+    section: selectedSlot.section,
+    period: selectedSlot.period,
+    subject_id: selectedSlot.subject_id ?? selectedSlot.subjects?.id,
+    assigned_date: new Date().toISOString().split('T')[0]
+}
 
 
 

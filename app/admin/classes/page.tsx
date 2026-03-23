@@ -62,30 +62,30 @@ export default function StudentManagement() {
 
   const [selectedClass, setSelectedClass] = useState("Pre-KG");
   const [selectedSection, setSelectedSection] = useState("A");
-const [academicYear, setAcademicYear] = useState("2026-27"); // default fallback
+  const [academicYear, setAcademicYear] = useState("2026-27"); // default fallback
 
   const classes = ["Pre-KG", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
   const sections = ["A", "B", "C", "D"];
 
-useEffect(() => {
-  const fetchAcademicYear = async () => {
-    const { data, error } = await supabase
-      .from("school_settings")
-      .select("academic_start_year, academic_end_year")
-      .single(); // only 1 row expected
+  useEffect(() => {
+    const fetchAcademicYear = async () => {
+      const { data, error } = await supabase
+        .from("school_settings")
+        .select("academic_start_year, academic_end_year")
+        .single(); // only 1 row expected
 
-    if (!error && data) {
-      const startYear = data.academic_start_year;
-      const endYear = data.academic_end_year;
-      setAcademicYear(`${startYear}-${endYear}`); // e.g., "2030-2031"
-    } else {
-      console.error("Failed to fetch academic year:", error);
-      setAcademicYear("2026-27"); // fallback
-    }
-  };
+      if (!error && data) {
+        const startYear = data.academic_start_year;
+        const endYear = data.academic_end_year;
+        setAcademicYear(`${startYear}-${endYear}`); // e.g., "2030-2031"
+      } else {
+        console.error("Failed to fetch academic year:", error);
+        setAcademicYear("2026-27"); // fallback
+      }
+    };
 
-  fetchAcademicYear();
-}, []);
+    fetchAcademicYear();
+  }, []);
 
   // This filters the students list in real-time as you type
   const filteredStudents = students.filter((s) => {
@@ -114,8 +114,8 @@ useEffect(() => {
     village: "",
     class_name: "",
     section: "",
-     roll_number: "",
-  academic_year: academicYear, // dynamic
+    roll_number: "",
+    academic_year: academicYear, // dynamic
   });
 
 
@@ -285,25 +285,25 @@ useEffect(() => {
     };
     reader.readAsBinaryString(file);
   };
-const handleDelete = async (student: any) => {
-  if (!student.id) return;
+  const handleDelete = async (student: any) => {
+    if (!student.id) return;
 
-  if (!confirm(`Are you sure you want to delete ${student.full_name}?`)) return;
+    if (!confirm(`Are you sure you want to delete ${student.full_name}?`)) return;
 
-  try {
-    const { error } = await supabase.from("students").delete().eq("id", student.id);
-    if (error) throw error;
+    try {
+      const { error } = await supabase.from("students").delete().eq("id", student.id);
+      if (error) throw error;
 
-    toast.success("Student deleted");
-    // store last action for undo
-    lastAction.current = { type: "delete", data: student };
-    setCanUndo(true);
+      toast.success("Student deleted");
+      // store last action for undo
+      lastAction.current = { type: "delete", data: student };
+      setCanUndo(true);
 
-    fetchStudents();
-  } catch (err: any) {
-    toast.error(err.message || "Delete failed");
-  }
-};
+      fetchStudents();
+    } catch (err: any) {
+      toast.error(err.message || "Delete failed");
+    }
+  };
   // --- FORM LOGIC ---
   const handleSubmit = async () => {
     if (!formData.full_name) return toast.error("Name is required");
@@ -376,7 +376,7 @@ const handleDelete = async (student: any) => {
       class_name: selectedClass,
       section: selectedSection,
       roll_number: "",
- academic_year: academicYear,
+      academic_year: academicYear,
     });
 
   };
@@ -445,7 +445,7 @@ const handleDelete = async (student: any) => {
                     student_id: "", full_name: "", email: "", parent_phone: "", dob: "",
                     father_name: "", mother_name: "", caste: "", mobile_no: "", sats_no: "",
                     pen_no: "", birth_certificate_no: "", aadhar_no: "", village: "",
-                    class_name: selectedClass, section: selectedSection, roll_number: "",  academic_year: academicYear
+                    class_name: selectedClass, section: selectedSection, roll_number: "", academic_year: academicYear
                   });
                   setShowModal(true);
                 }} className="col-span-2 bg-[#d487bd] dark:bg-[#a63d93] text-white px-6 py-4 rounded-xl lg:rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-[#d487bd]/20 hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-95"
@@ -602,12 +602,12 @@ const handleDelete = async (student: any) => {
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => { setMode('edit'); setFormData(s); setCurrentStudentId(s.id); setShowModal(true); }} className="p-3 text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl"><Edit3 size={18} /></button>
                         <button onClick={() => { setMode('view'); setFormData(s); setShowModal(true); }} className="p-3 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl"><FiEye size={18} /></button>
-<button
-  onClick={() => handleDelete(s)}
-  className="p-3 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
->
-  <Trash2 size={18} />
-</button>                      </div>
+                        <button
+                          onClick={() => handleDelete(s)}
+                          className="p-3 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
+                        >
+                          <Trash2 size={18} />
+                        </button>                      </div>
                     </td>
                   </tr>
                 ))}
@@ -618,9 +618,14 @@ const handleDelete = async (student: any) => {
       </div>
 
       {/* MODAL - Fully Responsive Dark Mode */}
+      {/* MODAL - Fully Responsive Dark Mode */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-900 rounded-t-[2rem] sm:rounded-[2rem] w-full max-w-6xl shadow-2xl border border-white dark:border-slate-800 overflow-hidden flex flex-col h-[95vh] sm:h-auto max-h-[95vh]">
+        /* High Z-index (z-[9999]) ensures it stays above any sticky/fixed headers.
+           backdrop-blur and bg-slate-900/80 create a clear visual separation.
+        */
+        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/80 backdrop-blur-md overflow-hidden">
+
+          <div className="bg-white dark:bg-slate-900 rounded-t-[2rem] sm:rounded-[2rem] w-full max-w-6xl shadow-2xl border border-white dark:border-slate-800 overflow-hidden flex flex-col h-[95vh] sm:h-auto max-h-[95vh] animate-in fade-in zoom-in duration-200">
 
             {/* MODAL HEADER */}
             <div className="px-6 py-6 sm:px-10 sm:py-8 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 shrink-0">
@@ -628,17 +633,27 @@ const handleDelete = async (student: any) => {
                 <h2 className="text-xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
                   {mode === 'add' ? 'New Enrollment' : mode === 'edit' ? 'Modify Profile' : 'Student Record'}
                 </h2>
-                <p className="text-[9px] font-bold text-[#d487bd] dark:text-[#e9d1e4] uppercase tracking-widest">Academic Session {academicYear}</p>
+                <p className="text-[9px] font-bold text-[#d487bd] dark:text-[#e9d1e4] uppercase tracking-widest">
+                  Academic Session {academicYear}
+                </p>
               </div>
-              <button onClick={closeModal} className="p-3 bg-slate-50 dark:bg-slate-800 dark:text-slate-300 rounded-2xl"><X size={20} /></button>
+              <button
+                onClick={closeModal}
+                className="p-3 bg-slate-50 dark:bg-slate-800 dark:text-slate-300 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <X size={20} />
+              </button>
             </div>
+
             {/* MODAL CONTENT */}
             <div className="px-6 py-6 sm:px-10 sm:py-10 overflow-y-auto bg-[#fcfaff] dark:bg-slate-950/50">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
 
                 {/* SECTION 1: Identity */}
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b dark:border-slate-800 pb-2">Identity Details</h3>
+                  <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b dark:border-slate-800 pb-2">
+                    Identity Details
+                  </h3>
                   <div className="space-y-4">
                     <Input
                       label="Full Name"
@@ -679,7 +694,9 @@ const handleDelete = async (student: any) => {
 
                 {/* SECTION 2: Academic & Contact */}
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b dark:border-slate-800 pb-2">Academic & Contact</h3>
+                  <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b dark:border-slate-800 pb-2">
+                    Academic & Contact
+                  </h3>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
@@ -724,50 +741,32 @@ const handleDelete = async (student: any) => {
 
                 {/* SECTION 3: Documentation */}
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b dark:border-slate-800 pb-2">Documentation</h3>
+                  <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b dark:border-slate-800 pb-2">
+                    Documentation
+                  </h3>
                   <div className="space-y-4">
-                    <Input
-                      label="Aadhaar Number"
-                      value={formData.aadhar_no}
-                      onChange={(val: string) => handleInputChange('aadhar_no', val)}
-                      disabled={mode === 'view'}
-                    />
-                    <Input
-                      label="SATS ID"
-                      value={formData.sats_no}
-                      onChange={(val: string) => handleInputChange('sats_no', val)}
-                      disabled={mode === 'view'}
-                    />
-                    <Input
-                      label="Caste"
-                      value={formData.caste}
-                      onChange={(val: string) => handleInputChange('caste', val)}
-                      disabled={mode === 'view'}
-                    />
-                    <Input
-                      label="PEN Number"
-                      value={formData.pen_no}
-                      onChange={(val: string) => handleInputChange('pen_no', val)}
-                      disabled={mode === 'view'}
-                    />
-                    <Input
-                      label="Birth Certificate No"
-                      value={formData.birth_certificate_no}
-                      onChange={(val: string) => handleInputChange('birth_certificate_no', val)}
-                      disabled={mode === 'view'}
-                    />
+                    <Input label="Aadhaar Number" value={formData.aadhar_no} onChange={(val: string) => handleInputChange('aadhar_no', val)} disabled={mode === 'view'} />
+                    <Input label="SATS ID" value={formData.sats_no} onChange={(val: string) => handleInputChange('sats_no', val)} disabled={mode === 'view'} />
+                    <Input label="Caste" value={formData.caste} onChange={(val: string) => handleInputChange('caste', val)} disabled={mode === 'view'} />
+                    <Input label="PEN Number" value={formData.pen_no} onChange={(val: string) => handleInputChange('pen_no', val)} disabled={mode === 'view'} />
+                    <Input label="Birth Certificate" value={formData.birth_certificate_no} onChange={(val: string) => handleInputChange('birth_certificate_no', val)} disabled={mode === 'view'} />
                   </div>
                 </div>
 
               </div>
             </div>
 
-            {/* MODAL FOOTER - Make sure the Save button has an onClick! */}
+            {/* MODAL FOOTER */}
             <div className="px-6 py-6 sm:px-10 sm:py-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-end items-center gap-3 shrink-0">
-              <button onClick={closeModal} className="w-full sm:w-auto px-8 py-3 text-slate-400 dark:text-slate-500 font-bold text-xs uppercase tracking-widest">Close</button>
+              <button
+                onClick={closeModal}
+                className="w-full sm:w-auto px-8 py-3 text-slate-400 dark:text-slate-500 font-bold text-xs uppercase tracking-widest hover:text-slate-600 transition-colors"
+              >
+                Close
+              </button>
               {mode !== 'view' && (
                 <button
-                  onClick={handleSubmit} // Added this so it actually saves
+                  onClick={handleSubmit}
                   className="w-full sm:w-auto px-10 py-4 bg-[#d487bd] dark:bg-[#a63d93] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-transform"
                 >
                   {mode === 'add' ? 'Enroll Student' : 'Save Changes'}
@@ -778,7 +777,6 @@ const handleDelete = async (student: any) => {
           </div>
         </div>
       )}
-
       {/* Custom Global Mobile Styles */}
       <style jsx global>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

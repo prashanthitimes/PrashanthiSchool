@@ -15,6 +15,14 @@
     border-radius: 10px;
 }
 
+.card {
+  @apply bg-white dark:bg-slate-900 p-4 rounded-2xl flex items-center gap-3 shadow-sm text-sm;
+}
+
+.social-btn {
+  @apply bg-blue-50 text-blue-600 p-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2;
+}
+
 .soft-input {
   @apply h-14 rounded-2xl border border-brand-soft bg-white/50 
          text-sm font-bold transition-all outline-none
