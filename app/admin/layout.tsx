@@ -66,9 +66,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col relative lg:ml-64 w-full">
         {/* --- FIXED HEADER WITH SAFE AREA --- */}
         <header
-          style={{ 
+          style={{
             paddingTop: 'env(safe-area-inset-top)',
-            height: isScrolled ? 'calc(env(safe-area-inset-top) + 4rem)' : 'calc(env(safe-area-inset-top) + 5rem)' 
+            height: isScrolled ? 'calc(env(safe-area-inset-top) + 4rem)' : 'calc(env(safe-area-inset-top) + 5rem)'
           }}
           className={`fixed  top-3 md:top-0 right-0 z-40 px-4 md:px-8 flex items-center justify-between
           w-full lg:w-[calc(100%-16rem)] transition-all duration-300
@@ -126,8 +126,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* --- MAIN CONTENT AREA --- */}
-        <main 
-          style={{ marginTop: 'calc(env(safe-area-inset-top) + 5.5rem)' }}
+        <main
+          style={{ marginTop: 'calc(env(safe-area-inset-top) + 1rem)' }}
           className="px-4 pb-10 flex-1"
         >
           <div className="max-w-9xl mx-auto">

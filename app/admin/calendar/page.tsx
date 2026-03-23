@@ -40,36 +40,50 @@ export default function CalendarManagement() {
 
   useEffect(() => { fetchEvents() }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!form.title || !form.start_date) {
-        toast.error("Title and Start Date are required");
-        return;
-    }
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  const toastId = toast.loading('Syncing Registry...');
 
-    const toastId = toast.loading('Saving to Registry...')
-    const payload = { ...form, end_date: form.end_date || null }
+  const payload = {
+    title: form.title,
+    event_type: form.event_type,
+    location: form.location || null,
+    start_date: form.start_date,
+    end_date: form.end_date || null,
+    description: form.description || null,
+    status: form.status,
+    is_active: Boolean(form.is_active)
+  };
 
-    const action = editingEvent 
-      ? supabase.from('calendar_events').update(payload).eq('id', editingEvent.id)
-      : supabase.from('calendar_events').insert([payload])
+  const { data, error } = editingEvent 
+    ? await supabase.from('calendar_events').update(payload).eq('id', editingEvent.id).select()
+    : await supabase.from('calendar_events').insert([payload]).select();
 
-    const { error } = await action
-    if (error) {
-        toast.error(error.message, { id: toastId })
-    } else {
-      toast.success(editingEvent ? 'Registry Updated' : 'New Entry Added', { id: toastId })
-      setShowForm(false)
-      setEditingEvent(null)
-      fetchEvents()
-    }
+  if (error) {
+    console.error("Supabase Error:", error.message, error.details);
+    toast.error(`Error: ${error.message}`, { id: toastId });
+  } else {
+    toast.success('Registry Synchronized', { id: toastId });
+    setShowForm(false);
+    fetchEvents();
   }
+};
+
+const testConnection = async () => {
+  const { data, error } = await supabase
+    .from('calendar_events')
+    .insert([{ title: 'System Connection Test', event_type: 'Event', start_date: new Date().toISOString().split('T')[0] }])
+    .select();
+
+  if (error) console.error("Database still blocked:", error.message);
+  else console.log("Success! Data added:", data);
+};
 
   const handleDelete = async () => {
     if (!deleteId) return;
     const { error } = await supabase.from('calendar_events').delete().eq('id', deleteId)
     if (!error) {
-        toast.success("Purged");
+        toast.success("Deleted");
         setDeleteId(null);
         fetchEvents();
     }
@@ -188,9 +202,9 @@ export default function CalendarManagement() {
           <div className="fixed inset-0 bg-brand-dark/40 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
               <div className="bg-white dark:bg-slate-900 p-8 md:p-10 rounded-[2.5rem] max-w-sm w-full text-center border border-brand-accent dark:border-slate-800 shadow-2xl">
                   <div className="w-16 h-16 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6"><FiTrash2 size={28}/></div>
-                  <h3 className="text-lg font-black text-slate-800 dark:text-white mb-2 uppercase">Purge Record?</h3>
+                  <h3 className="text-lg font-black text-slate-800 dark:text-white mb-2 uppercase">Delete Record?</h3>
                   <div className="flex gap-4 mt-8">
-                      <button onClick={() => setDeleteId(null)} className="flex-1 py-4 font-black text-[10px] uppercase text-slate-400">Abort</button>
+                      <button onClick={() => setDeleteId(null)} className="flex-1 py-4 font-black text-[10px] uppercase text-slate-400">Cancel</button>
                       <button onClick={handleDelete} className="flex-1 py-4 font-black text-[10px] uppercase bg-rose-500 text-white rounded-2xl shadow-lg shadow-rose-500/20">Confirm</button>
                   </div>
               </div>

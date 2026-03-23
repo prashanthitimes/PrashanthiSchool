@@ -4,11 +4,11 @@ import {
   Shield, Plus, Edit2, CheckCircle, X, Trash2, Mail,
   User, Users, ShieldCheck, LayoutDashboard, GraduationCap, Briefcase,
   ClipboardList, Wallet, Truck, Bell, Calendar, Key, Settings,
-  Image as ImageIcon, Clock, AlertTriangle, Phone, FileText, Camera
+  Image as ImageIcon, Clock, AlertTriangle, Phone, FileText, Camera, IndianRupee
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Toaster, toast } from "sonner";
+import { useEffect, useState, Children, isValidElement, cloneElement } from "react";
 
 const PERMISSION_STRUCTURE = [
   {
@@ -34,6 +34,11 @@ const PERMISSION_STRUCTURE = [
       { id: 'exam-schedule', label: 'Exam Timetable', icon: <Clock size={14} /> },
       { id: 'marks-entry', label: 'Marks Ledger', icon: <Edit2 size={14} /> },
       { id: 'fee-management', label: 'Fee Management', icon: <Wallet size={14} /> },
+      {
+        id: 'fee-setup',
+        label: 'Fee Setup',
+        icon: <IndianRupee size={16} />
+      },
       { id: 'fee-ledger', label: 'Fee Ledger', icon: <Wallet size={14} /> },
       { id: 'payment-scanner', label: 'Payment Scanner', icon: <Camera size={14} /> },
     ]
@@ -67,9 +72,33 @@ export default function AdminManagement() {
   const [counts, setCounts] = useState({ total: 0, super: 0, sub: 0 });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Inside AdminManagement component
   const [formData, setFormData] = useState({
-    name: "", email: "", phone: "", role: "sub_admin", description: ""
+    name: "", email: "", phone: "", role: "sub_admin", description: "", password: "" // Add password here
   });
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) newErrors.name = "Full name is required";
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Invalid email format";
+    }
+
+    // Password validation: Required for new admins, optional for edits unless you want to change it
+    if (!editAdmin && !formData.password) {
+      newErrors.password = "Password is required for new accounts";
+    } else if (formData.password && formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    const activePermsCount = Object.values(selectedPerms).filter(Boolean).length;
+    if (activePermsCount === 0) newErrors.perms = "Select at least one permission";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
   const [selectedPerms, setSelectedPerms] = useState<Record<string, boolean>>({});
 
   useEffect(() => { fetchAdmins(); }, []);
@@ -97,21 +126,7 @@ export default function AdminManagement() {
     setSelectedPerms(newState);
   };
 
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.name.trim()) newErrors.name = "Full name is required";
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Invalid email format";
-    }
 
-    const activePermsCount = Object.values(selectedPerms).filter(Boolean).length;
-    if (activePermsCount === 0) newErrors.perms = "Select at least one permission";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const handleOpenModal = (admin: any = null) => {
     setErrors({});
@@ -134,32 +149,52 @@ export default function AdminManagement() {
   };
 
   const handleSubmit = async () => {
-    if (!validate()) {
-      toast.error("Validation Failed", { description: "Please check the required fields." });
+    const userRole = localStorage.getItem('userRole');
+
+    if (userRole !== 'admin') {
+      toast.error("Security Blocked", {
+        description: "You must be signed in as an Admin."
+      });
       return;
     }
 
-    const payload = {
+    if (!validate()) return;
+
+    const payload: any = {
       full_name: formData.name,
       name: formData.name,
-      email: formData.email,
+      email: formData.email.trim(),
       phone: formData.phone,
       role: formData.role,
       description: formData.description,
       permissions: selectedPerms,
-      status: "active"
+      status: "active",
     };
 
-    const { error } = editAdmin
-      ? await supabase.from("admin_users").update(payload).eq("id", editAdmin.id)
-      : await supabase.from("admin_users").insert([payload]);
+    // Only include password if it's been typed (prevents overwriting with empty string on edits)
+    if (formData.password) {
+      payload.password = formData.password;
+    }
 
-    if (error) {
-      toast.error("Database Error", { description: error.message });
-    } else {
-      toast.success(editAdmin ? "Updated successfully" : "Admin created successfully");
-      setShowModal(false);
-      fetchAdmins();
+    const toastId = toast.loading(editAdmin ? "Updating..." : "Creating...");
+
+    try {
+      const { data, error } = editAdmin
+        ? await supabase.from("admin_users").update(payload).eq("id", editAdmin.id)
+        : await supabase.from("admin_users").insert([payload]);
+
+      if (error) {
+        console.error("Database Error:", error);
+        toast.error("Save Failed", { description: error.message, id: toastId });
+      } else {
+        toast.success(editAdmin ? "Admin updated!" : "Admin created!", { id: toastId });
+
+        // CRITICAL: Refresh the list and close the modal
+        setShowModal(false);
+        fetchAdmins();
+      }
+    } catch (err) {
+      toast.error("An unexpected error occurred", { id: toastId });
     }
   };
 
@@ -244,8 +279,8 @@ export default function AdminManagement() {
                   </td>
                   <td className="p-6">
                     <div className="flex flex-col gap-2">
-                       <span className="w-fit px-2 py-0.5 bg-brand-light text-white rounded-md text-[8px] font-black uppercase tracking-wider">{admin.role?.replace('_', ' ')}</span>
-                       <div className="flex flex-wrap gap-1.5">
+                      <span className="w-fit px-2 py-0.5 bg-brand-light text-white rounded-md text-[8px] font-black uppercase tracking-wider">{admin.role?.replace('_', ' ')}</span>
+                      <div className="flex flex-wrap gap-1.5">
                         {PERMISSION_STRUCTURE.flatMap(g => g.items)
                           .filter(item => admin.permissions?.[item.id])
                           .map(item => (
@@ -255,7 +290,7 @@ export default function AdminManagement() {
                             </div>
                           ))
                         }
-                       </div>
+                      </div>
                     </div>
                   </td>
                   <td className="p-6 text-right align-top">
@@ -322,16 +357,48 @@ export default function AdminManagement() {
             <div className="p-6 sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto flex-1 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <InputGroup label="Full Name *" icon={<User size={16} />} error={errors.name}>
-                  <input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="soft-input dark:bg-slate-800 dark:border-slate-700 dark:text-white" placeholder="Required" />
+                  <input
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="soft-input dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                    placeholder="Required"
+                  />
                 </InputGroup>
+
                 <InputGroup label="Email Address *" icon={<Mail size={16} />} error={errors.email}>
-                  <input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="soft-input dark:bg-slate-800 dark:border-slate-700 dark:text-white" placeholder="Required" />
+                  <input
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="soft-input dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                    placeholder="Required"
+                  />
+                </InputGroup>
+                {/* Add this block inside the <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"> */}
+
+                <InputGroup label={editAdmin ? "New Password (Optional)" : "Password *"} icon={<Key size={16} />} error={errors.password}>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="soft-input dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                    placeholder={editAdmin ? "Leave blank to keep current" : "Minimum 6 chars"}
+                  />
                 </InputGroup>
                 <InputGroup label="Phone Number" icon={<Phone size={16} />}>
-                  <input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="soft-input dark:bg-slate-800 dark:border-slate-700 dark:text-white" placeholder="Optional" />
+                  <input
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="soft-input dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                    placeholder="Optional"
+                  />
                 </InputGroup>
+
                 <InputGroup label="Access Level" icon={<Shield size={16} />}>
-                  <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="soft-input dark:bg-slate-800 dark:border-slate-700 dark:text-white appearance-none cursor-pointer">
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="soft-input dark:bg-slate-800 dark:border-slate-700 dark:text-white appearance-none cursor-pointer"
+                  >
                     <option value="sub_admin">Sub Admin</option>
                     <option value="super_admin">Super Admin</option>
                   </select>
@@ -351,8 +418,8 @@ export default function AdminManagement() {
                       <div key={group.category} className="bg-brand-soft/5 dark:bg-slate-800/30 border border-brand-soft/30 dark:border-slate-700 rounded-2xl p-4 space-y-3">
                         <div className="flex items-center justify-between border-b border-brand-soft/50 dark:border-slate-700 pb-2">
                           <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{group.category}</p>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => handleToggleCategory(group.items)}
                             className={`text-[8px] font-black px-2 py-1 rounded-md uppercase transition-colors ${allSelected ? 'bg-brand-light text-white' : 'bg-brand-soft dark:bg-slate-700 text-brand-light hover:bg-brand-light/20'}`}
                           >
@@ -433,15 +500,31 @@ function StatCard({ title, value, icon }: any) {
   );
 }
 
+
 function InputGroup({ label, children, icon, error }: any) {
   return (
-    <div className="space-y-1.5">
-      <label className="text-[9px] font-black text-brand-light/60 dark:text-slate-500 uppercase tracking-widest ml-4">{label}</label>
-      <div className="relative">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-light/40">{icon}</div>
-        {children}
-        {error && <p className="text-[8px] font-bold text-red-500 uppercase mt-1 ml-4">{error}</p>}
+    <div className="space-y-1.5 w-full flex flex-col group">
+      <label className="text-[9px] font-black text-brand-light/60 dark:text-slate-500 uppercase tracking-widest ml-4 group-focus-within:text-brand-light transition-colors">
+        {label}
+      </label>
+      <div className="relative flex items-center">
+        {/* Icon Container: Ensure it has a fixed width and height for centering */}
+        <div className="absolute left-4 z-10 pointer-events-none text-brand-light/50 group-focus-within:text-brand-light transition-colors flex items-center justify-center w-5 h-5">
+          {icon}
+        </div>
+
+        {Children.map(children, (child) => {
+          if (isValidElement(child)) {
+            return cloneElement(child as React.ReactElement<any>, {
+              // Using style as a fallback to ensure padding is applied regardless of CSS conflicts
+              style: { paddingLeft: '3rem' },
+              className: `${child.props.className || ""} w-full`.trim(),
+            });
+          }
+          return child;
+        })}
       </div>
+      {error && <p className="text-[8px] font-bold text-red-500 uppercase mt-1 ml-4 animate-in fade-in slide-in-from-top-1">{error}</p>}
     </div>
   );
 }

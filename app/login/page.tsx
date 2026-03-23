@@ -43,32 +43,35 @@ export default function UnifiedLoginPage() {
 
       /* ---------------- ADMIN LOGIN ---------------- */
 
-      if (role === 'admin') {
+   /* ---------------- ADMIN LOGIN ---------------- */
+if (role === 'admin') {
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('*')
+    .ilike('email', email.trim())
+    .eq('status', 'active'); // Remove .single() to handle errors manually
 
-        const { data, error } = await supabase
-          .from('admin_users')
-          .select('*')
-          .ilike('email', email.trim())
-          .eq('status', 'active')
-          .single()
+  if (error || !data || data.length === 0) {
+    setErrorMsg('No active admin account found.');
+    setLoading(false);
+    return;
+  }
 
-        if (error || !data) {
-          setErrorMsg('No active admin account found.')
-          return
-        }
+  const admin = data[0];
 
-        if (data.password !== password) {
-          setErrorMsg('Incorrect password.')
-          return
-        }
+  if (admin.password !== password) {
+    setErrorMsg('Incorrect password.');
+    setLoading(false);
+    return;
+  }
 
-        localStorage.setItem('adminRole', data.role)
-        localStorage.setItem('adminPerms', JSON.stringify(data.permissions || {}))
-        localStorage.setItem('adminName', data.name)
-        localStorage.setItem('userRole', 'admin')
-
-        router.push('/admin')
-      }
+  // Success!
+  localStorage.setItem('adminRole', admin.role);
+  localStorage.setItem('adminPerms', JSON.stringify(admin.permissions || {}));
+  localStorage.setItem('adminName', admin.name);
+  localStorage.setItem('userRole', 'admin');
+  router.push('/admin');
+}
 
 
       /* ---------------- PARENT LOGIN ---------------- */
@@ -156,14 +159,13 @@ export default function UnifiedLoginPage() {
 
   return (
 
-    <div className=" bg-slate-50 flex items-center justify-center p-4 md:p-6 relative overflow-hidden">
-
+    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center px-4 py-6 relative overflow-hidden">
       {/* Background blur */}
 
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-soft/30 blur-[100px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-accent/50 blur-[100px] rounded-full" />
 
-      <div className="w-full max-w-md bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl shadow-brand-soft/20 p-6 md:p-10 space-y-8 relative z-10 border border-brand-accent">
+      <div className="w-full max-w-md bg-brand   rounded-[2rem] md:rounded-[2.5rem] shadow-2xl shadow-brand-soft/20 p-6 md:p-10 space-y-8 relative z-10 border border-brand-accent">
 
         {/* HEADER */}
 
@@ -173,11 +175,11 @@ export default function UnifiedLoginPage() {
             <Image src="/Schoollogo.jpg" alt="Logo" fill className="object-contain p-2" />
           </div>
 
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
+          <h1 className="text-2xl font-black text-white tracking-tight">
             Prashanti Vidyalaya <br /> & High School
           </h1>
 
-          <p className="text-brand font-bold text-xs uppercase tracking-widest mt-1">
+          <p className="text-black font-bold text-xs uppercase tracking-widest mt-1">
             {step === 1 ? 'Welcome Back' : `${role} Portal`}
           </p>
 
@@ -193,31 +195,31 @@ export default function UnifiedLoginPage() {
 
         {/* STEP 1 ROLE */}
 
-     {/* STEP 1 ROLE */}
-{step === 1 && (
-  <div className="space-y-4">
-    <RoleButton
-      icon="/principalicon.png"
-      title="Administrator"
-      desc="Manage school operations"
-      onClick={() => handleRoleSelect('admin')}
-    />
+        {/* STEP 1 ROLE */}
+       {step === 1 && (
+  <div className="space-y-5">
+            <RoleButton
+              icon="/principaliconn.png"
+              title="Administrator"
+              desc="Manage school operations"
+              onClick={() => handleRoleSelect('admin')}
+            />
 
-    <RoleButton
-      icon="/teachericon.jpg"
-      title="Teacher / Faculty"
-      desc="Access classroom & grades"
-      onClick={() => handleRoleSelect('teacher')}
-    />
+            <RoleButton
+              icon="/teachericonn.png"
+              title="Teacher / Faculty"
+              desc="Access classroom & grades"
+              onClick={() => handleRoleSelect('teacher')}
+            />
 
-    <RoleButton
-      icon="/parneticon.jpg"
-      title="Parent / Guardian"
-      desc="Track student progress"
-      onClick={() => handleRoleSelect('parent')}
-    />
-  </div>
-)}
+            <RoleButton
+              icon="/parneticonn.png"
+              title="Parent / Guardian"
+              desc="Track student progress"
+              onClick={() => handleRoleSelect('parent')}
+            />
+          </div>
+        )}
 
 
         {/* STEP 2 LOGIN */}
@@ -228,7 +230,7 @@ export default function UnifiedLoginPage() {
 
             <button
               onClick={() => setStep(1)}
-              className="flex items-center gap-2 text-slate-400 hover:text-brand text-xs font-bold uppercase"
+              className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase"
             >
               <FiArrowLeft /> Back
             </button>
@@ -295,7 +297,7 @@ export default function UnifiedLoginPage() {
             <button
               onClick={handleLogin}
               disabled={loading}
-              className="w-full bg-brand hover:bg-brand-dark text-white font-black py-4 rounded-2xl transition-all"
+              className="w-full bg-brand-dark text-white font-black py-4 rounded-2xl transition-all"
             >
               {loading ? 'Checking...' : role === 'parent' ? 'Find Students' : 'Sign In'}
             </button>
@@ -369,7 +371,7 @@ export default function UnifiedLoginPage() {
 
         <div className="text-center pt-4 border-t border-brand-accent/30">
 
-          <p className="text-[10px] text-brand-light/60 font-bold uppercase tracking-[0.2em]">
+          <p className="text-[10px] text-white font-bold uppercase tracking-[0.2em]">
             © 2026 Prashanti Vidyalaya & High School
           </p>
 
@@ -385,15 +387,14 @@ function RoleButton({ icon, title, desc, onClick }: any) {
   return (
     <button
       onClick={onClick}
-      className="w-full group flex items-center gap-4 p-4 rounded-2xl border-2 border-brand-accent/30 hover:border-brand-light hover:bg-brand-soft/20 transition-all text-left"
-    >
-      <div className="w-12 h-12 rounded-xl bg-slate-50 group-hover:bg-brand/10 flex items-center justify-center text-brand overflow-hidden relative border border-slate-100">
+className="w-full group flex items-center gap-4 p-5 rounded-2xl bg-white shadow-md hover:shadow-xl transition-all text-left"    >
+      <div className="w-12 h-12 rounded-xl bg-brand flex items-center justify-center text-white overflow-hidden relative shadow-md">
         {typeof icon === 'string' ? (
-          <Image 
-            src={icon} 
-            alt={title} 
-            fill 
-            className="object-cover p-1 group-hover:scale-110 transition-transform" 
+          <Image
+            src={icon}
+            alt={title}
+            fill
+            className="object-cover p-1 group-hover:scale-110 transition-transform"
           />
         ) : (
           icon

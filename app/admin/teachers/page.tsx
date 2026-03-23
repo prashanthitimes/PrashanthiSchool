@@ -160,7 +160,22 @@ export default function TeacherManagement() {
     XLSX.writeFile(workbook, `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`);
     toast.success("Excel file downloaded");
   };
+const handleDelete = async () => {
+  if (!deleteId) return;
 
+  const { error } = await supabase
+    .from("teachers")
+    .delete()
+    .eq("id", deleteId);
+
+  if (error) {
+    toast.error(error.message);
+  } else {
+    toast.success("Teacher deleted");
+    setDeleteId(null);
+    fetchData();
+  }
+};
   const openModal = (t: any = null) => {
     if (t) {
       setEditTeacher(t);
@@ -408,7 +423,52 @@ return (
         ))}
       </div>
     </div>
+{deleteId && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    {/* Animated Backdrop */}
+    <div 
+      className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+      onClick={() => setDeleteId(null)}
+    />
 
+    {/* Modal Card */}
+    <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl p-8 animate-in zoom-in-95 slide-in-from-bottom-8 duration-300 border border-slate-100 dark:border-slate-800">
+      
+      {/* Warning Icon */}
+      <div className="mx-auto w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center text-red-500 mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+      </div>
+
+      {/* Text Content */}
+      <div className="text-center space-y-2 mb-8">
+        <h3 className="text-xl font-black text-slate-800 dark:text-white">
+          Delete Teacher?
+        </h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+          This action cannot be undone. All data associated with this teacher will be permanently removed.
+        </p>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-3">
+        <button 
+          onClick={handleDelete}
+          className="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 dark:shadow-none transition-all active:scale-95"
+        >
+          Confirm Delete
+        </button>
+        
+        <button 
+          onClick={() => setDeleteId(null)}
+          className="w-full py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+        >
+          Keep
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
     {/* MODAL */}
     {showModal && (
       <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 transition-all

@@ -18,7 +18,7 @@ export default function SubjectAllotmentPage() {
   const [teachers, setTeachers] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [classTeachers, setClassTeachers] = useState<any[]>([]);
-
+const [academicYear, setAcademicYear] = useState("");
   // Form States
   const [newSub, setNewSub] = useState("");
   const [teacherId, setTeacherId] = useState("");
@@ -35,30 +35,45 @@ const filteredAssignments = assignments.filter(a => {
   return matchesClass && matchesSubject;
 });
   // ---------------- FETCH DATA ----------------
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const { data: sub } = await supabase.from("subjects").select("*").order("name");
-    const { data: tea } = await supabase
-      .from("teachers")
-      .select("id, full_name, department") // Added department here
-      .order("full_name");
+ const fetchData = useCallback(async () => {
+  setLoading(true);
 
-    // Fetch Subject Assignments
-    const { data: ass } = await supabase.from("subject_assignments")
-      .select(`id, academic_year, class_name, section, teachers(full_name), subjects(name)`)
-      .order("created_at", { ascending: false });
+  const { data: sub } = await supabase.from("subjects").select("*").order("name");
 
-    // Fetch Class Teacher Allotments
-    const { data: ct } = await supabase.from("class_teacher_allotment")
-      .select(`id, class_name, section, teachers(full_name)`)
-      .order("class_name");
+  const { data: tea } = await supabase
+    .from("teachers")
+    .select("id, full_name, department")
+    .order("full_name");
 
-    setSubjects(sub || []);
-    setTeachers(tea || []);
-    setAssignments(ass || []);
-    setClassTeachers(ct || []);
-    setLoading(false);
-  }, []);
+  const { data: ass } = await supabase.from("subject_assignments")
+    .select(`id, academic_year, class_name, section, teachers(full_name), subjects(name)`)
+    .order("created_at", { ascending: false });
+
+  const { data: ct } = await supabase.from("class_teacher_allotment")
+    .select(`id, class_name, section, teachers(full_name)`)
+    .order("class_name");
+
+  // ✅ FETCH SCHOOL SETTINGS (ONLY ONE ROW)
+  const { data: settings } = await supabase
+    .from("school_settings")
+    .select("academic_start_year, academic_end_year")
+    .single();
+
+  // ✅ FORMAT YEAR (2026-27)
+  if (settings) {
+    const start = settings.academic_start_year;
+    const end = settings.academic_end_year;
+
+    const formattedYear = `${start}-${String(end).slice(-2)}`;
+    setAcademicYear(formattedYear);
+  }
+
+  setSubjects(sub || []);
+  setTeachers(tea || []);
+  setAssignments(ass || []);
+  setClassTeachers(ct || []);
+  setLoading(false);
+}, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -96,6 +111,12 @@ const filteredAssignments = assignments.filter(a => {
       fetchData(); // Refresh list
     }
   };
+  if (!academicYear) {
+  return toast.error("Academic Year Missing", {
+    description: "Please configure academic year in school settings."
+  });
+}
+
   const handleAllot = async () => {
     if (!teacherId) return toast.error("Selection Required", { description: "Please select a faculty member." });
 
@@ -120,7 +141,7 @@ const filteredAssignments = assignments.filter(a => {
     const payload = allotments.map(a => ({
       teacher_id: teacherId,
       subject_id: a.subject_id,
-      academic_year: "2026-27",
+academic_year: academicYear,
       class_name: a.class_name,
       section: a.section
     }));
@@ -137,7 +158,9 @@ const filteredAssignments = assignments.filter(a => {
 
   const handleClassTeacherAllot = async () => {
     if (!ctTeacherId) return toast.error("Select a Teacher");
-
+if (!academicYear) {
+  return toast.error("Academic Year Missing");
+}
     // Check if class/section already has a teacher
     const conflict = classTeachers.find(c => c.class_name === ctClass && c.section === ctSection);
     if (conflict) return toast.error("Class Occupied", { description: `${ctClass}-${ctSection} already has a Class Teacher.` });
@@ -146,7 +169,7 @@ const filteredAssignments = assignments.filter(a => {
       teacher_id: ctTeacherId,
       class_name: ctClass,
       section: ctSection,
-      academic_year: "2026-27"
+academic_year: academicYear
     }]);
 
     if (error) toast.error("Error", { description: error.message });

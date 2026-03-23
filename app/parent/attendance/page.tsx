@@ -3,10 +3,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   FiActivity,
-  FiChevronLeft, FiBookOpen, FiChevronDown,
+  FiChevronLeft, FiSun, FiMoon, FiChevronDown,
   FiChevronRight,
   FiCheckCircle,
-  FiXCircle
+  FiXCircle,
+  FiCalendar
 } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import {
@@ -22,11 +23,9 @@ import {
 } from "date-fns";
 
 export default function ParentAttendance() {
-
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [attendanceLog, setAttendanceLog] = useState<any[]>([]);
-  const [subjects, setSubjects] = useState<any[]>([]);
-  const [selectedSubject, setSelectedSubject] = useState("all");
+  const [selectedSession, setSelectedSession] = useState("all"); // 'all', 'morning', 'afternoon'
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,242 +36,156 @@ export default function ParentAttendance() {
     const childId = localStorage.getItem("childId");
     if (!childId) return;
 
-    const [subRes, attRes] = await Promise.all([
-      supabase.from("subjects").select("id,name"),
-      supabase
-        .from("attendance")
-        .select(`*, subjects(id,name)`)
-        .eq("student_id", childId)
-    ]);
+    // Fetch from the NEW daily_attendance table
+    const { data, error } = await supabase
+      .from("daily_attendance")
+      .select(`*`)
+      .eq("student_id", childId)
+      .order('date', { ascending: false });
 
-    setSubjects(subRes.data || []);
-    setAttendanceLog(attRes.data || []);
+    if (!error) {
+      setAttendanceLog(data || []);
+    }
     setLoading(false);
   }
 
+  // Filter logs based on Morning/Afternoon toggle
   const filteredLogs = useMemo(() => {
-    if (selectedSubject === "all") return attendanceLog;
-    return attendanceLog.filter(l => l.subjects?.id === selectedSubject);
-  }, [attendanceLog, selectedSubject]);
+    if (selectedSession === "all") return attendanceLog;
+    return attendanceLog.filter(l => l.session === selectedSession);
+  }, [attendanceLog, selectedSession]);
 
   const stats = useMemo(() => {
     const present = filteredLogs.filter(l => l.status === "present").length;
     const absent = filteredLogs.filter(l => l.status === "absent").length;
-    return {
-      present,
-      absent,
-      total: filteredLogs.length
-    };
+    return { present, absent, total: filteredLogs.length };
   }, [filteredLogs]);
 
   const dailyAttendance = useMemo(() => {
     const groups: Record<string, any> = {};
 
-    filteredLogs.forEach(log => {
+    attendanceLog.forEach(log => {
       const d = log.date;
-
       if (!groups[d]) {
-        groups[d] = { present: 0, absent: 0, periods: [] };
+        groups[d] = { morning: null, afternoon: null };
       }
-
-      groups[d][log.status]++;
-      groups[d].periods.push(log);
+      // Store status per session
+      if (log.session === 'morning') groups[d].morning = log.status;
+      if (log.session === 'afternoon') groups[d].afternoon = log.status;
     });
 
     return groups;
-  }, [filteredLogs]);
+  }, [attendanceLog]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(monthStart);
-
-  const startDate = startOfWeek(monthStart);
-  const endDate = endOfWeek(monthEnd);
-
   const calendarDays = eachDayOfInterval({
-    start: startDate,
-    end: endDate
+    start: startOfWeek(monthStart),
+    end: endOfWeek(monthEnd)
   });
 
-  if (loading)
-    return (
-      <div className="flex items-center justify-center">
-        Loading...
-      </div>
-    );
+  if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">LOADING RECORDS...</div>;
 
   return (
-    /* MAIN CANVAS: bg-[#fffcfd] | dark:bg-slate-950 */
-    <div className=" bg-[#fffcfd] dark:bg-slate-950 pb-12 transition-colors duration-300">
-{/* HEADER: bg-slate-50 | dark:bg-slate-900 */}
-<div className="bg-slate-50 dark:bg-slate-900 p-4 md:p-8 rounded-b-2xl md:rounded-b-[3rem] shadow-lg border-b border-slate-200 dark:border-slate-800">
-  <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
-    
-    {/* Left Side: Logo/Title */}
-    <div className="flex items-center gap-2">
-      <FiActivity className="text-emerald-500 dark:text-emerald-400 text-lg md:text-xl shrink-0" />
-      <h1 className="font-bold text-base md:text-xl text-slate-800 dark:text-slate-100 leading-tight">
-        Attendance Portal
-      </h1>
-    </div>
+    <div className="min-h-screen bg-[#fffcfd] dark:bg-slate-950 pb-12 transition-colors">
+      
+      {/* HEADER */}
+      <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-b-[2rem] shadow-sm border-b border-slate-100 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto flex justify-between items-end">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <FiCalendar className="text-indigo-600" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Student Portal</span>
+            </div>
+            <h1 className="font-black text-2xl text-slate-800 dark:text-slate-100">Attendance History</h1>
+          </div>
+          <div className="text-right hidden md:block">
+            <p className="text-[10px] font-black uppercase text-slate-400">Academic Year</p>
+            <p className="font-bold text-slate-800 dark:text-slate-200">2025-26</p>
+          </div>
+        </div>
+      </div>
 
-    {/* Right Side: Meta Info */}
-    <div className="text-right shrink-0">
-      <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-        Attendance
-      </p>
-      <p className="text-[11px] md:text-sm font-bold text-slate-800 dark:text-slate-200">
-        2025-26
-      </p>
-    </div>
-
-  </div>
-</div>
-
-      {/* MAIN CONTAINER */}
       <div className="max-w-7xl mx-auto px-4 mt-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-          {/* LEFT SIDE: FILTERS & STATS */}
-          <div className="lg:col-span-4 space-y-6 order-2 lg:order-1">
-
-            {/* SUBJECT FILTER CARD */}
-            <div className="bg-white dark:bg-slate-900 p-4 md:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
-
-              {/* Header with Icon */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-brand/10 dark:bg-brand-soft/10 rounded-lg">
-                  <FiBookOpen size={14} className="text-brand dark:text-brand-soft" />
-                </div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Subject Filter
-                </label>
-              </div>
-
-              {/* Select Wrapper for custom arrow */}
-              <div className="relative group">
-                <select
-                  value={selectedSubject}
-                  onChange={e => setSelectedSubject(e.target.value)}
-                  className="w-full appearance-none p-3.5 pr-10 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 outline-none text-slate-800 dark:text-slate-100 text-sm font-bold focus:ring-2 focus:ring-brand/20 focus:border-brand/30 transition-all cursor-pointer"
-                >
-                  <option value="all">Total School Attendance</option>
-                  {subjects.map(s => (
-                    <option key={s.id} value={s.id} className="dark:bg-slate-900">
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Custom Chevron Arrow */}
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-brand transition-colors">
-                  <FiChevronDown size={18} />
-                </div>
+          {/* LEFT SIDE: STATS & SESSION FILTER */}
+          <div className="lg:col-span-4 space-y-6">
+            
+            {/* SESSION SELECTOR */}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-4">View Session</label>
+              <div className="grid grid-cols-3 gap-2">
+                {['all', 'morning', 'afternoon'].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSelectedSession(s)}
+                    className={`py-3 rounded-2xl text-[10px] font-black uppercase transition-all ${
+                      selectedSession === s 
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" 
+                      : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* STAT TILES: Ensure these use the dark mode version of StatTile */}
-            {/* --- ATTENDANCE STATS ROW --- */}
-            <div className="grid grid-cols-3 gap-2 md:gap-4">
-              {/* Total Periods Tile */}
-              <StatTile
-                label="Total"
-                value={stats.total}
-                color="text-slate-600 dark:text-slate-400"
-                bgColor="bg-slate-100 dark:bg-slate-900"
-              // Note: If your StatTile supports custom classes, 
-              // ensure it uses text-sm on mobile and text-2xl on desktop
-              />
-
-              {/* Present Tile */}
-              <StatTile
-                label="Present"
-                value={stats.present}
-                color="text-emerald-600 dark:text-emerald-400"
-                bgColor="bg-emerald-50 dark:bg-emerald-950/30"
-                icon={<FiCheckCircle size={14} />}
-              />
-
-              {/* Absent Tile */}
-              <StatTile
-                label="Absent"
-                value={stats.absent}
-                color="text-red-600 dark:text-red-400"
-                bgColor="bg-red-50 dark:bg-red-950/30"
-                icon={<FiXCircle size={14} />}
-              />
+            {/* STAT TILES */}
+            <div className="grid grid-cols-3 gap-3">
+              <StatTile label="Records" value={stats.total} color="text-slate-600" bg="bg-white" />
+              <StatTile label="Present" value={stats.present} color="text-emerald-600" bg="bg-emerald-50/50" icon={<FiCheckCircle/>} />
+              <StatTile label="Absent" value={stats.absent} color="text-rose-600" bg="bg-rose-50/50" icon={<FiXCircle/>} />
             </div>
           </div>
 
-          {/* CALENDAR SECTION */}
-          <div className="lg:col-span-8 order-1 lg:order-2">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-
-              {/* COMPACT CALENDAR HEADER */}
-              <div className="flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-800">
-                <h2 className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">
+          {/* CALENDAR */}
+          <div className="lg:col-span-8">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+              
+              <div className="flex justify-between items-center p-6 border-b border-slate-50 dark:border-slate-800">
+                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100">
                   {format(currentMonth, "MMMM yyyy")}
                 </h2>
-
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                    className="p-1.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-600"
-                  >
-                    <FiChevronLeft size={16} />
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                    className="p-1.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-600"
-                  >
-                    <FiChevronRight size={16} />
-                  </button>
+                <div className="flex gap-2">
+                  <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 rounded-xl border hover:bg-slate-50 transition-colors"><FiChevronLeft/></button>
+                  <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 rounded-xl border hover:bg-slate-50 transition-colors"><FiChevronRight/></button>
                 </div>
               </div>
 
-              {/* WEEKDAYS (Reduced padding) */}
-              <div className="grid grid-cols-7 text-center py-2 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] bg-slate-50/50 dark:bg-slate-800/20">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => (
-                  <span key={d}>{d}</span>
-                ))}
+              <div className="grid grid-cols-7 text-center py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/30">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => <span key={d}>{d}</span>)}
               </div>
 
-              {/* COMPACT DAYS GRID (Reduced h-16/20 to h-10/12) */}
-              <div className="grid grid-cols-7 gap-1 p-2 md:p-3">
+              <div className="grid grid-cols-7 gap-px bg-slate-100 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-800">
                 {calendarDays.map((day, i) => {
                   const dateStr = format(day, "yyyy-MM-dd");
-                  const dayData = dailyAttendance[dateStr];
+                  const data = dailyAttendance[dateStr];
                   const isCurrentMonth = isSameMonth(day, currentMonth);
 
-                  const isAbsent = dayData?.absent > 0;
-                  const isPresent = dayData?.present > 0 && !isAbsent;
+                  // LOGIC: A day is marked RED if ANY session was 'absent'
+                  const hasAbsence = data?.morning === 'absent' || data?.afternoon === 'absent';
+                  const hasPresence = data?.morning === 'present' || data?.afternoon === 'present';
 
                   return (
-                    <div
-                      key={i}
-                      /* REDUCED HEIGHT: Changed from h-16/20 to h-10/12 */
-                      className={`h-16 md:h-19 rounded-lg flex flex-col items-center justify-center border transition-all duration-200
-            ${!isCurrentMonth ? "opacity-20 pointer-events-none" : "hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-default"}
-            ${isAbsent
-                          ? "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/30"
-                          : isPresent
-                            ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30"
-                            : "bg-white dark:bg-slate-900 border-slate-50 dark:border-slate-800"}
-            `}
-                    >
-                      <span className={`font-black text-[11px] ${isAbsent ? "text-red-600" : isPresent ? "text-emerald-700" : "text-slate-700 dark:text-slate-300"}`}>
-                        {format(day, "d")}
-                      </span>
-
-                      {/* Compact period indicators */}
-                      {dayData && (
-                        <div className="flex gap-0.5 mt-0.5">
-                          {dayData.periods.slice(0, 4).map((p: any, i: number) => (
-                            <div
-                              key={i}
-                              className={`w-1 h-1 rounded-full ${p.status === "present" ? "bg-emerald-500" : "bg-red-500"}`}
-                            />
-                          ))}
+                    <div key={i} className={`h-24 md:h-32 p-2 bg-white dark:bg-slate-900 transition-colors ${!isCurrentMonth && "opacity-20"}`}>
+                      <span className="text-xs font-black text-slate-300 mb-2 block">{format(day, "d")}</span>
+                      
+                      {data && (
+                        <div className="space-y-1">
+                          {/* Morning Indicator */}
+                          {data.morning && (
+                            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase ${data.morning === 'present' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                              <FiSun size={8}/> {data.morning}
+                            </div>
+                          )}
+                          {/* Afternoon Indicator */}
+                          {data.afternoon && (
+                            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase ${data.afternoon === 'present' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                              <FiMoon size={8}/> {data.afternoon}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -281,6 +194,7 @@ export default function ParentAttendance() {
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -289,25 +203,10 @@ export default function ParentAttendance() {
 
 function StatTile({ label, value, color, bg, icon }: any) {
   return (
-    <div className={`${bg} p-3 md:p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex flex-col items-center justify-center transition-all hover:scale-[1.02] shadow-sm`}>
-
-      {/* Icon: Smaller and more subtle */}
-      {icon && (
-        <div className={`mb-1 opacity-80 ${color}`}>
-          {React.cloneElement(icon as React.ReactElement<{ size?: number }>, { size: 16 })}
-        </div>
-      )}
-
-      {/* Value: Balanced size with tabular-nums for alignment */}
-      <span className={`text-xl md:text-2xl font-black tracking-tight tabular-nums ${color}`}>
-        {value}
-      </span>
-
-      {/* Label: Smaller, high-letter spacing for a premium look */}
-      <span className="text-[9px] md:text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-[0.1em] mt-0.5">
-        {label}
-      </span>
-
+    <div className={`${bg} p-4 rounded-3xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center`}>
+      {icon && <div className={`${color} mb-1 opacity-60`}>{icon}</div>}
+      <span className={`text-xl font-black ${color}`}>{value}</span>
+      <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mt-1">{label}</span>
     </div>
   );
 }

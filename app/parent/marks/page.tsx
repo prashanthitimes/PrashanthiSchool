@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { FiAward, FiDownload, FiUser, FiBookOpen } from "react-icons/fi";
+import { FiAward, FiDownload, FiUser, FiBookOpen, FiChevronRight, FiSun, FiMoon } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
 
@@ -11,10 +11,15 @@ export default function ParentMarks() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [availableExams, setAvailableExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     initFetch();
+    // Initialize theme based on system preference
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setIsDarkMode(isDark);
+    if (isDark) document.documentElement.classList.add('dark');
   }, []);
 
   async function initFetch() {
@@ -71,11 +76,21 @@ export default function ParentMarks() {
     return marks.find(m => m.subject_id === subjectId && m.exam_syllabus?.exam_id === examId);
   };
 
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+    if (!isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
   const downloadImage = async () => {
     if (reportRef.current) {
       const canvas = await html2canvas(reportRef.current, {
-        backgroundColor: "#f8fafc",
-        scale: 2, // Higher quality
+        backgroundColor: isDarkMode ? "#0f172a" : "#ffffff",
+        scale: 2,
+        useCORS: true,
       });
       const link = document.createElement("a");
       link.download = `${student?.full_name}_Marksheet.png`;
@@ -84,74 +99,110 @@ export default function ParentMarks() {
     }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center font-black animate-pulse text-brand">LOADING...</div>;
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-brand-soft/20 dark:bg-slate-950">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-brand font-black text-[10px] uppercase tracking-widest">Building Report Card...</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-950 min-h-screen pb-10">
-
-
-      <div ref={reportRef} className="max-w-[1400px] mx-auto bg-white dark:bg-slate-900 shadow-2xl md:rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800">
-
-        {/* HEADER */}
-        <div className="bg-brand p-6 md:p-10 text-white relative">
-          <div className="relative z-10">
-            <h1 className="text-xl md:text-3xl font-black uppercase tracking-tighter">Academic Performance</h1>
-            <div className="mt-4 flex flex-wrap gap-4">
-              <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-lg flex items-center gap-2">
-                <FiUser className="opacity-70" />
-                <span className="text-xs md:text-sm font-bold uppercase">{student?.full_name}</span>
-              </div>
-              <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-lg flex items-center gap-2">
-                <FiBookOpen className="opacity-70" />
-                <span className="text-xs md:text-sm font-bold uppercase">Class {student?.class_name}-{student?.section}</span>
-              </div>
-              {/* ACTION BAR */}
-              <div className="max-w-[1400px] mx-auto p-4 flex justify-end">
-                <button
-                  onClick={downloadImage}
-                  className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-full font-bold text-sm shadow-lg hover:scale-105 transition-transform"
-                >
-                  <FiDownload /> DOWNLOAD Report Card
-                </button>
-              </div>
-            </div>
+    <div className="min-h-screen pb-24 font-sans bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
+      
+      {/* 1. TOP RESPONSIVE ACTION BAR */}
+      <div className="bg-white dark:bg-slate-900 border-b border-brand-soft dark:border-slate-800 p-4 sticky top-0 z-[60] shadow-sm max-w-7xl mx-auto md:mt-4 md:rounded-2xl flex justify-between items-center transition-colors">
+        <div className="flex items-center gap-3">
+        
+          <div className="hidden sm:block">
+            <h2 className="text-[10px] font-black text-brand uppercase leading-none">Student Portal</h2>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Academic Records</p>
           </div>
-          <FiAward className="absolute right-6 top-1/2 -translate-y-1/2 text-7xl md:text-9xl opacity-10" />
         </div>
 
-        {/* TABLE CONTAINER */}
-        <div className="overflow-x-auto">
+        <button 
+          onClick={downloadImage} 
+          className="bg-brand text-white px-5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all text-[10px] font-black uppercase flex items-center gap-2"
+        >
+          <FiDownload /> <span className="hidden sm:inline">Save Image</span>
+        </button>
+      </div>
+
+      {/* 2. THE MAIN REPORT CARD CONTAINER */}
+      <div 
+        ref={reportRef} 
+        className="max-w-md md:max-w-7xl mx-auto bg-white dark:bg-slate-900 overflow-hidden shadow-2xl mt-6 md:rounded-3xl border border-slate-100 dark:border-slate-800 transition-colors"
+      >
+        
+        {/* BRANDED HEADER SECTION */}
+        <div className="bg-brand p-8 text-white relative overflow-hidden">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            <div>
+              <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none mb-4 italic underline decoration-brand-light/30">Result Analysis</h1>
+              <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-2 bg-brand-light/30 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+                  <FiUser size={12} className="text-brand-soft" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">{student?.full_name}</span>
+                </div>
+                <div className="flex items-center gap-2 bg-brand-light/30 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+                  <FiBookOpen size={12} className="text-brand-soft" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Class {student?.class_name}-{student?.section}</span>
+                </div>
+              </div>
+            </div>
+            <div className="hidden md:block text-right">
+              <p className="text-[10px] font-black uppercase opacity-60">Session</p>
+              <p className="text-2xl font-black tracking-tighter">2025 - 2026</p>
+            </div>
+          </div>
+          {/* Decorative Elements */}
+          <div className="absolute -right-10 -top-10 w-60 h-60 bg-brand-light rounded-full opacity-10"></div>
+          <FiAward className="absolute right-10 bottom-10 text-9xl opacity-10 hidden md:block" />
+        </div>
+
+        {/* 3. RESPONSIVE HYBRID TABLE */}
+        <div className="relative overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 md:p-4 text-left text-[10px] uppercase font-black sticky left-0 bg-slate-900 z-20 min-w-[80px] md:min-w-[150px]">
-                  Sub
+                {/* STICKY SUBJECT (Left side) */}
+                <th className="p-4 md:p-6 text-left text-[10px] md:text-xs uppercase font-black sticky left-0 bg-slate-900 z-50 min-w-[140px] md:min-w-[200px] shadow-[4px_0_10px_rgba(0,0,0,0.3)] border-b border-white/5">
+                  Subject
                 </th>
+                
+                {/* SCROLLABLE EXAMS */}
                 {availableExams.map(ex => (
-                  <th key={ex.id} className="p-3 md:p-4 text-center text-[10px] uppercase font-black border-l border-white/10 min-w-[60px]">
-                    <span className="md:hidden">{ex.exam_name.substring(0, 2)}</span>
-                    <span className="hidden md:inline">{ex.exam_name}</span>
+                  <th key={ex.id} className="p-4 text-center text-[9px] md:text-[11px] uppercase font-black border-l border-white/5 whitespace-nowrap min-w-[100px] border-b border-white/5">
+                    {ex.exam_name}
                   </th>
                 ))}
-                <th className="p-3 md:p-4 text-center text-[10px] uppercase font-black bg-brand min-w-[60px]">
-                  Avg
+                
+                {/* STICKY AVERAGE (Right side) */}
+                <th className="p-4 text-center text-[10px] md:text-xs uppercase font-black bg-brand sticky right-0 z-50 min-w-[80px] md:min-w-[100px] shadow-[-4px_0_10px_rgba(0,0,0,0.2)] border-b border-brand-light">
+                  Average
                 </th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {assignments.map((asgn) => {
+            <tbody className="divide-y divide-brand-soft/20 dark:divide-slate-800">
+              {assignments.map((asgn, idx) => {
                 const subId = asgn.subjects?.id;
                 let subjectTotal = 0;
                 let examCount = 0;
 
                 return (
-                  <tr key={subId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                    <td className="p-3 md:p-4 font-black text-[10px] md:text-xs uppercase text-slate-700 dark:text-slate-300 sticky left-0 bg-white dark:bg-slate-900 shadow-[2px_0_5px_rgba(0,0,0,0.05)] z-10">
-                      <span className="md:hidden">{asgn.subjects?.name.substring(0, 3)}..</span>
-                      <span className="hidden md:inline">{asgn.subjects?.name}</span>
+                  <tr key={subId} className={`${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-brand-soft/5 dark:bg-slate-800/30'} hover:bg-brand-soft/10 dark:hover:bg-brand/10 transition-all`}>
+                    
+                    {/* STICKY SUBJECT NAME */}
+                    <td className="p-4 md:p-6 font-black text-[11px] md:text-sm uppercase text-slate-800 dark:text-slate-200 sticky left-0 bg-inherit z-40 border-r border-brand-soft/10 dark:border-slate-800 shadow-[4px_0_8px_rgba(0,0,0,0.03)]">
+                      <div className="flex items-center gap-3">
+                         <div className="w-1.5 h-5 bg-brand rounded-full"></div>
+                         {asgn.subjects?.name}
+                      </div>
                     </td>
 
+                    {/* DYNAMIC MARKS */}
                     {availableExams.map(ex => {
                       const m = getMark(subId, ex.id);
                       if (m) {
@@ -160,53 +211,58 @@ export default function ParentMarks() {
                       }
 
                       return (
-                        <td key={ex.id} className="p-3 md:p-4 text-center border-l border-slate-100 dark:border-slate-800">
+                        <td key={ex.id} className="p-4 text-center border-l border-brand-soft/10 dark:border-slate-800">
                           {m ? (
-                            <div className="flex flex-col">
-                              <span className="font-black text-xs md:text-sm text-slate-900 dark:text-white">{m.marks_obtained}</span>
-                              <span className="text-[8px] md:text-[9px] text-slate-400 hidden md:block">/ {m.total_marks}</span>
+                            <div className="flex flex-col items-center">
+                              <span className="font-black text-sm md:text-lg text-slate-900 dark:text-white leading-none">{m.marks_obtained}</span>
+                              <div className="w-4 h-[1px] bg-slate-200 dark:bg-slate-700 my-1"></div>
+                              <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{m.total_marks}</span>
                             </div>
                           ) : (
-                            <span className="text-[10px] text-slate-300 italic">--</span>
+                            <span className="text-lg font-black opacity-10 dark:opacity-20">—</span>
                           )}
                         </td>
                       );
                     })}
 
-                    <td className="p-3 md:p-4 text-center bg-slate-50 dark:bg-slate-800/30 font-black text-brand text-xs md:text-sm">
-                      {examCount > 0 ? Math.round(subjectTotal / examCount) + "%" : "-"}
+                    {/* STICKY AVERAGE PERCENTAGE */}
+                    <td className="p-4 text-center bg-brand-soft dark:bg-brand/20 font-black text-brand dark:text-brand-light text-sm md:text-lg sticky right-0 z-40 shadow-[-4px_0_8px_rgba(0,0,0,0.04)] border-l border-brand-soft dark:border-brand/30 backdrop-blur-sm">
+                      {examCount > 0 ? Math.round(subjectTotal / examCount) + "%" : "N/A"}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
-
-            <tfoot>
-              <tr className="bg-slate-100 dark:bg-slate-800 font-black text-slate-900 dark:text-white uppercase text-[9px] md:text-[10px]">
-                <td className="p-3 md:p-4 sticky left-0 bg-slate-100 dark:bg-slate-800 z-10">Total</td>
-                {availableExams.map(ex => {
-                  const totalForExam = marks
-                    .filter(m => m.exam_syllabus?.exam_id === ex.id)
-                    .reduce((sum, m) => sum + (m.marks_obtained || 0), 0);
-                  return (
-                    <td key={ex.id} className="p-3 md:p-4 text-center border-l border-white/20">
-                      {totalForExam}
-                    </td>
-                  );
-                })}
-                <td className="bg-brand text-white p-3 md:p-4 text-center">---</td>
-              </tr>
-            </tfoot>
           </table>
         </div>
 
-        {/* FOOTER INFO (VISIBLE IN DOWNLOAD) */}
-        <div className="p-6 text-center border-t border-slate-100 dark:border-slate-800">
-          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">
-            Generated via School Portal • {new Date().toLocaleDateString()}
-          </p>
+        {/* 4. FOOTER INFO */}
+        <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-brand-soft/20 dark:border-slate-800 transition-colors">
+           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-[9px] md:text-[11px] text-slate-400 dark:text-slate-500 font-black tracking-[0.4em] uppercase text-center md:text-left">
+                Verified Digital Certificate • Academic Performance Dashboard
+              </p>
+              <div className="flex items-center gap-2 md:hidden">
+                 <span className="text-[9px] font-black text-brand animate-pulse uppercase">Swipe to see all exams</span>
+                 <FiChevronRight className="text-brand animate-bounce-x" />
+              </div>
+           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes bounce-x {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(5px); }
+        }
+        .animate-bounce-x {
+          animation: bounce-x 1s infinite;
+        }
+        /* Custom scrollbar for better look */
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 }

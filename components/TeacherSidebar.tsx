@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import {
   FiHome, FiUser, FiClock, FiActivity, FiBookOpen,
   FiCalendar, FiEdit3, FiFileText, FiUsers,
-  FiBell, FiCheckSquare, FiX,
+  FiBell, FiCheckSquare, FiX, FiImage ,
   FiSun, FiMoon
 } from 'react-icons/fi'
 
@@ -48,6 +48,7 @@ export default function TeacherSidebar({ activeMenu, setActiveMenu, isOpen, setI
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <FiHome />, path: '/teacher', group: 'Overview' },
     { id: 'profile', label: 'My Profile', icon: <FiUser />, path: '/teacher/profile', group: 'Personal' },
+    { id: 'gallery', label: 'School Gallery', icon: <FiImage />, path: '/teacher/gallery' }, 
     { id: 'timetable', label: 'Timetable', icon: <FiClock />, path: '/teacher/timetable', group: 'Workspace' },
     { id: 'calendar', label: 'Academic Calendar', icon: <FiCalendar />, path: '/teacher/calendar', group: 'Workspace' },
     { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/teacher/attendance', group: 'Workspace' },

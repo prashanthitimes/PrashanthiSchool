@@ -69,38 +69,35 @@ export default function ParentDashboard() {
     }
   }
 
-  if (!childId) return <p className="p-10">Loading...</p>;
+  if (!childId) return <p className="p-10 dark:text-slate-100">Loading...</p>;
 
   return (
-    /* FIX: Added pt-[env(safe-area-inset-top)] to handle the mobile status bar 
-       and increased the base padding-top to ensure it never overlaps.
-    */
-    <div className="space-y-10 p-6 bg-white animate-in fade-in duration-700 pt-[calc(env(safe-area-inset-top)+2.5rem)]">
+    <div className="space-y-10 p-6 bg-[#fffcfd] dark:bg-slate-950 animate-in fade-in duration-700 pt-[calc(env(safe-area-inset-top)+2.5rem)] transition-colors">
       
-      {/* --- SOFT BRAND PARENT BANNER --- */}
-      <section className="relative overflow-hidden bg-brand-soft/40 rounded-[2.5rem] p-10 md:p-14 border border-brand-soft">
-        <div className="absolute -top-10 -right-10 w-64 h-64 bg-brand-light/5 rounded-full blur-3xl"></div>
+      {/* --- BRAND PARENT BANNER --- */}
+      <section className="relative overflow-hidden bg-brand/10 dark:bg-slate-900 rounded-[2.5rem] p-10 md:p-14 border border-[#e9d1e4] dark:border-slate-800">
+        <div className="absolute -top-10 -right-10 w-64 h-64 bg-brand/5 rounded-full blur-3xl"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl font-black text-brand-light mb-4 tracking-tighter uppercase">
+            <h1 className="text-4xl md:text-5xl font-black text-slate-800 dark:text-slate-100 mb-4 tracking-tighter uppercase">
               Hello, {parentName?.split(' ')[0] || "Parent"}!
             </h1>
-            <p className="text-brand-light/70 text-lg font-bold leading-relaxed">
-              Tracking progress for <span className="text-brand-light underline decoration-2 underline-offset-4">{childData?.full_name || "Student"}</span>.
+            <p className="text-slate-600 dark:text-slate-400 text-lg font-bold leading-relaxed">
+              Tracking progress for <span className="text-brand dark:text-brand-soft underline decoration-2 underline-offset-4">{childData?.full_name || "Student"}</span>.
               Class {childData?.class_name}-{childData?.section} systems are updated.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link href="/parent/marks" className="bg-brand-light text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-brand-soft hover:scale-105 transition-all">
+              <Link href="/parent/marks" className="bg-brand dark:bg-brand-soft text-white dark:text-slate-950 px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-brand/20 hover:scale-105 transition-all">
                 View Report Card
               </Link>
-              <Link href="/parent/contact" className="bg-white border border-brand-soft text-brand-light px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-brand-soft/20 transition-all">
+              <Link href="/parent/contact" className="bg-white dark:bg-slate-800 border border-[#e9d1e4] dark:border-slate-700 text-slate-700 dark:text-slate-200 px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
                 Contact Teacher
               </Link>
             </div>
           </div>
-          <div className="hidden lg:block bg-white/60 backdrop-blur-md p-8 rounded-[2rem] border border-brand-soft shadow-sm text-center">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-brand-light/60 mb-2 font-black">Term Progress</p>
-            <p className="text-3xl font-black text-brand-light italic">65% DONE</p>
+          <div className="hidden lg:block bg-white/60 dark:bg-slate-800/60 backdrop-blur-md p-8 rounded-[2rem] border border-[#e9d1e4] dark:border-slate-700 shadow-sm text-center">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-2 font-black">Term Progress</p>
+            <p className="text-3xl font-black text-brand dark:text-brand-soft italic">65% DONE</p>
           </div>
         </div>
       </section>
@@ -114,13 +111,13 @@ export default function ParentDashboard() {
           { label: "Fees", count: stats.feeStatus, icon: FiCreditCard, path: "/parent/fees" },
         ]
           .map((stat, index) => (
-            <Link href={stat.path} key={index} className="bg-white p-8 rounded-[2.5rem] border border-brand-soft hover:bg-brand-soft/20 transition-all group flex flex-col gap-4">
-              <div className="text-brand-light group-hover:scale-110 transition-transform duration-300">
+            <Link href={stat.path} key={index} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group flex flex-col gap-4">
+              <div className="text-brand dark:text-brand-soft group-hover:scale-110 transition-transform duration-300">
                 <stat.icon size={28} />
               </div>
               <div>
-                <p className="text-[10px] uppercase font-black text-brand-light/40 tracking-[0.2em]">{stat.label}</p>
-                <p className="text-3xl font-black text-brand-light mt-1 tracking-tighter">
+                <p className="text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-[0.2em]">{stat.label}</p>
+                <p className="text-3xl font-black text-slate-800 dark:text-slate-100 mt-1 tracking-tighter">
                   {loading ? "..." : stat.count}
                 </p>
               </div>
@@ -131,10 +128,10 @@ export default function ParentDashboard() {
       {/* --- MANAGEMENT COMMAND CENTER --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Academic Overview */}
-        <div className="bg-white rounded-[2.5rem] border border-brand-soft p-8 space-y-6">
-          <div className="flex items-center gap-3 text-brand-light">
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 p-8 space-y-6">
+          <div className="flex items-center gap-3 text-brand dark:text-brand-soft">
             <FiBookOpen size={20} />
-            <h3 className="font-black uppercase text-xs tracking-widest">Academic Track</h3>
+            <h3 className="font-black uppercase text-xs tracking-widest text-slate-800 dark:text-slate-100">Academic Track</h3>
           </div>
           <div className="grid grid-cols-1 gap-2">
             {[
@@ -142,7 +139,7 @@ export default function ParentDashboard() {
               { label: "Homework Status", path: "/parent/homework" },
               { label: "Class Timetable", path: "/parent/exams" }
             ].map((item) => (
-              <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-brand-soft/10 text-brand-light font-bold text-[11px] uppercase hover:bg-brand-soft/30 transition-all flex justify-between items-center group">
+              <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200 font-bold text-[11px] uppercase hover:bg-brand/5 dark:hover:bg-brand-soft/10 transition-all flex justify-between items-center group">
                 {item.label} <FiChevronRight className="opacity-40 group-hover:translate-x-1 transition-all" />
               </Link>
             ))}
@@ -150,10 +147,10 @@ export default function ParentDashboard() {
         </div>
 
         {/* Services & Support */}
-        <div className="bg-white rounded-[2.5rem] border border-brand-soft p-8 space-y-6">
-          <div className="flex items-center gap-3 text-brand-light">
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 p-8 space-y-6">
+          <div className="flex items-center gap-3 text-brand dark:text-brand-soft">
             <FiBriefcase size={20} />
-            <h3 className="font-black uppercase text-xs tracking-widest">Support</h3>
+            <h3 className="font-black uppercase text-xs tracking-widest text-slate-800 dark:text-slate-100">Support</h3>
           </div>
           <div className="grid grid-cols-1 gap-2">
             {[
@@ -161,18 +158,18 @@ export default function ParentDashboard() {
               { label: "Transport Details", path: "/parent/transport" },
               { label: "Profile Settings", path: "/parent/profile" }
             ].map((item) => (
-              <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-brand-soft/10 text-brand-light font-bold text-[11px] uppercase hover:bg-brand-soft/30 transition-all flex justify-between items-center group">
+              <Link href={item.path} key={item.label} className="w-full text-left p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200 font-bold text-[11px] uppercase hover:bg-brand/5 dark:hover:bg-brand-soft/10 transition-all flex justify-between items-center group">
                 {item.label} <FiChevronRight className="opacity-40 group-hover:translate-x-1 transition-all" />
               </Link>
             ))}
           </div>
         </div>
 
-        {/* Communication Block */}
-        <div className="bg-brand-light rounded-[2.5rem] p-8 text-white space-y-6 shadow-xl shadow-brand-soft">
+        {/* Communication Block - This one stays dark/colored to act as a Focal Point */}
+        <div className="bg-brand dark:bg-brand-soft rounded-[2.5rem] p-8 text-white dark:text-slate-950 space-y-6 shadow-xl shadow-brand/20">
           <div className="flex items-center gap-3">
             <FiBell size={20} />
-            <h3 className="font-black uppercase text-xs tracking-widest text-white/80">Updates</h3>
+            <h3 className="font-black uppercase text-xs tracking-widest opacity-80">Updates</h3>
           </div>
           <div className="grid grid-cols-1 gap-2">
             {[
@@ -183,7 +180,7 @@ export default function ParentDashboard() {
               <Link
                 href={item.path}
                 key={item.label}
-                className="w-full text-left p-4 rounded-2xl bg-white/10 text-white font-bold text-[11px] uppercase hover:bg-white/20 transition-all flex justify-between items-center group"
+                className="w-full text-left p-4 rounded-2xl bg-white/10 dark:bg-slate-950/10 font-bold text-[11px] uppercase hover:bg-white/20 transition-all flex justify-between items-center group"
               >
                 {item.label}
                 <span className="opacity-50 group-hover:opacity-100">

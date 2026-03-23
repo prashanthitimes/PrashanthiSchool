@@ -50,7 +50,7 @@ export default function FeesPage() {
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState<number>(-1);
-
+const [feeTypes, setFeeTypes] = useState<{ id: string; name: string }[]>([]);
   // Student Search State
   const [studentSearch, setStudentSearch] = useState("");
   const [studentSuggestions, setStudentSuggestions] = useState<DBStudent[]>([]);
@@ -71,9 +71,21 @@ export default function FeesPage() {
     already_paid: "",     // ✅ NEW
     paying_now: "",       // ✅ NEW (installment)
     payment_method: "",
-    utr_number: "",
+    utr_number: "", remarks: "",  // ✅ NEW
   });
+useEffect(() => {
+  async function fetchFeeTypes() {
+    const { data, error } = await supabase
+      .from("fee_types")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name", { ascending: true });
 
+    if (!error) setFeeTypes(data || []);
+  }
+
+  fetchFeeTypes();
+}, []);
 
 
   const isFullyPaid =
@@ -88,7 +100,7 @@ export default function FeesPage() {
     Number(studentForm.paying_now || 0);
 
   const ACADEMIC_CLASSES = [
-    "Pre-Nursery", "Nursery", "LKG", "UKG",
+    "Pre-KG", "LKG", "UKG",
     "1st", "2nd", "3rd", "4th", "5th",
     "6th", "7th", "8th", "9th", "10th"
   ];
@@ -98,68 +110,62 @@ export default function FeesPage() {
   }, []);
 
   // AUTO FETCH TOTAL AMOUNT FROM class_fees TABLE
-  useEffect(() => {
-    async function autoFetchFeeAmount() {
-      const className = studentForm.class;
-      const feeType = studentForm.fee_type;
-      const studentId = studentForm.student_id;
+useEffect(() => {
+  async function autoFetchFeeAmount() {
+    const className = studentForm.class;
+    const feeType = studentForm.fee_type;
+    const studentId = studentForm.student_id;
 
-      if (!feeType || !studentId) return;
+    if (!feeType || !studentId) return; // early return if incomplete
 
-      let standardAmount = 0;
+    let standardAmount = 0;
 
-      // 🔹 1️⃣ Get Standard Amount
-      if (feeType === "Transport Fee") {
-        const { data } = await supabase
-          .from("transport_assignments")
-          .select("monthly_fare")
-          .eq("student_id", studentId)
-          .eq("status", "active")
-          .maybeSingle();
-
-
-        if (data) {
-          standardAmount = Number(data.monthly_fare);
-        }
-      } else {
-        const { data } = await supabase
-          .from("class_fees")
-          .select("amount")
-          .eq("class", className)
-          .eq("fee_type", feeType)
-          .maybeSingle();
-
-
-        if (data) {
-          standardAmount = Number(data.amount);
-        }
-      }
-
-      // 🔹 2️⃣ Get Already Paid Amount
-      const { data: payments } = await supabase
-        .from("student_fees")
-        .select("paid_amount")
+    // 1️⃣ Fetch standard amount
+    if (feeType === "Transport Fee") {
+      const { data } = await supabase
+        .from("transport_assignments")
+        .select("monthly_fare")
         .eq("student_id", studentId)
-        .eq("fee_type", feeType);
+        .eq("status", "active")
+        .maybeSingle();
 
+      if (data) {
+        standardAmount = Number(data.monthly_fare);
+      }
+    } else {
+      const { data } = await supabase
+        .from("class_fees")
+        .select("amount")
+        .eq("class", className)
+        .eq("fee_type", feeType)
+        .maybeSingle();
 
-
-      const alreadyPaid =
-        payments?.reduce((sum, p) => sum + Number(p.paid_amount), 0) || 0;
-
-      // 🔹 3️⃣ Set Values Properly
-      setStudentForm((prev) => ({
-        ...prev,
-        total_amount: standardAmount.toString(),
-        already_paid: alreadyPaid.toString(),
-        paying_now: "", // reset
-      }));
-
+      if (data) {
+        standardAmount = Number(data.amount);
+      }
     }
 
-    autoFetchFeeAmount();
-  }, [studentForm.fee_type, studentForm.class, studentForm.student_id]);
+    // 2️⃣ Fetch already paid amount
+    const { data: payments } = await supabase
+      .from("student_fees")
+      .select("paid_amount")
+      .eq("student_id", studentId)
+      .eq("fee_type", feeType);
 
+    const alreadyPaid =
+      payments?.reduce((sum, p) => sum + Number(p.paid_amount), 0) || 0;
+
+    // 3️⃣ Update form state
+    setStudentForm((prev) => ({
+      ...prev,
+      total_amount: standardAmount.toString(),
+      already_paid: alreadyPaid.toString(),
+      paying_now: "", // reset on selection
+    }));
+  }
+
+  autoFetchFeeAmount();
+}, [studentForm.fee_type, studentForm.class, studentForm.student_id]);
 
   // FETCH STUDENT SUGGESTIONS BASED ON SEARCH INPUT
   useEffect(() => {
@@ -289,49 +295,52 @@ export default function FeesPage() {
       .eq("fee_type", studentForm.fee_type)
       .maybeSingle();
 
-    if (existingRecord) {
-      // ✅ UPDATE existing record
-      const newPaidAmount =
-        Number(existingRecord.paid_amount) + payAmount;
+   if (existingRecord) {
+  const newPaidAmount = Number(existingRecord.paid_amount) + payAmount;
 
-      const { error } = await supabase
-        .from("student_fees")
-        .update({
-          paid_amount: newPaidAmount,
-        })
-        .eq("id", existingRecord.id);
+  const { error } = await supabase
+    .from("student_fees")
+    .update({
+      paid_amount: newPaidAmount,
+      fee_type_id: studentForm.fee_type_id,
+      utr_number: studentForm.utr_number || null,
+      payment_method: studentForm.payment_method,
+        remarks: studentForm.remarks || "",
+    })
+    .eq("id", existingRecord.id);
 
-      if (error) {
-        toast.error(error.message);
-        setLoading(false);
-        return;
-      }
+  if (error) {
+    toast.error(error.message);
+    setLoading(false);
+    return;
+  }
 
-      toast.success("Installment added successfully!");
-    } else {
-      // ✅ INSERT new record (first payment)
-      const { error } = await supabase.from("student_fees").insert([
-        {
-          student_id: studentForm.student_id,
-          student_name: studentForm.student_name,
-          roll_no: Number(studentForm.roll_no),
-          class: studentForm.class,
-          fee_type: studentForm.fee_type,
-          total_amount: Number(studentForm.total_amount),
-          paid_amount: payAmount,
-          payment_method: studentForm.payment_method,
-          remarks: `Father: ${studentForm.father_name} | Section: ${studentForm.section}`,
-        },
-      ]);
+  toast.success("Installment added successfully!");
+} else {
+  const { error } = await supabase.from("student_fees").insert([
+    {
+      student_id: studentForm.student_id,
+      student_name: studentForm.student_name,
+      roll_no: Number(studentForm.roll_no),
+      class: studentForm.class,
+      fee_type_id: studentForm.fee_type_id, // ✅ save fee type ID
+      fee_type: studentForm.fee_type,       // optional for display
+      total_amount: Number(studentForm.total_amount),
+      paid_amount: payAmount,
+      payment_method: studentForm.payment_method,
+      utr_number: studentForm.utr_number || null, // ✅ save UTR
+     remarks: studentForm.remarks || "",
+    },
+  ]);
 
-      if (error) {
-        toast.error(error.message);
-        setLoading(false);
-        return;
-      }
+  if (error) {
+    toast.error(error.message);
+    setLoading(false);
+    return;
+  }
 
-      toast.success("Fee added successfully!");
-    }
+  toast.success("Fee added successfully!");
+}
 
     closeModals();
     fetchAll();
@@ -400,7 +409,7 @@ export default function FeesPage() {
       already_paid: "",
       paying_now: "",
       payment_method: "",
-      utr_number: "",
+      utr_number: "",  remarks: "",  // ✅ NEW
     });
 
 
@@ -456,7 +465,7 @@ export default function FeesPage() {
               </div>
               <div>
                 <h1 className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-none">
-                  Fees Registry
+                  Fees Management
                 </h1>
                 <p className="text-[9px] md:text-[10px] font-bold text-brand tracking-[0.2em] md:tracking-[0.25em] uppercase mt-1.5 opacity-80">
                   Financial Ledger Archive
@@ -472,12 +481,7 @@ export default function FeesPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap md:flex-row items-center gap-2 md:gap-3">
-            <button
-              onClick={() => setIsClassModalOpen(true)}
-              className="flex-1 md:flex-none bg-white dark:bg-slate-800 border-2 border-brand-soft dark:border-brand/20 text-brand-dark dark:text-brand-soft px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all hover:bg-brand-soft dark:hover:bg-brand/10"
-            >
-              <Plus size={14} className="inline mr-1" /> Structure
-            </button>
+          
 
             <button
               onClick={() => setIsStudentModalOpen(true)}
@@ -497,51 +501,10 @@ export default function FeesPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
 
-          {/* SIDEBAR */}
-          <div className="lg:col-span-1">
-            <button
-              onClick={() => setShowSidebarMobile(!showSidebarMobile)}
-              className="lg:hidden w-full flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-brand/10 dark:border-brand/20 mb-2"
-            >
-              <span className="font-bold text-brand-dark dark:text-brand-soft flex items-center gap-2 text-sm uppercase tracking-wider">
-                <BookOpen size={16} /> View Fee Structures
-              </span>
-              <Filter size={16} className={`${showSidebarMobile ? 'rotate-180' : ''} dark:text-slate-400`} />
-            </button>
-
-            <div className={`${showSidebarMobile ? 'block' : 'hidden'} lg:block bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-brand/10 dark:border-brand/20 overflow-hidden transition-all animate-in slide-in-from-top-2`}>
-              <div className="hidden lg:block p-6 border-b border-brand/5 dark:border-brand/10 bg-brand-accent/30 dark:bg-brand/5">
-                <h2 className="font-bold text-brand-dark dark:text-brand-soft flex items-center gap-2">
-                  <BookOpen size={18} /> Fee Structures
-                </h2>
-              </div>
-
-              <div className="divide-y divide-slate-50 dark:divide-slate-800 max-h-[300px] lg:max-h-none overflow-y-auto">
-                {classFees.length === 0 ? (
-                  <p className="p-6 text-sm text-slate-400 italic">No fee structures.</p>
-                ) : (
-                  classFees.map((f) => (
-                    <div key={f.id} className="p-4 md:p-5 flex items-center justify-between hover:bg-brand-soft/10 dark:hover:bg-brand/5">
-                      <div>
-                        <p className="font-bold text-slate-800 dark:text-slate-200 text-sm md:text-base">{f.class}</p>
-                        <p className="text-[9px] text-brand font-black uppercase mt-0.5">{f.fee_type}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="font-bold text-brand text-base">₹{f.amount}</span>
-                        <div className="flex gap-1.5">
-                          <button onClick={() => openEdit("class", f)} className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400"><Edit size={12} /></button>
-                          <button onClick={() => deleteRecord("class_fees", f.id)} className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-red-500 dark:hover:text-red-400"><Trash2 size={12} /></button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
+      
 
           {/* Main Table Area */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             {/* Search Bar */}
             <div className="relative group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" size={20} />
@@ -774,10 +737,26 @@ export default function FeesPage() {
                       <div className="bg-white dark:bg-slate-800/40 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-4">
                         <div className="space-y-1">
                           <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Payment For</label>
-                          <select className="modal-input dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200" value={studentForm.fee_type} onChange={(e) => setStudentForm({ ...studentForm, fee_type: e.target.value })} required>
-                            <option value="">Select Fee Type</option>
-                            {["Tuition Fee", "Transport Fee", "Exam Fee", "Certificate fee", "Application fee", "Evening Class fee", "Special Development fee"].map(fee => (<option key={fee}>{fee}</option>))}
-                          </select>
+                          <select
+  className="modal-input dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+  value={studentForm.fee_type_id}
+  onChange={(e) => {
+    const selectedFee = feeTypes.find(f => f.id === e.target.value);
+    setStudentForm({
+      ...studentForm,
+      fee_type_id: e.target.value,
+      fee_type: selectedFee?.name || "",
+    });
+  }}
+  required
+>
+  <option value="">Select Fee Type</option>
+  {feeTypes.map(f => (
+    <option key={f.id} value={f.id}>
+      {f.name}
+    </option>
+  ))}
+</select>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="col-span-2 space-y-1">
@@ -796,12 +775,23 @@ export default function FeesPage() {
                           ))}
                         </div>
 
-                        {(studentForm.payment_method === "UPI" || studentForm.payment_method === "Bank") && (
-                          <div className="animate-in slide-in-from-top-2">
-                            <input className="modal-input border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-sm"
-                              placeholder="ENTER UTR / TRANSACTION ID" value={studentForm.utr_number} onChange={(e) => setStudentForm({ ...studentForm, utr_number: e.target.value })} required />
-                          </div>
-                        )}
+                     {(studentForm.payment_method === "UPI" || studentForm.payment_method === "Bank") && (
+  <div className="animate-in slide-in-from-top-2 space-y-2">
+    <input
+      className="modal-input border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-sm"
+      placeholder="ENTER UTR / TRANSACTION ID"
+      value={studentForm.utr_number}
+      onChange={(e) => setStudentForm({ ...studentForm, utr_number: e.target.value })}
+      required
+    />
+    <input
+      className="modal-input border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono text-sm"
+      placeholder="Enter remarks / notes"
+      value={studentForm.remarks}
+      onChange={(e) => setStudentForm({ ...studentForm, remarks: e.target.value })}
+    />
+  </div>
+)}
                       </div>
                     </div>
                   )}

@@ -2,14 +2,11 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { FiSave, FiCalendar, FiAward, FiShield, FiGlobe, FiImage, FiPlus, FiTrash, FiEdit, FiX, FiGrid, FiAlertCircle } from "react-icons/fi";
-import { createClient } from "@supabase/supabase-js";
 import toast, { Toaster } from "react-hot-toast";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
+import { supabase } from "@/lib/supabase";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+import { FiDownload } from "react-icons/fi"; // Add this to your imports
 type GalleryCategory = 'Events' | 'Achievements' | 'Sports' | 'Cultural' | 'Other';
 
 interface GalleryItem {
@@ -103,31 +100,89 @@ export default function GalleryPage() {
     try {
       let finalUrls = [...existingUrls];
 
+      // Uploading new files
       if (files.length > 0) {
         for (const file of files) {
           const fileExt = file.name.split('.').pop();
           const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
           const { error: uploadError } = await supabase.storage.from('gallery-assets').upload(fileName, file);
+
           if (uploadError) throw uploadError;
+
           const { data: urlData } = supabase.storage.from('gallery-assets').getPublicUrl(fileName);
           finalUrls.push(urlData.publicUrl);
         }
       }
 
-      const payload = { ...formData, image_urls: finalUrls };
+      // PREPARE THE DATA
+      // PREPARE THE DATA
+      const payload = {
+        album_title: formData.album_title.trim(),
+        // Ensure the string being sent matches the DB enum exactly
+        category: formData.category,
+        event_date: formData.event_date,
+        description: formData.description || "",
+        image_urls: finalUrls,
+      };
+
+      // EXECUTE SAVE
       const { error } = editingItem
         ? await supabase.from("gallery").update(payload).eq("id", editingItem.id)
-        : await supabase.from("gallery").insert(payload);
+        : await supabase.from("gallery").insert([payload]); // MUST BE AN ARRAY [payload]
 
       if (error) throw error;
+
       toast.success(editingItem ? "Album updated" : "Album created");
       setShowFormModal(false);
       resetForm();
       fetchGallery();
-    } catch (err) {
-      toast.error("Error saving media");
+      // Find this block around line 135
+    } catch (err: any) {
+      // This handles cases where the error is a PostgrestError or a standard Error
+      const errorMsg = err?.message || "Unknown error";
+      const errorCode = err?.code || "No code";
+
+      console.error("--- FULL ERROR TRACE ---");
+      console.log("Message:", errorMsg);
+      console.log("Code:", errorCode);
+      console.dir(err); // This lets you click and expand the object in Chrome Console
+
+      toast.error(`Error: ${errorMsg} (${errorCode})`);
     } finally {
       setSaving(false);
+    }
+  };
+
+
+  const downloadAllImages = async (item: GalleryItem) => {
+    const toastId = toast.loading(`Preparing ${item.image_urls.length} assets...`);
+
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder(item.album_title.replace(/[^a-z0-9]/gi, '_'));
+
+      // Download each image and add to zip
+      const downloadPromises = item.image_urls.map(async (url, index) => {
+        const response = await fetch(url);
+        const blob = await response.blob();
+
+        // Extract extension or default to .jpg
+        const extension = url.split('.').pop()?.split('?')[0] || 'jpg';
+        const fileName = `media_${index + 1}.${extension}`;
+
+        folder?.file(fileName, blob);
+      });
+
+      await Promise.all(downloadPromises);
+
+      // Generate the zip file
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `${item.album_title.replace(/\s+/g, '_')}_assets.zip`);
+
+      toast.success("Download started!", { id: toastId });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to bundle images", { id: toastId });
     }
   };
 
@@ -255,9 +310,25 @@ export default function GalleryPage() {
                   <div key={item.id} className="group bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-[1.8rem] border border-brand-accent dark:border-slate-800 shadow-lg hover:shadow-2xl transition-all duration-500">
                     <div className="relative aspect-video rounded-[1.4rem] overflow-hidden mb-6 border border-brand-accent dark:border-slate-800 bg-slate-100 dark:bg-slate-800">
                       <AutoMediaPreview urls={item.image_urls} />
+                      {/* Find the absolute div containing Edit and Trash buttons */}
                       <div className="absolute bottom-3 right-3 sm:inset-0 sm:bg-brand-dark/60 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300 flex sm:items-center sm:justify-center gap-2 sm:backdrop-blur-sm">
-                        <button onClick={() => openFormModal(item)} className="p-3 bg-white dark:bg-slate-800 rounded-xl text-brand-dark dark:text-white hover:scale-110 transition-transform shadow-xl"><FiEdit size={16} /></button>
-                        <button onClick={() => setShowDeleteModal(item)} className="p-3 bg-white dark:bg-slate-800 rounded-xl text-red-500 hover:scale-110 transition-transform shadow-xl"><FiTrash size={16} /></button>
+
+                        {/* --- NEW DOWNLOAD BUTTON --- */}
+                        <button
+                          onClick={() => downloadAllImages(item)}
+                          className="p-3 bg-white dark:bg-slate-800 rounded-xl text-green-500 hover:scale-110 transition-transform shadow-xl"
+                          title="Download All"
+                        >
+                          <FiDownload size={16} />
+                        </button>
+
+                        <button onClick={() => openFormModal(item)} className="p-3 bg-white dark:bg-slate-800 rounded-xl text-brand-dark dark:text-white hover:scale-110 transition-transform shadow-xl">
+                          <FiEdit size={16} />
+                        </button>
+
+                        <button onClick={() => setShowDeleteModal(item)} className="p-3 bg-white dark:bg-slate-800 rounded-xl text-red-500 hover:scale-110 transition-transform shadow-xl">
+                          <FiTrash size={16} />
+                        </button>
                       </div>
                       <div className="absolute top-4 left-4">
                         <span className="px-3 py-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md text-[9px] font-black uppercase rounded-lg text-brand-dark dark:text-white shadow-sm border border-brand-accent dark:border-slate-700">{item.category}</span>

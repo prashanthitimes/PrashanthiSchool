@@ -66,10 +66,14 @@ export default function ParentLayout({
       <div className="flex-1 flex flex-col  relative lg:ml-64">
 
         {/* ENHANCED HEADER */}
-        <header
-          className={`sticky  top-3 md:top-0 pt-[20px] z-40 px-4 md:px-8 h-[68px] md:h-[74px] flex items-center justify-between transition-all duration-300
-  ${isScrolled ? 'bg-white shadow-sm' : 'bg-white'}`}
-        >
+       {/* ENHANCED HEADER */}
+<header
+  className={`sticky top-3 md:top-0 pt-[20px] z-40 px-4 md:px-8 h-[68px] md:h-[74px] flex items-center justify-between transition-all duration-300
+    ${isScrolled 
+      ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-sm border-b dark:border-slate-800' 
+      : 'bg-white dark:bg-slate-950 border-transparent'
+    }`}
+>
           {/* LEFT: BACK BUTTON OR MOBILE BRANDING */}
           <div className="flex items-center gap-3">
             <button
@@ -146,14 +150,14 @@ export default function ParentLayout({
         {/* CONTENT AREA */}
         <main className={`px-4 md:px-8 flex-1 w-full ${pathname === "/parent" ? "pb-4 pt-8 md:pt-8" : "pb-4 pt-6 md:pt-8"}`}>
           {pathname === "/parent" && (
-            <div className="lg:hidden">
+            <div className="lg:hidden bg-brand">
               {/* Reduced margin-bottom from mb-6 to mb-2 */}
               <div className="mb-2 px-1 text-center">
-                <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-                  Hello, <span className="text-brand dark:text-brand-soft uppercase">{parentName}!</span>
+                <h3 className="text-xl font-black text-white dark:text-slate-100 tracking-tight">
+                  Hello, <span className="text-white  dark:text-brand-soft uppercase">{parentName}!</span>
                 </h3>
                 {/* Hidden on mobile to save space */}
-                <p className="hidden xs:block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                <p className="hidden xs:block text-[9px] font-bold text-black dark:text-slate-500 uppercase tracking-widest mt-0.5">
                   Academic overview for {childName}
                 </p>
               </div>

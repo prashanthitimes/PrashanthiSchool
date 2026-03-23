@@ -308,31 +308,60 @@ export default function ExamTimetableManager() {
         )}
       </main>
 
-      <style jsx global>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .premium-select { background: white; border: 2px solid #f1f5f9; padding: 0.7rem 1rem; border-radius: 0.75rem; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; outline: none; transition: all 0.2s; cursor: pointer; -webkit-appearance: none; color: #1e293b; }
-        .dark .premium-select { background: #1e293b; border-color: #334155; color: #f1f5f9; }
-        .premium-select:focus { border-color: #a63d93; }
+     <style jsx global>{`
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  
+  .premium-select { background: white; border: 2px solid #f1f5f9; padding: 0.7rem 1rem; border-radius: 0.75rem; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; outline: none; transition: all 0.2s; cursor: pointer; -webkit-appearance: none; color: #1e293b; }
+  .dark .premium-select { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+  .premium-select:focus { border-color: #a63d93; }
 
-        .soft-input { border: 2px solid #f1f5f9; padding: 0.5rem 0.7rem; border-radius: 0.5rem; font-size: 11px; font-weight: 700; outline: none; width: 100%; transition: all 0.2s; color: #1e293b; }
-        .dark .soft-input { background: #0f172a; border-color: #334155; color: #f1f5f9; }
-        .soft-input:focus { border-color: #a63d93; background: #fdf2f9; }
-        .dark .soft-input:focus { background: #1e293b; border-color: #a63d93; }
+  .soft-input { border: 2px solid #f1f5f9; padding: 0.5rem 0.7rem; border-radius: 0.5rem; font-size: 11px; font-weight: 700; outline: none; width: 100%; transition: all 0.2s; color: #1e293b; }
+  .dark .soft-input { background: #0f172a; border-color: #334155; color: #f1f5f9; }
+  .soft-input:focus { border-color: #a63d93; background: #fdf2f9; }
+  .dark .soft-input:focus { background: #1e293b; border-color: #a63d93; }
 
-        @media print {
-            aside, nav, [class*="sidebar"], [class*="Header"], header, .print\:hidden, button { display: none !important; }
-            body { background: white !important; margin: 0 !important; padding: 0 !important; }
-            .{ min-height: 0 !important; padding: 0 !important; }
-            .max-w-7xl { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
-            .rounded-[3rem], .rounded-[1.5rem] { border-radius: 0 !important; }
-            .shadow-2xl { box-shadow: none !important; }
-            body * { visibility: hidden; }
-            .max-w-7xl, .max-w-7xl * { visibility: visible; }
-            .max-w-7xl { position: absolute; left: 0; top: 0; }
-        }
-      `}</style>
+  @media print {
+    /* Hide everything by default */
+    body * {
+      visibility: hidden;
+      background: none !important;
+    }
+
+    /* Target the main content container specifically */
+    #printable-area, 
+    #printable-area * {
+      visibility: visible;
+    }
+
+    /* Position the printable content at the top of the page */
+    #printable-area {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    /* Ensure table borders and text are dark for printing */
+    .dark { background: white !important; color: black !important; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #e2e8f0 !important; color: black !important; }
+    
+    /* Remove rounded corners and shadows for a cleaner print */
+    .rounded-[1.5rem], .rounded-[3rem], .shadow-2xl {
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      border: none !important;
+    }
+    
+    /* Hide the 'Print' and 'Sync' buttons and the Add Row button */
+    .print\:hidden, button, .md\:hidden {
+      display: none !important;
+    }
+  }
+`}</style>
     </div>
   )
 }

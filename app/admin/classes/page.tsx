@@ -21,6 +21,29 @@ import {
 } from 'react-icons/fi';
 import { toast, Toaster } from "sonner";
 
+const Input = ({ label, value, onChange, disabled, type = "text" }: any) => {
+  return (
+    <div className="space-y-1">
+      <label className="block text-[11px] font-black text-slate-500 uppercase ml-1">
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value || ""}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-white dark:bg-slate-900 
+        border-2 border-slate-300 dark:border-slate-700 
+        rounded-xl px-4 py-3 text-sm font-semibold 
+        text-slate-800 dark:text-slate-200 
+        outline-none 
+        focus:border-[#d487bd] focus:ring-2 focus:ring-[#d487bd]/30 
+        transition-all"
+      />
+    </div>
+  );
+};
+
 export default function StudentManagement() {
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,10 +62,30 @@ export default function StudentManagement() {
 
   const [selectedClass, setSelectedClass] = useState("Pre-KG");
   const [selectedSection, setSelectedSection] = useState("A");
-
+const [academicYear, setAcademicYear] = useState("2026-27"); // default fallback
 
   const classes = ["Pre-KG", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
   const sections = ["A", "B", "C", "D"];
+
+useEffect(() => {
+  const fetchAcademicYear = async () => {
+    const { data, error } = await supabase
+      .from("school_settings")
+      .select("academic_start_year, academic_end_year")
+      .single(); // only 1 row expected
+
+    if (!error && data) {
+      const startYear = data.academic_start_year;
+      const endYear = data.academic_end_year;
+      setAcademicYear(`${startYear}-${endYear}`); // e.g., "2030-2031"
+    } else {
+      console.error("Failed to fetch academic year:", error);
+      setAcademicYear("2026-27"); // fallback
+    }
+  };
+
+  fetchAcademicYear();
+}, []);
 
   // This filters the students list in real-time as you type
   const filteredStudents = students.filter((s) => {
@@ -71,8 +114,8 @@ export default function StudentManagement() {
     village: "",
     class_name: "",
     section: "",
-    roll_number: "",
-    academic_year: "2026-27"
+     roll_number: "",
+  academic_year: academicYear, // dynamic
   });
 
 
@@ -120,10 +163,10 @@ export default function StudentManagement() {
       birth_certificate_no: "BC789",
       aadhar_no: "123456789012",
       village: "Kolar",
-      class_name: selectedClass,
-      section: selectedSection,
+      class_name: "6th",
+      section: "B",
       roll_number: 1,
-      academic_year: "2026-27"
+      academic_year: "2026-27",
     }];
 
     const ws = XLSX.utils.json_to_sheet(sample);
@@ -169,15 +212,17 @@ export default function StudentManagement() {
         const errorLogs: string[] = [];
 
         data.forEach((row, index) => {
-          const rowNum = index + 2; // Matches Excel Row Number
+          const rowNum = index + 2; // Excel row number
           if (!row.full_name) errorLogs.push(`Row ${rowNum}: Name is missing`);
+          else if (!row.father_name) errorLogs.push(`Row ${rowNum}: Father's name is missing`);
+          else if (!row.mobile_no) errorLogs.push(`Row ${rowNum}: Mobile number is missing`);
           else {
             validRecords.push({
               ...row,
               student_id: `STU-${Date.now().toString().slice(-6)}`,
               academic_year: row.academic_year || "2026-27",
-              class_name: selectedClass,
-              section: selectedSection
+              class_name: row.class_name || selectedClass,
+              section: row.section || selectedSection
             });
           }
         });
@@ -193,19 +238,27 @@ export default function StudentManagement() {
         for (let i = 0; i < validRecords.length; i++) {
           const record = validRecords[i];
           const rowNum = i + 2;
-          try {
-            const { error } = await supabase.from("students").insert([record]);
-            if (error) {
-              if (error.message.includes("duplicate key value violates unique constraint")) {
-                errorLogs.push(`Row ${rowNum}: Duplicate email or other unique field`);
-              } else {
-                errorLogs.push(`Row ${rowNum}: ${error.message}`);
-              }
-            } else {
-              successfulInserts.push(record);
-            }
-          } catch (err: any) {
-            errorLogs.push(`Row ${rowNum}: ${err.message}`);
+
+          // Check duplicates in the table
+          const { data: existing } = await supabase
+            .from("students")
+            .select("id")
+            .eq("full_name", record.full_name)
+            .eq("father_name", record.father_name)
+            .eq("mobile_no", record.mobile_no)
+            .limit(1);
+
+          if (existing && existing.length > 0) {
+            errorLogs.push(`Row ${rowNum}: Duplicate student (name + father + mobile) exists`);
+            continue; // skip insert
+          }
+
+          // Insert record
+          const { error } = await supabase.from("students").insert([record]);
+          if (error) {
+            errorLogs.push(`Row ${rowNum}: ${error.message}`);
+          } else {
+            successfulInserts.push(record);
           }
         }
 
@@ -232,7 +285,25 @@ export default function StudentManagement() {
     };
     reader.readAsBinaryString(file);
   };
+const handleDelete = async (student: any) => {
+  if (!student.id) return;
 
+  if (!confirm(`Are you sure you want to delete ${student.full_name}?`)) return;
+
+  try {
+    const { error } = await supabase.from("students").delete().eq("id", student.id);
+    if (error) throw error;
+
+    toast.success("Student deleted");
+    // store last action for undo
+    lastAction.current = { type: "delete", data: student };
+    setCanUndo(true);
+
+    fetchStudents();
+  } catch (err: any) {
+    toast.error(err.message || "Delete failed");
+  }
+};
   // --- FORM LOGIC ---
   const handleSubmit = async () => {
     if (!formData.full_name) return toast.error("Name is required");
@@ -305,31 +376,12 @@ export default function StudentManagement() {
       class_name: selectedClass,
       section: selectedSection,
       roll_number: "",
-      academic_year: "2026-27"
+ academic_year: academicYear,
     });
 
   };
   // ✅ PLACE THIS OUTSIDE YOUR MAIN COMPONENT FUNCTION
-  // 1. MUST be outside the main component
-  const Input = ({ label, value, onChange, disabled, type = "text", placeholder = "" }: any) => {
-    return (
-      <div className="space-y-1">
-        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">
-          {label}
-        </label>
-        <input
-          type={type}
-          // Use value or empty string to keep it "controlled"
-          value={value || ""}
-          disabled={disabled}
-          placeholder={placeholder}
-          // Use e.target.value directly in the callback
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#d487bd] focus:ring-4 focus:ring-[#d487bd]/10 transition-all"
-        />
-      </div>
-    );
-  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -357,7 +409,7 @@ export default function StudentManagement() {
                 </h1>
                 <div className="flex items-center gap-2 lg:gap-3 mt-1">
                   <p className="text-[#d487bd] dark:text-[#e9d1e4] font-bold text-[9px] lg:text-[10px] tracking-[0.1em] lg:tracking-[0.2em] uppercase opacity-80">
-                    Session 2026-27
+                    Session {academicYear}
                   </p>
                   <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
                   <p className="text-slate-400 dark:text-slate-500 font-bold text-[9px] lg:text-[10px] uppercase tracking-widest">
@@ -393,7 +445,7 @@ export default function StudentManagement() {
                     student_id: "", full_name: "", email: "", parent_phone: "", dob: "",
                     father_name: "", mother_name: "", caste: "", mobile_no: "", sats_no: "",
                     pen_no: "", birth_certificate_no: "", aadhar_no: "", village: "",
-                    class_name: selectedClass, section: selectedSection, roll_number: "", academic_year: "2026-27"
+                    class_name: selectedClass, section: selectedSection, roll_number: "",  academic_year: academicYear
                   });
                   setShowModal(true);
                 }} className="col-span-2 bg-[#d487bd] dark:bg-[#a63d93] text-white px-6 py-4 rounded-xl lg:rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-[#d487bd]/20 hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-95"
@@ -550,8 +602,12 @@ export default function StudentManagement() {
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => { setMode('edit'); setFormData(s); setCurrentStudentId(s.id); setShowModal(true); }} className="p-3 text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl"><Edit3 size={18} /></button>
                         <button onClick={() => { setMode('view'); setFormData(s); setShowModal(true); }} className="p-3 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl"><FiEye size={18} /></button>
-                        <button className="p-3 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"><Trash2 size={18} /></button>
-                      </div>
+<button
+  onClick={() => handleDelete(s)}
+  className="p-3 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
+>
+  <Trash2 size={18} />
+</button>                      </div>
                     </td>
                   </tr>
                 ))}
@@ -572,7 +628,7 @@ export default function StudentManagement() {
                 <h2 className="text-xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
                   {mode === 'add' ? 'New Enrollment' : mode === 'edit' ? 'Modify Profile' : 'Student Record'}
                 </h2>
-                <p className="text-[9px] font-bold text-[#d487bd] dark:text-[#e9d1e4] uppercase tracking-widest">Academic Session 2026-27</p>
+                <p className="text-[9px] font-bold text-[#d487bd] dark:text-[#e9d1e4] uppercase tracking-widest">Academic Session {academicYear}</p>
               </div>
               <button onClick={closeModal} className="p-3 bg-slate-50 dark:bg-slate-800 dark:text-slate-300 rounded-2xl"><X size={20} /></button>
             </div>
@@ -692,6 +748,12 @@ export default function StudentManagement() {
                       label="PEN Number"
                       value={formData.pen_no}
                       onChange={(val: string) => handleInputChange('pen_no', val)}
+                      disabled={mode === 'view'}
+                    />
+                    <Input
+                      label="Birth Certificate No"
+                      value={formData.birth_certificate_no}
+                      onChange={(val: string) => handleInputChange('birth_certificate_no', val)}
                       disabled={mode === 'view'}
                     />
                   </div>

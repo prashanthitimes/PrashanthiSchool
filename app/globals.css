@@ -15,6 +15,12 @@
     border-radius: 10px;
 }
 
+.soft-input {
+  @apply h-14 rounded-2xl border border-brand-soft bg-white/50 
+         text-sm font-bold transition-all outline-none
+         placeholder:text-slate-300 placeholder:font-medium
+         focus:border-brand-light focus:ring-4 focus:ring-brand-soft/20;
+}
 
 @layer components {
   .compact-input {

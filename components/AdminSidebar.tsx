@@ -5,9 +5,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation' // Added to track current URL
 import {
   FiUsers, FiShield, FiBook, FiClipboard, FiCalendar, FiSettings,
-  FiTruck, FiFileText, FiHome, FiUserCheck, FiUser,
+  FiTruck,  FiHome, FiUserCheck, FiUser,
   FiActivity, FiLayers, FiImage, FiCreditCard, FiCamera, FiX,
-  FiSun, FiMoon // Added for Theme Toggle
+  FiSun, FiMoon,FiFileText// Added for Theme Toggle
 } from 'react-icons/fi'
 import { FiClock } from 'react-icons/fi'
 import { IndianRupee } from 'lucide-react'
@@ -35,15 +35,18 @@ export default function AdminSidebar({ activeMenu, setActiveMenu, isOpen, setIsO
   // 2. Initialize Theme and Permissions
   useEffect(() => {
     const savedPerms = localStorage.getItem('adminPerms')
-    if (savedPerms) setPermissions(JSON.parse(savedPerms))
+    if (savedPerms) {
+      setPermissions(JSON.parse(savedPerms))
+    }
 
-    // Check system preference or localStorage
     const savedTheme = localStorage.getItem('theme')
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-      setIsDarkMode(true)
+
+    if (savedTheme === 'dark') {
       document.documentElement.classList.add('dark')
+      setIsDarkMode(true)
+    } else {
+      document.documentElement.classList.remove('dark')
+      setIsDarkMode(false)
     }
   }, [])
 
@@ -65,7 +68,7 @@ export default function AdminSidebar({ activeMenu, setActiveMenu, isOpen, setIsO
     { id: 'admin-management', label: 'Admin Management', icon: <FiShield />, path: '/admin/management', group: 'System' },
     { id: 'teachers', label: 'Teachers', icon: <FiUsers />, path: '/admin/teachers', group: 'Academics' },
     { id: 'students', label: 'Students', icon: <FiUser />, path: '/admin/students', group: 'Academics' },
-    { id: 'parents', label: 'Parents', icon: <FiUserCheck />, path: '/admin/parents', group: 'Academics' },
+    // { id: 'parents', label: 'Parents', icon: <FiUserCheck />, path: '/admin/parents', group: 'Academics' },
     { id: 'classes-sections', label: 'Classes & Sections', icon: <FiLayers />, path: '/admin/classes', group: 'Academics' },
     { id: 'subjects', label: 'Subjects', icon: <FiBook />, path: '/admin/subjects', group: 'Academics' },
     { id: 'timetable', label: 'Time Table', icon: <FiClock />, path: '/admin/timetable', group: 'Academics' },
@@ -73,7 +76,14 @@ export default function AdminSidebar({ activeMenu, setActiveMenu, isOpen, setIsO
     { id: 'exam-registry', label: 'Exam Setup', icon: <FiSettings />, path: '/admin/exams', group: 'Operations' },
     { id: 'exam-schedule', label: 'Exam Time Table', icon: <FiCalendar />, path: '/admin/examtimetable', group: 'Operations' },
     { id: 'exams-marks', label: 'Marks Ledger', icon: <FiClipboard />, path: '/admin/examsmarks', group: 'Operations' },
-    { id: 'fee-management', label: 'Fee Management', icon: <IndianRupee size={16}/>, path: '/admin/fees', group: 'Operations' },
+    {
+      id: 'fee-setup',
+      label: 'Fee Setup',
+      icon: <FiFileText size={16} />,
+      path: '/admin/FeeTypeManager', // Link to your FeeTypeManager page
+      group: 'Operations'
+    },
+    { id: 'fee-management', label: 'Fee Management', icon: <IndianRupee size={16} />, path: '/admin/fees', group: 'Operations' },
     { id: 'fee-ledger', label: 'Fee Ledger', icon: <FiCreditCard />, path: '/admin/viewfeesdeatils', group: 'Operations' },
     { id: 'payment-scanner', label: 'Scanner Setup', icon: <FiCamera />, path: '/admin/scanner', group: 'Operations' },
     { id: 'transport', label: 'Transport', icon: <FiTruck />, path: '/admin/transport', group: 'Logistics' },
@@ -90,7 +100,7 @@ export default function AdminSidebar({ activeMenu, setActiveMenu, isOpen, setIsO
 
   const groups = ['Overview', 'Academics', 'Operations', 'Logistics', 'Communication', 'System']
 
-return (
+  return (
     <>
       {isOpen && (
         <div
@@ -108,7 +118,7 @@ return (
         {/* --- HEADER SECTION --- */}
         <div className="p-6 flex flex-col items-center border-b relative transition-colors
           border-[#e9d1e4] dark:border-slate-800 bg-white dark:bg-slate-900">
-          
+
           <button
             onClick={() => setIsOpen(false)}
             className="lg:hidden absolute right-4 top-4 text-slate-400 dark:text-slate-500"
@@ -142,9 +152,9 @@ return (
                       <button
                         onClick={() => { setActiveMenu(id); setIsOpen(false); }}
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm w-full transition-all
-                        ${activeMenu === id 
-                          ? 'bg-brand text-white font-bold shadow-lg shadow-brand/20' 
-                          : 'text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900/50'}`}
+                        ${activeMenu === id
+                            ? 'bg-brand text-white font-bold shadow-lg shadow-brand/20'
+                            : 'text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900/50'}`}
                       >
                         <span className={activeMenu === id ? 'text-white' : 'text-brand dark:text-brand-soft'}>
                           {icon}
@@ -161,7 +171,7 @@ return (
 
         {/* --- THEME TOGGLE FOOTER --- */}
         <div className="p-4 border-t border-[#e9d1e4] dark:border-slate-800 bg-white dark:bg-slate-900">
-          <button 
+          <button
             onClick={toggleTheme}
             className="flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all text-sm
               bg-slate-50 dark:bg-slate-950 hover:opacity-80 text-slate-800 dark:text-slate-100 border border-[#e9d1e4] dark:border-slate-800"
@@ -170,7 +180,7 @@ return (
               {isDarkMode ? <FiSun className="text-yellow-500" /> : <FiMoon className="text-brand" />}
               <span className="font-bold">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </div>
-            
+
             {/* Toggle Track */}
             <div className={`w-8 h-4 rounded-full relative transition-colors ${isDarkMode ? 'bg-brand' : 'bg-slate-300'}`}>
               <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${isDarkMode ? 'right-1' : 'left-1'}`} />

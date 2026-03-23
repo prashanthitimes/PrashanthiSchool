@@ -5,15 +5,15 @@ import Link from 'next/link'
 import {
   FiHome, FiUser, FiEdit3, FiActivity, FiCheckSquare,
   FiCalendar, FiCreditCard, FiBell, FiTruck, FiPhoneCall,
-  FiBookOpen, FiClock, FiMap, FiSun, FiMoon
+  FiBookOpen, FiClock, FiMap, FiSun, FiMoon, 
+  FiImage // 1. Added FiImage for the gallery icon
 } from 'react-icons/fi'
 import { usePathname } from 'next/navigation'
 
-
-export default function ParentSidebar() {  // Use a local state or a global context for theme
+export default function ParentSidebar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const pathname = usePathname()
-  // Sync with your existing theme logic (Tailwind 'dark' class)
+
   const toggleTheme = () => {
     const newMode = !isDarkMode;
     setIsDarkMode(newMode);
@@ -29,6 +29,8 @@ export default function ParentSidebar() {  // Use a local state or a global cont
     { id: 'student-profile', label: 'Student Profile', icon: <FiUser />, path: '/parent/profile' },
     { id: 'homework', label: 'Homework', icon: <FiEdit3 />, path: '/parent/homework' },
     { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/parent/attendance' },
+    // 2. Added Gallery Item here
+    { id: 'gallery', label: 'School Gallery', icon: <FiImage />, path: '/parent/gallery' }, 
     { id: 'class-timetable', label: 'Class Time Table', icon: <FiClock />, path: '/parent/timetable' },
     { id: 'exam-timetable', label: 'Exam Time Table', icon: <FiCalendar />, path: '/parent/exams' },
     { id: 'syllabus', label: 'Exam Syllabus', icon: <FiBookOpen />, path: '/parent/syllabus' },
@@ -46,13 +48,13 @@ export default function ParentSidebar() {  // Use a local state or a global cont
       {/* --- SIDEBAR HEADER --- */}
       <div className="p-6 flex flex-col items-center border-b border-white/10 dark:bg-slate-900 ">
         <img src="/Schoollogo.jpg" className="w-14 mb-2 rounded-full border-2 border-white/20 dark:border-slate-700 p-1 bg-white" alt="School Logo" />
-        <h2 className="font-bold text-center text-sm dark:text-slate-100">Prashanti Vidyalaya & High School.</h2>
+        <h2 className="font-bold text-center text-sm dark:text-slate-100 uppercase tracking-tight">Prashanti Vidyalaya</h2>
       </div>
 
       {/* --- NAVIGATION --- */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
         {menuItems.map((item) => (
-          <Link key={item.id} href={item.path}>
+          <Link key={item.id} href={item.path} className="block">
             <div
               className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200
             ${pathname === item.path
@@ -83,7 +85,6 @@ export default function ParentSidebar() {  // Use a local state or a global cont
             <span className="font-bold">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
           </div>
 
-          {/* Toggle Track */}
           <div className={`w-9 h-5 rounded-full relative transition-colors duration-300 ${isDarkMode ? 'bg-emerald-500' : 'bg-white/20'}`}>
             <div className={`absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm transition-all duration-300 ${isDarkMode ? 'translate-x-5' : 'translate-x-1'}`} />
           </div>

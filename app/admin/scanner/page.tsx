@@ -92,13 +92,28 @@ export default function PaymentConfiguration() {
         }
     };
 
-    const handleReject = async (id: string) => {
-        if (!confirm("Are you sure you want to reject this payment?")) return
-        await supabase.from('fee_submissions').delete().eq('id', id)
-        toast.success("Submission Rejected")
-        fetchData()
-    }
+    const handleReject = async (submission: any) => {
+        // Prompt for remark
+        const remark = prompt("Please enter a remark for rejection:", "");
+        if (remark === null) return; // Cancelled
+        if (remark.trim() === "") return toast.error("Remark is required to reject");
 
+        try {
+            // Update the submission with remark before deleting
+            await supabase.from('fee_submissions').update({
+                rejection_remark: remark,
+                status: 'rejected'
+            }).eq('id', submission.id);
+
+            // Optionally, you can keep rejected submissions instead of deleting:
+            // await supabase.from('fee_submissions').delete().eq('id', submission.id);
+
+            toast.success("Submission Rejected with remark");
+            fetchData();
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+    };
     const toggleClass = (cls: string) => {
         // Prevent selecting classes already assigned to other scanners
         if (assignedClasses.includes(cls)) return;
@@ -259,8 +274,18 @@ export default function PaymentConfiguration() {
                                             </td>
                                             <td className="p-6 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <button className="bg-green-600 hover:bg-green-500 text-white p-2 rounded-lg transition-all"><FiCheck /></button>
-                                                    <button className="border border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white p-2 rounded-lg transition-all"><FiX /></button>
+                                                    <button
+                                                        onClick={() => handleApprove(sub)}
+                                                        className="bg-green-600 hover:bg-green-500 text-white p-2 rounded-lg transition-all flex items-center justify-center"
+                                                    >
+                                                        <FiCheck />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReject(sub)}
+                                                        className="border border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white p-2 rounded-lg transition-all flex items-center justify-center"
+                                                    >
+                                                        <FiX />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -281,7 +306,7 @@ export default function PaymentConfiguration() {
                                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">New Scanner</h2>
                                 <p className="text-slate-500 text-[9px] sm:text-xs font-bold uppercase mt-1 italic">Setup class & bank details</p>
                             </div>
-                            <button onClick={() => setShowModal(false)} className="p-3 bg-white dark:bg-slate-800 text-brand rounded-2xl hover:bg-brand hover:text-white shadow-sm border border-slate-200 dark:border-slate-700 transition-all">
+                            <button onClick={() => handleReject(sub)} className="p-3 bg-white dark:bg-slate-800 text-brand rounded-2xl hover:bg-brand hover:text-white shadow-sm border border-slate-200 dark:border-slate-700 transition-all">
                                 <FiX size={20} />
                             </button>
                         </div>
@@ -290,35 +315,35 @@ export default function PaymentConfiguration() {
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12">
                                     <div className="space-y-8">
-                                       <div className="space-y-3">
-    <label className="text-[10px] font-black text-slate-400 dark:text-brand-light uppercase tracking-widest ml-1">Scanner QR Code</label>
-    <div className="relative group h-[200px] flex">
-        <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-                if (e.target.files?.[0]) {
-                    setQrFile(e.target.files[0])
-                }
-            }}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-        />
-        <div className="w-full border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-4 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800/30 group-hover:bg-slate-100 dark:group-hover:bg-slate-800/50 transition-all overflow-hidden">
-            {qrFile ? (
-                <img 
-                    src={URL.createObjectURL(qrFile)} 
-                    alt="Preview" 
-                    className="h-full w-full object-contain rounded-xl"
-                />
-            ) : (
-                <>
-                    <FiUpload size={24} className="text-brand mb-2" />
-                    <p className="text-[11px] font-bold text-slate-500 dark:text-slate-300 uppercase text-center">Tap to Upload QR Image</p>
-                </>
-            )}
-        </div>
-    </div>
-</div>
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black text-slate-400 dark:text-brand-light uppercase tracking-widest ml-1">Scanner QR Code</label>
+                                            <div className="relative group h-[200px] flex">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        if (e.target.files?.[0]) {
+                                                            setQrFile(e.target.files[0])
+                                                        }
+                                                    }}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                />
+                                                <div className="w-full border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-4 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800/30 group-hover:bg-slate-100 dark:group-hover:bg-slate-800/50 transition-all overflow-hidden">
+                                                    {qrFile ? (
+                                                        <img
+                                                            src={URL.createObjectURL(qrFile)}
+                                                            alt="Preview"
+                                                            className="h-full w-full object-contain rounded-xl"
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            <FiUpload size={24} className="text-brand mb-2" />
+                                                            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-300 uppercase text-center">Tap to Upload QR Image</p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         {/* CLASSES GRID */}
                                         <div className="space-y-3">
@@ -447,43 +472,43 @@ export default function PaymentConfiguration() {
 
 
             {/* VIEW DETAIL MODAL */}
-{viewDetail && (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                <h3 className="font-black uppercase text-slate-900 dark:text-white">Scanner Configuration</h3>
-                <button onClick={() => setViewDetail(null)} className="text-slate-400 hover:text-rose-500"><FiX size={20}/></button>
-            </div>
-            <div className="p-8 space-y-6">
-                <div className="flex justify-center bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl">
-                    <img src={viewDetail.qr_url} alt="QR Code" className="max-h-48 rounded-lg shadow-md" />
+            {viewDetail && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                            <h3 className="font-black uppercase text-slate-900 dark:text-white">Scanner Configuration</h3>
+                            <button onClick={() => setViewDetail(null)} className="text-slate-400 hover:text-rose-500"><FiX size={20} /></button>
+                        </div>
+                        <div className="p-8 space-y-6">
+                            <div className="flex justify-center bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl">
+                                <img src={viewDetail.qr_url} alt="QR Code" className="max-h-48 rounded-lg shadow-md" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-[11px]">
+                                <div>
+                                    <p className="text-slate-400 uppercase font-black">Bank Name</p>
+                                    <p className="font-bold text-slate-900 dark:text-white text-sm">{viewDetail.bank_name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-slate-400 uppercase font-black">Account Holder</p>
+                                    <p className="font-bold text-slate-900 dark:text-white text-sm">{viewDetail.account_holder}</p>
+                                </div>
+                                <div className="col-span-2">
+                                    <p className="text-slate-400 uppercase font-black">Account Number / IFSC</p>
+                                    <p className="font-mono font-bold text-brand text-sm">{viewDetail.account_number} / {viewDetail.ifsc_code}</p>
+                                </div>
+                            </div>
+                            <div className="pt-2">
+                                <p className="text-slate-400 uppercase font-black text-[10px] mb-2">Linked Classes</p>
+                                <div className="flex flex-wrap gap-1">
+                                    {viewDetail.class_name?.map((c: string) => (
+                                        <span key={c} className="bg-brand/10 text-brand px-2 py-1 rounded text-[9px] font-black">{c}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-[11px]">
-                    <div>
-                        <p className="text-slate-400 uppercase font-black">Bank Name</p>
-                        <p className="font-bold text-slate-900 dark:text-white text-sm">{viewDetail.bank_name}</p>
-                    </div>
-                    <div>
-                        <p className="text-slate-400 uppercase font-black">Account Holder</p>
-                        <p className="font-bold text-slate-900 dark:text-white text-sm">{viewDetail.account_holder}</p>
-                    </div>
-                    <div className="col-span-2">
-                        <p className="text-slate-400 uppercase font-black">Account Number / IFSC</p>
-                        <p className="font-mono font-bold text-brand text-sm">{viewDetail.account_number} / {viewDetail.ifsc_code}</p>
-                    </div>
-                </div>
-                <div className="pt-2">
-                    <p className="text-slate-400 uppercase font-black text-[10px] mb-2">Linked Classes</p>
-                    <div className="flex flex-wrap gap-1">
-                        {viewDetail.class_name?.map((c: string) => (
-                            <span key={c} className="bg-brand/10 text-brand px-2 py-1 rounded text-[9px] font-black">{c}</span>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-)}
+            )}
         </div>
     );
 }

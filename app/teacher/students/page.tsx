@@ -25,7 +25,7 @@ export default function TeacherClassList() {
 
     if (!email) {
         console.log("Teacher not logged in")
-        window.location.href = '/login/teacher'
+        window.location.href = '/login'
         return
     }
 
