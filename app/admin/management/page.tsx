@@ -522,8 +522,8 @@ function InputGroup({ label, children, icon, error }: any) {
         </div>
 
         {Children.map(children, (child) => {
-          if (isValidElement<{ className?: string }>(child)) {
-            return cloneElement(child, {
+if (isValidElement<any>(child)) {
+              return cloneElement(child, {
               style: { paddingLeft: '3rem' },
               className: `${child.props.className ?? ""} w-full`.trim(),
             });
