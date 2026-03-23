@@ -37,7 +37,22 @@ interface DBStudent {
   class_name: string;
   section: string;
 }
-
+interface StudentFormType {
+  student_id: string;
+  student_name: string;
+  father_name: string;
+  roll_no: string;
+  class: string;
+  section: string;
+  fee_type_id: string;   // ✅ required
+  fee_type: string;
+  total_amount: string;
+  already_paid: string;
+  paying_now: string;
+  payment_method: string;
+  utr_number: string;
+  remarks: string;
+}
 
 export default function FeesPage() {
   const [classFees, setClassFees] = useState<ClassFee[]>([]);
@@ -66,7 +81,7 @@ const [feeTypes, setFeeTypes] = useState<{ id: string; name: string }[]>([]);
     roll_no: "",
     class: "",
     section: "",
-    fee_type: "",
+   fee_type_id: "",   
     total_amount: "",
     already_paid: "",     // ✅ NEW
     paying_now: "",       // ✅ NEW (installment)
@@ -368,20 +383,22 @@ useEffect(() => {
       });
       setIsClassModalOpen(true);
     } else {
-      setStudentForm({
-        student_id: item.student_id || "",
-        student_name: item.student_name || "",
-        father_name: item.father_name || "",
-        roll_no: item.roll_no?.toString() || "",
-        class: item.class || "",
-        section: item.section || "",
-        fee_type: item.fee_type || "",
-        total_amount: item.total_amount?.toString() || "",
-        already_paid: "",        // 🔥 do NOT fill here
-        paying_now: "",          // 🔥 reset
-        payment_method: item.payment_method || "",
-        utr_number: item.utr_number || "",
-      });
+     setStudentForm({
+  student_id: item.student_id || "",
+  student_name: item.student_name || "",
+  father_name: item.father_name || "",
+  roll_no: item.roll_no?.toString() || "",
+  class: item.class || "",
+  section: item.section || "",
+  fee_type_id: item.fee_type_id || "",   // ✅ ADD
+  fee_type: item.fee_type || "",
+  total_amount: item.total_amount?.toString() || "",
+  already_paid: "",
+  paying_now: "",
+  payment_method: item.payment_method || "",
+  utr_number: item.utr_number || "",
+  remarks: item.remarks || "",
+});
 
 
       setStudentSearch(item.student_name);
@@ -404,7 +421,7 @@ useEffect(() => {
       roll_no: "",
       class: "",
       section: "",
-      fee_type: "",
+       fee_type_id: "", 
       total_amount: "",
       already_paid: "",
       paying_now: "",
