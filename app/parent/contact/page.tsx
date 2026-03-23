@@ -120,26 +120,28 @@ export default function SchoolContact() {
         </div>
 
         {/* Socials */}
-        <div className="sm:col-span-2 flex flex-row gap-2">
-          {[
-            { icon: <FiInstagram />, link: settings?.instagram_link, label: "Instagram", color: "hover:text-pink-600" },
-            { icon: <FiYoutube />, link: settings?.youtube_link, label: "YouTube", color: "hover:text-red-600" },
-            { icon: <FiMessageSquare  />, link: settings?.whatsapp_link, label: "WhatsApp", color: "hover:text-emerald-600" },
-          ].map((item, idx) => (
-            item.link ? (
-              <a 
-                key={idx} 
-                href={item.link} 
-                target="_blank" 
-                rel="noreferrer" 
-                aria-label={item.label}
-                className={`flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-16 rounded-2xl flex items-center justify-center text-slate-700 dark:text-slate-300 transition-all active:scale-95 shadow-sm ${item.color}`}
-              >
-                {React.cloneElement(item.icon as React.ReactElement, { size: 24 })}
-              </a>
-            ) : null
-          ))}
-        </div>
+      {/* --- SOCIALS --- */}
+<div className="sm:col-span-2 flex flex-row gap-2">
+  {[
+    { icon: FiInstagram, link: settings?.instagram_link, label: "Instagram", color: "hover:text-pink-600" },
+    { icon: FiYoutube, link: settings?.youtube_link, label: "YouTube", color: "hover:text-red-600" },
+    { icon: FiMessageSquare, link: settings?.whatsapp_link, label: "WhatsApp", color: "hover:text-emerald-600" },
+  ].map((item, idx) => (
+    item.link ? (
+      <a 
+        key={idx} 
+        href={item.link} 
+        target="_blank" 
+        rel="noreferrer" 
+        aria-label={item.label}
+        className={`flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-16 rounded-2xl flex items-center justify-center text-slate-700 dark:text-slate-300 transition-all active:scale-95 shadow-sm ${item.color}`}
+      >
+        {/* Simply render the component and pass size directly */}
+        <item.icon size={24} />
+      </a>
+    ) : null
+  ))}
+</div>
 
       </div>
 
