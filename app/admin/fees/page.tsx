@@ -82,6 +82,7 @@ const [feeTypes, setFeeTypes] = useState<{ id: string; name: string }[]>([]);
     class: "",
     section: "",
    fee_type_id: "",   
+   fee_type: "",
     total_amount: "",
     already_paid: "",     // ✅ NEW
     paying_now: "",       // ✅ NEW (installment)
@@ -414,20 +415,22 @@ useEffect(() => {
 
     setClassForm({ class: "", fee_type: "", amount: "" });
 
-    setStudentForm({
-      student_id: "",
-      student_name: "",
-      father_name: "",
-      roll_no: "",
-      class: "",
-      section: "",
-       fee_type_id: "", 
-      total_amount: "",
-      already_paid: "",
-      paying_now: "",
-      payment_method: "",
-      utr_number: "",  remarks: "",  // ✅ NEW
-    });
+setStudentForm({
+  student_id: "",
+  student_name: "",
+  father_name: "",
+  roll_no: "",
+  class: "",
+  section: "",
+  fee_type_id: "",
+  fee_type: "", // ✅ ADD THIS LINE
+  total_amount: "",
+  already_paid: "",
+  paying_now: "",
+  payment_method: "",
+  utr_number: "",
+  remarks: "",
+});
 
 
     setStudentSearch("");
