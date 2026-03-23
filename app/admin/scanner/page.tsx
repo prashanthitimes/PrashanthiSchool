@@ -306,7 +306,7 @@ export default function PaymentConfiguration() {
                                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">New Scanner</h2>
                                 <p className="text-slate-500 text-[9px] sm:text-xs font-bold uppercase mt-1 italic">Setup class & bank details</p>
                             </div>
-                            <button onClick={() => handleReject(sub)} className="p-3 bg-white dark:bg-slate-800 text-brand rounded-2xl hover:bg-brand hover:text-white shadow-sm border border-slate-200 dark:border-slate-700 transition-all">
+                            <button onClick={() => setShowModal(false)} className="p-3 bg-white dark:bg-slate-800 text-brand rounded-2xl hover:bg-brand hover:text-white shadow-sm border border-slate-200 dark:border-slate-700 transition-all">
                                 <FiX size={20} />
                             </button>
                         </div>
