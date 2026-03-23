@@ -132,17 +132,25 @@ export default function AdminManagement() {
     setErrors({});
     if (admin) {
       setEditAdmin(admin);
-      setFormData({
-        name: admin.full_name || admin.name || "",
-        email: admin.email || "",
-        phone: admin.phone || "",
-        role: admin.role || "sub_admin",
-        description: admin.description || ""
-      });
+     setFormData({
+  name: admin.full_name || admin.name || "",
+  email: admin.email || "",
+  phone: admin.phone || "",
+  role: admin.role || "sub_admin",
+  description: admin.description || "",
+  password: "" // ✅ ADD THIS
+});
       setSelectedPerms(admin.permissions || {});
     } else {
       setEditAdmin(null);
-      setFormData({ name: "", email: "", phone: "", role: "sub_admin", description: "" });
+      const [formData, setFormData] = useState({
+  name: "",
+  email: "",
+  phone: "",
+  role: "sub_admin",
+  description: "",
+  password: ""
+});
       setSelectedPerms({});
     }
     setShowModal(true);
