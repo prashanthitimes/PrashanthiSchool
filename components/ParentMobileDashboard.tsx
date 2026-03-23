@@ -5,17 +5,17 @@ import Image from 'next/image'
 
 const items = [
   { title: "Profile", img: "/Student Profile.png", link: "/parent/profile" },
-  { title: "Homework", img: "/Home Work.png", link: "/parent/homework" },
+  { title: "Homework", img: "/HomeWork.png", link: "/parent/homework" },
   { title: "Attendance", img: "/Attendance.png", link: "/parent/attendance" },
   // --- ADDED GALLERY HERE ---
-  { title: "Gallery", img: "/Notice.png", link: "/parent/gallery" }, 
-  { title: "Time Table", img: "/Time Table.png", link: "/parent/timetable" },
-  { title: "Exams", img: "/Exams.png", link: "/parent/exams" },
+  { title: "Gallery", img: "/gallery.jpg", link: "/parent/gallery" }, 
+  { title: "Time Table", img: "/TimeTable.png", link: "/parent/timetable" },
+  { title: "Exams", img: "/examicon.png", link: "/parent/exams" },
   { title: "Syllabus", img: "/Syllabus.png", link: "/parent/syllabus" },
-  { title: "Report Card", img: "/Report Card.png", link: "/parent/marks" },
-  { title: "Calendar", img: "/Calendar.png", link: "/parent/calendar" },
+  { title: "Report Card", img: "/ReportCard.png", link: "/parent/marks" },
+  { title: "Calendar", img: "/Calendaricon.png", link: "/parent/calendar" },
   { title: "Fees", img: "/Fees.png", link: "/parent/fees" },
-  { title: "Transport", img: "/Transport.png", link: "/parent/transport" },
+  { title: "Transport", img: "/Transporticon.png", link: "/parent/transport" },
   { title: "Notice", img: "/Notice.png", link: "/parent/notices" },
   { title: "Contact", img: "/contact.png", link: "/parent/contact" },
 ]
@@ -42,11 +42,12 @@ export default function ParentMobileDashboard() {
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-brand/5 dark:from-brand-soft/10 to-transparent pointer-events-none" />
 
-                <img
-                  src={item.img}
-                  alt={item.title}
-                  className="w-full h-full object-contain relative z-10 brightness-[1.02] dark:grayscale-[0.1] dark:brightness-110"
-                />
+            <Image
+  src={item.img}
+  alt={item.title}
+  fill
+  className="object-contain p-2 relative z-10"
+/>
               </div>
 
               <span className="text-[12px] font-black text-slate-800 dark:text-slate-100 mt-2 text-center leading-tight tracking-tight uppercase">

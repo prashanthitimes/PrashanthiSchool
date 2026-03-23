@@ -43,79 +43,82 @@ export default function UnifiedLoginPage() {
 
       /* ---------------- ADMIN LOGIN ---------------- */
 
-   /* ---------------- ADMIN LOGIN ---------------- */
-if (role === 'admin') {
-  const { data, error } = await supabase
-    .from('admin_users')
-    .select('*')
-    .ilike('email', email.trim())
-    .eq('status', 'active'); // Remove .single() to handle errors manually
+      /* ---------------- ADMIN LOGIN ---------------- */
+      if (role === 'admin') {
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('*')
+          .ilike('email', email.trim())
+          .eq('status', 'active'); // Remove .single() to handle errors manually
 
-  if (error || !data || data.length === 0) {
-    setErrorMsg('No active admin account found.');
-    setLoading(false);
-    return;
-  }
+        if (error || !data || data.length === 0) {
+          setErrorMsg('No active admin account found.');
+          setLoading(false);
+          return;
+        }
 
-  const admin = data[0];
+        const admin = data[0];
 
-  if (admin.password !== password) {
-    setErrorMsg('Incorrect password.');
-    setLoading(false);
-    return;
-  }
+        if (admin.password !== password) {
+          setErrorMsg('Incorrect password.');
+          setLoading(false);
+          return;
+        }
 
-  // Success!
-  localStorage.setItem('adminRole', admin.role);
-  localStorage.setItem('adminPerms', JSON.stringify(admin.permissions || {}));
-  localStorage.setItem('adminName', admin.name);
-  localStorage.setItem('userRole', 'admin');
-  router.push('/admin');
-}
+        // Success!
+        localStorage.setItem('adminRole', admin.role);
+        localStorage.setItem('adminPerms', JSON.stringify(admin.permissions || {}));
+        localStorage.setItem('adminName', admin.name);
+        localStorage.setItem('userRole', 'admin');
+        router.push('/admin');
+      }
 
 
       /* ---------------- PARENT LOGIN ---------------- */
       /* ---------------- PARENT LOGIN ---------------- */
- /* ---------------- PARENT LOGIN ---------------- */
-else if (role === 'parent') {
+      /* ---------------- PARENT LOGIN ---------------- */
+      /* ---------------- PARENT LOGIN ---------------- */
+      else if (role === 'parent') {
+        const { data: students, error } = await supabase
+          .from('students')
+          .select('id, full_name, class_name, section, mobile_no, father_name') // Add father_name here
+          .eq('mobile_no', phone.trim())
+          .eq('status', 'active')
 
-  const { data: students, error } = await supabase
-    .from('students')
-    .select('id, full_name, class_name, section, mobile_no')
-    .eq('mobile_no', phone.trim())
-    .eq('status', 'active')
+        if (error || !students || students.length === 0) {
+          setErrorMsg('No student found with this phone number.')
+          setLoading(false)
+          return
+        }
 
-  if (error || !students || students.length === 0) {
-    setErrorMsg('No student found with this phone number.')
-    setLoading(false)
-    return
-  }
+        const childrenList = students.map((student: any) => ({
+          childId: student.id,
+          childName: student.full_name,
+          class: student.class_name,
+          section: student.section,
+          parentPhone: student.mobile_no,
+          parentName: student.father_name || 'Parent' // Map father_name to parentName
+        }))
 
-  const childrenList = students.map((student: any) => ({
-    childId: student.id,
-    childName: student.full_name,
-    class: student.class_name,
-    section: student.section,
-    parentPhone: student.mobile_no
-  }))
+        // ✅ If only ONE child
+        // ✅ If only ONE child
+        if (childrenList.length === 1) {
+          const child = childrenList[0]
 
-  // ✅ If only ONE child → direct login
-  if (childrenList.length === 1) {
-    const child = childrenList[0]
+          localStorage.setItem('userRole', 'parent')
+          localStorage.setItem('parentPhone', child.parentPhone)
+          localStorage.setItem('parentName', child.parentName) // Saved once correctly
+          localStorage.setItem('childId', child.childId)
+          localStorage.setItem('childName', child.childName)
 
-    localStorage.setItem('userRole', 'parent')
-    localStorage.setItem('parentPhone', child.parentPhone)
-    localStorage.setItem('childId', child.childId)
-    localStorage.setItem('childName', child.childName)
-
-    router.push('/parent')
-  } 
-  // ✅ Multiple children → show selection
-  else {
-    setChildren(childrenList)
-    setShowChildSelect(true)
-  }
-}
+          router.push('/parent')
+        }
+        // ✅ Multiple children
+        else {
+          setChildren(childrenList)
+          setShowChildSelect(true)
+        }
+      }
 
       /* ---------------- TEACHER LOGIN ---------------- */
 
@@ -191,8 +194,8 @@ else if (role === 'parent') {
         {/* STEP 1 ROLE */}
 
         {/* STEP 1 ROLE */}
-       {step === 1 && (
-  <div className="space-y-5">
+        {step === 1 && (
+          <div className="space-y-5">
             <RoleButton
               icon="/principaliconn.png"
               title="Administrator"
@@ -326,13 +329,14 @@ else if (role === 'parent') {
                 {children.map((child, index) => (
                   <button
                     key={index}
-                   onClick={() => {
-  localStorage.setItem('userRole', 'parent')
-  localStorage.setItem('parentPhone', child.parentPhone)
-  localStorage.setItem('childId', child.childId)
-  localStorage.setItem('childName', child.childName)
-  router.push('/parent')
-}}
+                    onClick={() => {
+                      localStorage.setItem('userRole', 'parent')
+                      localStorage.setItem('parentPhone', child.parentPhone)
+                      localStorage.setItem('parentName', child.parentName)
+                      localStorage.setItem('childId', child.childId)
+                      localStorage.setItem('childName', child.childName)
+                      router.push('/parent')
+                    }}
                     className="w-full group flex items-center gap-4 p-4 rounded-2xl border-2 border-transparent hover:border-brand bg-slate-50 hover:bg-brand-soft/20 transition-all duration-200 text-left"
                   >
                     {/* Initial Circle */}
@@ -381,7 +385,7 @@ function RoleButton({ icon, title, desc, onClick }: any) {
   return (
     <button
       onClick={onClick}
-className="w-full group flex items-center gap-4 p-5 rounded-2xl bg-white shadow-md hover:shadow-xl transition-all text-left"    >
+      className="w-full group flex items-center gap-4 p-5 rounded-2xl bg-white shadow-md hover:shadow-xl transition-all text-left"    >
       <div className="w-12 h-12 rounded-xl bg-brand flex items-center justify-center text-white overflow-hidden relative shadow-md">
         {typeof icon === 'string' ? (
           <Image

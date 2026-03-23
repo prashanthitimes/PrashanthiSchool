@@ -33,7 +33,7 @@ export default function ParentLayout({
 
   useEffect(() => {
     setParentName(localStorage.getItem('parentName') || 'Parent')
-    setChildName(localStorage.getItem('childName') || 'Student')
+  setChildName(localStorage.getItem('childName') || 'Student')
     const handleScroll = () => setIsScrolled(window.scrollY > 10)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
