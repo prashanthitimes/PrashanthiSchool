@@ -132,25 +132,25 @@ export default function AdminManagement() {
     setErrors({});
     if (admin) {
       setEditAdmin(admin);
-     setFormData({
-  name: admin.full_name || admin.name || "",
-  email: admin.email || "",
-  phone: admin.phone || "",
-  role: admin.role || "sub_admin",
-  description: admin.description || "",
-  password: "" // ✅ ADD THIS
-});
+      setFormData({
+        name: admin.full_name || admin.name || "",
+        email: admin.email || "",
+        phone: admin.phone || "",
+        role: admin.role || "sub_admin",
+        description: admin.description || "",
+        password: "" // ✅ ADD THIS
+      });
       setSelectedPerms(admin.permissions || {});
     } else {
       setEditAdmin(null);
       const [formData, setFormData] = useState({
-  name: "",
-  email: "",
-  phone: "",
-  role: "sub_admin",
-  description: "",
-  password: ""
-});
+        name: "",
+        email: "",
+        phone: "",
+        role: "sub_admin",
+        description: "",
+        password: ""
+      });
       setSelectedPerms({});
     }
     setShowModal(true);
@@ -522,11 +522,10 @@ function InputGroup({ label, children, icon, error }: any) {
         </div>
 
         {Children.map(children, (child) => {
-          if (isValidElement(child)) {
-            return cloneElement(child as React.ReactElement<any>, {
-              // Using style as a fallback to ensure padding is applied regardless of CSS conflicts
+          if (isValidElement<{ className?: string }>(child)) {
+            return cloneElement(child, {
               style: { paddingLeft: '3rem' },
-              className: `${child.props.className || ""} w-full`.trim(),
+              className: `${child.props.className ?? ""} w-full`.trim(),
             });
           }
           return child;
