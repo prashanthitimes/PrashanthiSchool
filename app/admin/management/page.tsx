@@ -130,6 +130,7 @@ export default function AdminManagement() {
 
   const handleOpenModal = (admin: any = null) => {
     setErrors({});
+
     if (admin) {
       setEditAdmin(admin);
       setFormData({
@@ -138,12 +139,14 @@ export default function AdminManagement() {
         phone: admin.phone || "",
         role: admin.role || "sub_admin",
         description: admin.description || "",
-        password: "" // ✅ ADD THIS
+        password: ""
       });
       setSelectedPerms(admin.permissions || {});
     } else {
       setEditAdmin(null);
-      const [formData, setFormData] = useState({
+
+      // ✅ JUST RESET STATE (NO useState here)
+      setFormData({
         name: "",
         email: "",
         phone: "",
@@ -151,8 +154,10 @@ export default function AdminManagement() {
         description: "",
         password: ""
       });
+
       setSelectedPerms({});
     }
+
     setShowModal(true);
   };
 
@@ -522,8 +527,8 @@ function InputGroup({ label, children, icon, error }: any) {
         </div>
 
         {Children.map(children, (child) => {
-if (isValidElement<any>(child)) {
-              return cloneElement(child, {
+          if (isValidElement<any>(child)) {
+            return cloneElement(child, {
               style: { paddingLeft: '3rem' },
               className: `${child.props.className ?? ""} w-full`.trim(),
             });

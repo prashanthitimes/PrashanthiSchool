@@ -22,7 +22,7 @@ const items = [
 
 export default function ParentMobileDashboard() {
   return (
-    <div className="lg:hidden bg-[#fffcfd] dark:bg-slate-950 transition-colors duration-300 pt-8">
+    <div className="lg:hidden bg-brand dark:bg-slate-950 transition-colors duration-300 pt-8">
 
       <div className="px-4">
         {/* Changed grid-cols-3 to keep a balanced look since we now have 13 items */}
@@ -50,7 +50,7 @@ export default function ParentMobileDashboard() {
 />
               </div>
 
-              <span className="text-[12px] font-black text-slate-800 dark:text-slate-100 mt-2 text-center leading-tight tracking-tight uppercase">
+              <span className="text-[12px] font-black text-black dark:text-slate-100 mt-2 text-center leading-tight tracking-tight uppercase">
                 {item.title}
               </span>
             </Link>

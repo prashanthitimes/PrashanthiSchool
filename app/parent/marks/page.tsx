@@ -4,7 +4,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { FiAward, FiDownload, FiUser, FiBookOpen, FiChevronRight, FiSun, FiMoon } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
-
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 export default function ParentMarks() {
   const [marks, setMarks] = useState<any[]>([]);
   const [student, setStudent] = useState<any>(null);
@@ -76,6 +84,30 @@ export default function ParentMarks() {
     return marks.find(m => m.subject_id === subjectId && m.exam_syllabus?.exam_id === examId);
   };
 
+  const getExamChartData = () => {
+    if (!availableExams.length || !assignments.length) return [];
+
+    return availableExams.map((exam) => {
+      let total = 0;
+      let count = 0;
+
+      assignments.forEach((asgn) => {
+        const subId = asgn.subjects?.id;
+        const m = getMark(subId, exam.id);
+
+        if (m) {
+          total += (m.marks_obtained / m.total_marks) * 100;
+          count++;
+        }
+      });
+
+      return {
+        name: exam.exam_name,
+        value: count > 0 ? Math.round(total / count) : 0,
+      };
+    });
+  };
+
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     if (!isDarkMode) {
@@ -110,19 +142,19 @@ export default function ParentMarks() {
 
   return (
     <div className="min-h-screen pb-24 font-sans bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
-      
+
       {/* 1. TOP RESPONSIVE ACTION BAR */}
       <div className="bg-white dark:bg-slate-900 border-b border-brand-soft dark:border-slate-800 p-4 sticky top-0 z-[60] shadow-sm max-w-7xl mx-auto md:mt-4 md:rounded-2xl flex justify-between items-center transition-colors">
         <div className="flex items-center gap-3">
-        
+
           <div className="hidden sm:block">
             <h2 className="text-[10px] font-black text-brand uppercase leading-none">Student Portal</h2>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Academic Records</p>
           </div>
         </div>
 
-        <button 
-          onClick={downloadImage} 
+        <button
+          onClick={downloadImage}
           className="bg-brand text-white px-5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all text-[10px] font-black uppercase flex items-center gap-2"
         >
           <FiDownload /> <span className="hidden sm:inline">Save Image</span>
@@ -130,11 +162,11 @@ export default function ParentMarks() {
       </div>
 
       {/* 2. THE MAIN REPORT CARD CONTAINER */}
-      <div 
-        ref={reportRef} 
+      <div
+        ref={reportRef}
         className="max-w-md md:max-w-7xl mx-auto bg-white dark:bg-slate-900 overflow-hidden shadow-2xl mt-6 md:rounded-3xl border border-slate-100 dark:border-slate-800 transition-colors"
       >
-        
+
         {/* BRANDED HEADER SECTION */}
         <div className="bg-brand p-8 text-white relative overflow-hidden">
           <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -170,14 +202,14 @@ export default function ParentMarks() {
                 <th className="p-4 md:p-6 text-left text-[10px] md:text-xs uppercase font-black sticky left-0 bg-slate-900 z-50 min-w-[140px] md:min-w-[200px] shadow-[4px_0_10px_rgba(0,0,0,0.3)] border-b border-white/5">
                   Subject
                 </th>
-                
+
                 {/* SCROLLABLE EXAMS */}
                 {availableExams.map(ex => (
                   <th key={ex.id} className="p-4 text-center text-[9px] md:text-[11px] uppercase font-black border-l border-white/5 whitespace-nowrap min-w-[100px] border-b border-white/5">
                     {ex.exam_name}
                   </th>
                 ))}
-                
+
                 {/* STICKY AVERAGE (Right side) */}
                 <th className="p-4 text-center text-[10px] md:text-xs uppercase font-black bg-brand sticky right-0 z-50 min-w-[80px] md:min-w-[100px] shadow-[-4px_0_10px_rgba(0,0,0,0.2)] border-b border-brand-light">
                   Average
@@ -193,12 +225,12 @@ export default function ParentMarks() {
 
                 return (
                   <tr key={subId} className={`${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-brand-soft/5 dark:bg-slate-800/30'} hover:bg-brand-soft/10 dark:hover:bg-brand/10 transition-all`}>
-                    
+
                     {/* STICKY SUBJECT NAME */}
                     <td className="p-4 md:p-6 font-black text-[11px] md:text-sm uppercase text-slate-800 dark:text-slate-200 sticky left-0 bg-inherit z-40 border-r border-brand-soft/10 dark:border-slate-800 shadow-[4px_0_8px_rgba(0,0,0,0.03)]">
                       <div className="flex items-center gap-3">
-                         <div className="w-1.5 h-5 bg-brand rounded-full"></div>
-                         {asgn.subjects?.name}
+                        <div className="w-1.5 h-5 bg-brand rounded-full"></div>
+                        {asgn.subjects?.name}
                       </div>
                     </td>
 
@@ -234,19 +266,73 @@ export default function ParentMarks() {
               })}
             </tbody>
           </table>
+
+
         </div>
+
+
+        {/* 📊 EXAM PERFORMANCE GRAPH */}
+        <div className="p-4 sm:p-6 md:p-10 bg-white dark:bg-slate-900 border-t border-brand-soft dark:border-slate-800">
+
+          <h2 className="text-lg sm:text-xl md:text-2xl font-black text-center mb-4 sm:mb-6 text-slate-800 dark:text-white">
+            Exam Performance Overview
+          </h2>
+
+          <div className="w-full h-[260px] sm:h-[320px] md:h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={getExamChartData()}
+                margin={{ top: 10, right: 10, left: -10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+
+                {/* ✅ MOBILE FRIENDLY X AXIS */}
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 10 }}
+                  interval={0}
+                  angle={-20}
+                  textAnchor="end"
+                />
+
+                {/* ✅ CLEAN Y AXIS */}
+                <YAxis
+                  domain={[0, 100]}
+                  tick={{ fontSize: 10 }}
+                  width={30}
+                />
+
+                {/* ✅ BETTER TOOLTIP */}
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "12px",
+                    fontSize: "12px",
+                  }}
+                />
+
+                {/* ✅ RESPONSIVE BAR SIZE */}
+                <Bar
+                  dataKey="value"
+                  radius={[8, 8, 0, 0]}
+                  barSize={window.innerWidth < 640 ? 18 : 30}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
 
         {/* 4. FOOTER INFO */}
         <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-brand-soft/20 dark:border-slate-800 transition-colors">
-           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-[9px] md:text-[11px] text-slate-400 dark:text-slate-500 font-black tracking-[0.4em] uppercase text-center md:text-left">
-                Verified Digital Certificate • Academic Performance Dashboard
-              </p>
-              <div className="flex items-center gap-2 md:hidden">
-                 <span className="text-[9px] font-black text-brand animate-pulse uppercase">Swipe to see all exams</span>
-                 <FiChevronRight className="text-brand animate-bounce-x" />
-              </div>
-           </div>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-[9px] md:text-[11px] text-slate-400 dark:text-slate-500 font-black tracking-[0.4em] uppercase text-center md:text-left">
+              Verified Digital Certificate • Academic Performance Dashboard
+            </p>
+            <div className="flex items-center gap-2 md:hidden">
+              <span className="text-[9px] font-black text-brand animate-pulse uppercase">Swipe to see all exams</span>
+              <FiChevronRight className="text-brand animate-bounce-x" />
+            </div>
+          </div>
         </div>
       </div>
 

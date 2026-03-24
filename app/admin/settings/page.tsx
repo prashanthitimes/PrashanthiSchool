@@ -59,31 +59,33 @@ export default function SettingsPage() {
     setSaving(true);
 
     try {
-      const payload = {
-        school_name: formData.school_name,
-        principal_name: formData.principal_name,
-        affiliation_no: formData.affiliation_no,
-        email: formData.email,
-        phone: `+91${formData.phone}`,
-        address: formData.address,
+   const payload = {
+  id: 1, // ✅ REQUIRED
 
-        // ✅ NEW DB STRUCTURE
-        academic_start_year: parseInt(yearStart),
-        academic_end_year: parseInt(yearEnd),
+  school_name: formData.school_name,
+  principal_name: formData.principal_name,
+  affiliation_no: formData.affiliation_no,
+  email: formData.email,
+  phone: `+91${formData.phone}`,
+  address: formData.address,
 
-        opening_time: formData.opening_time,
-        closing_time: formData.closing_time,
+  academic_start_year: parseInt(yearStart),
+  academic_end_year: parseInt(yearEnd),
 
-        youtube_link: formData.youtube_link,
-        instagram_link: formData.instagram_link,
-        whatsapp_link: formData.whatsapp_link,
+  opening_time: formData.opening_time,
+  closing_time: formData.closing_time,
 
-        updated_at: new Date().toISOString(),
-      };
+  youtube_link: formData.youtube_link,
+  instagram_link: formData.instagram_link,
+  whatsapp_link: formData.whatsapp_link,
+
+  updated_at: new Date().toISOString(),
+};
 
       const { error } = await supabase
         .from("school_settings")
-        .upsert(payload); // ✅ USE UPSERT
+        .upsert(payload) // ✅ USE UPSERT
+  .select(); 
 
       if (error) {
         console.error("Supabase Error:", error);
@@ -93,7 +95,7 @@ export default function SettingsPage() {
       toast.success("Settings Saved Successfully ✅");
 
     } catch (err) {
-      console.error("Full Error:", err);
+      console.error("Full Error:", JSON.stringify(err, null, 2));
       toast.error("Sync failed ❌");
     } finally {
       setSaving(false);
