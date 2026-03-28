@@ -50,7 +50,7 @@ export default function ParentMobileDashboard() {
 />
               </div>
 
-              <span className="text-[12px] font-black text-black dark:text-slate-100 mt-2 text-center leading-tight tracking-tight uppercase">
+              <span className="text-[12px] font-black text-white dark:text-slate-100 mt-2 text-center leading-tight tracking-tight uppercase">
                 {item.title}
               </span>
             </Link>
