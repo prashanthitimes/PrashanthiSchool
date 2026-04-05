@@ -31,14 +31,14 @@ const Input = ({ label, value, onChange, disabled, type = "text" }: any) => {
         type={type}
         value={value || ""}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)} // This triggers handleInputChange
         className="w-full bg-white dark:bg-slate-900 
         border-2 border-slate-300 dark:border-slate-700 
         rounded-xl px-4 py-3 text-sm font-semibold 
         text-slate-800 dark:text-slate-200 
         outline-none 
         focus:border-[#d487bd] focus:ring-2 focus:ring-[#d487bd]/30 
-        transition-all"
+        transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       />
     </div>
   );
@@ -196,95 +196,122 @@ export default function StudentManagement() {
   };
 
   // --- BULK IMPORT LOGIC WITH ERROR HANDLING ---
+  // --- BULK IMPORT LOGIC WITH ENHANCED ERROR HANDLING ---
+  // --- BULK IMPORT LOGIC WITH ENHANCED ERROR HANDLING ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsImporting(true);
     const reader = new FileReader();
+
     reader.onload = async (evt) => {
       try {
         const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
-        const data: any[] = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        // cellDates: true handles Excel's internal date format automatically
+        const wb = XLSX.read(bstr, { type: "binary", cellDates: true });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data: any[] = XLSX.utils.sheet_to_json(ws);
 
-        const validRecords: any[] = [];
-        const errorLogs: string[] = [];
-
-        data.forEach((row, index) => {
-          const rowNum = index + 2; // Excel row number
-          if (!row.full_name) errorLogs.push(`Row ${rowNum}: Name is missing`);
-          else if (!row.father_name) errorLogs.push(`Row ${rowNum}: Father's name is missing`);
-          else if (!row.mobile_no) errorLogs.push(`Row ${rowNum}: Mobile number is missing`);
-          else {
-            validRecords.push({
-              ...row,
-              student_id: `STU-${Date.now().toString().slice(-6)}`,
-              academic_year: row.academic_year || "2026-27",
-              class_name: row.class_name || selectedClass,
-              section: row.section || selectedSection
-            });
-          }
-        });
-
-        if (errorLogs.length > 0) {
-          errorLogs.slice(0, 3).forEach(err => toast.error(err));
+        if (data.length === 0) {
+          toast.error("The file is empty");
           setIsImporting(false);
           return;
         }
 
-        // Insert one by one to catch per-row errors
-        const successfulInserts: any[] = [];
-        for (let i = 0; i < validRecords.length; i++) {
-          const record = validRecords[i];
-          const rowNum = i + 2;
+        const validRecords: any[] = [];
+        const parsingErrors: string[] = [];
 
-          // Check duplicates in the table
-          const { data: existing } = await supabase
-            .from("students")
-            .select("id")
-            .eq("full_name", record.full_name)
-            .eq("father_name", record.father_name)
-            .eq("mobile_no", record.mobile_no)
-            .limit(1);
+        data.forEach((row, index) => {
+          const rowNum = index + 2;
+          let formattedDob = null;
 
-          if (existing && existing.length > 0) {
-            errorLogs.push(`Row ${rowNum}: Duplicate student (name + father + mobile) exists`);
-            continue; // skip insert
+          try {
+            // 1. VALIDATION
+            if (!row.full_name) throw new Error("Name missing");
+
+            // 2. DATE PARSING & REVERSAL LOGIC
+            if (row.dob) {
+              if (row.dob instanceof Date) {
+                formattedDob = row.dob.toISOString().split('T')[0];
+              } else {
+                const dateStr = String(row.dob).trim();
+                // Split by common delimiters like / or -
+                const parts = dateStr.split(/[-/]/);
+
+                if (parts.length === 3) {
+                  const [p1, p2, p3] = parts;
+
+                  // If p1 is 4 digits, it's already YYYY-MM-DD
+                  if (p1.length === 4) {
+                    formattedDob = `${p1}-${p2.padStart(2, '0')}-${p3.padStart(2, '0')}`;
+                  } else {
+                    // Assume it's DD-MM-YYYY and reverse it for PostgreSQL
+                    const day = p1.padStart(2, '0');
+                    const month = p2.padStart(2, '0');
+                    const year = p3;
+                    formattedDob = `${year}-${month}-${day}`;
+                  }
+                }
+              }
+            }
+
+            // 3. CONSTRUCT RECORD
+            validRecords.push({
+              student_id: row.student_id || `STU-${Math.floor(100000 + Math.random() * 900000)}`,
+              full_name: row.full_name,
+              dob: formattedDob,
+              father_name: row.father_name || "",
+              mother_name: row.mother_name || "",
+              caste: row.caste || "",
+              mobile_no: row.mobile_no?.toString() || "",
+              sats_no: row.sats_no?.toString() || "",
+              pen_no: row.pen_no?.toString() || "",
+              birth_certificate_no: row.birth_certificate_no?.toString() || "",
+              aadhar_no: row.aadhar_no?.toString() || "",
+              village: row.village || "",
+              class_name: row.class_name || selectedClass,
+              section: row.section || selectedSection,
+              roll_number: row.roll_number ? parseInt(row.roll_number) : null,
+              academic_year: row.academic_year || academicYear,
+            });
+          } catch (err: any) {
+            parsingErrors.push(`Row ${rowNum}: ${err.message}`);
           }
+        });
 
-          // Insert record
-          const { error } = await supabase.from("students").insert([record]);
+        // 4. SUPABASE INSERT
+        if (validRecords.length > 0) {
+          const { error } = await supabase.from("students").insert(validRecords);
+
           if (error) {
-            errorLogs.push(`Row ${rowNum}: ${error.message}`);
+            console.error("Supabase Error Details:", error);
+            toast.error(`Database Error: ${error.message}`);
           } else {
-            successfulInserts.push(record);
+            toast.success(`Successfully imported ${validRecords.length} students`);
+            lastAction.current = { type: 'import', data: validRecords };
+            setCanUndo(true);
+            fetchStudents();
           }
         }
 
-        if (errorLogs.length > 0) {
-          errorLogs.slice(0, 5).forEach(err => toast.error(err));
-          if (successfulInserts.length > 0) {
-            toast.success(`${successfulInserts.length} records imported successfully`);
-          }
-        } else {
-          toast.success("Import Successful");
+        if (parsingErrors.length > 0) {
+          toast.warning(`${parsingErrors.length} rows were skipped due to errors.`);
         }
 
-        if (successfulInserts.length > 0) {
-          lastAction.current = { type: 'import', data: successfulInserts };
-          setCanUndo(true);
-          fetchStudents();
-        }
       } catch (err: any) {
-        toast.error("Import failed", { description: err.message });
+        console.error("Import Crash:", err);
+        toast.error("Import process failed.");
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
+
     reader.readAsBinaryString(file);
   };
+
   const handleDelete = async (student: any) => {
     if (!student.id) return;
 
@@ -308,15 +335,24 @@ export default function StudentManagement() {
   const handleSubmit = async () => {
     if (!formData.full_name) return toast.error("Name is required");
 
-    // Fix: Convert roll_number to integer or null
-    const rollNumberInt = formData.roll_number === "" ? null : parseInt(formData.roll_number.toString());
+    // Format the DOB to YYYY-MM-DD before sending to Supabase
+    let finalDob = formData.dob;
+    if (finalDob && finalDob.includes('/')) {
+      const parts = finalDob.split('/');
+      if (parts.length === 3) {
+        // Reverses DD/MM/YYYY to YYYY-MM-DD
+        finalDob = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
 
     const payload = {
       ...formData,
-      roll_number: rollNumberInt,
+      dob: finalDob, // Use the sanitized date
+      roll_number: formData.roll_number === "" ? null : parseInt(formData.roll_number.toString()),
       email: formData.email || null,
-      // Note: We don't usually send the 'id' (UUID) inside the update payload
     };
+
+
 
     if (mode === 'edit') {
       if (!currentStudentId) {
@@ -381,7 +417,21 @@ export default function StudentManagement() {
 
   };
   // ✅ PLACE THIS OUTSIDE YOUR MAIN COMPONENT FUNCTION
+  const formatDateForInput = (dateString: string) => {
+    if (!dateString) return "";
 
+    // If it's already YYYY-MM-DD, return it
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return ""; // Invalid date
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+  // Place this inside StudentManagement component, after closeModal
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -663,9 +713,9 @@ export default function StudentManagement() {
                     />
                     <div className="grid grid-cols-2 gap-4">
                       <Input
-                        label="Date of Birth"
-                        type="date"
-                        value={formData.dob}
+                        label="Date of Birth(MM/DD/YYYY"
+                        type="date" // This ensures the browser returns YYYY-MM-DD
+                        value={formatDateForInput(formData.dob)}
                         onChange={(val: string) => handleInputChange('dob', val)}
                         disabled={mode === 'view'}
                       />

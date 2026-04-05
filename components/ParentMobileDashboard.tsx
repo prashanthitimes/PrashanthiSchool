@@ -13,7 +13,7 @@ const items = [
   { title: "Exams", img: "/examicon.png", link: "/parent/exams" },
   { title: "Syllabus", img: "/Syllabus.png", link: "/parent/syllabus" },
   { title: "Report Card", img: "/ReportCard.png", link: "/parent/marks" },
-  { title: "Calendar", img: "/Calendaricon.png", link: "/parent/calendar" },
+  { title: "Calendar", img: "/Copy.png", link: "/parent/calendar" },
   { title: "Fees", img: "/Fees.png", link: "/parent/fees" },
   { title: "Transport", img: "/Transporticon.png", link: "/parent/transport" },
   { title: "Notice", img: "/Notice.png", link: "/parent/notices" },
