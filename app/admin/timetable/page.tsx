@@ -229,44 +229,43 @@ export default function TimeTablePage() {
     doc.save(`${active.label}_Timetable.pdf`)
   }
 
-  async function handleInlineUpdate(day: string, period: number, subjectId: string) {
-
+async function handleInlineUpdate(day: string, period: number, subjectId: string) {
     if (!subjectId) return;
 
-    if (subjectId === "delete") {
+    // Use a string version of the class to match the new DB type
+    const currentClass = String(active.class);
 
+    if (subjectId === "delete") {
       await supabase
         .from('timetable')
         .delete()
         .match({
-          class: active.class,
+          class: currentClass,
           section: active.section,
           day,
           period
-        })
-
+        });
     } else {
-
       const { error } = await supabase
         .from('timetable')
         .upsert({
-          class: active.class,
+          class: currentClass,
           section: active.section,
           day,
           period,
           subject_id: subjectId
         }, {
           onConflict: 'class,section,day,period'
-        })
+        });
 
       if (error) {
-        console.error("Timetable Save Error:", error.message, error.details)
+        console.error("Timetable Save Error:", error.message, error.details);
+        alert("Error saving: " + error.message); // Added alert for visibility
       }
-
     }
-
-    await fetchTimetable()
+    await fetchTimetable();
   }
+  
   return (
     <div className="max-w-7xl mx-auto mt-4 md:mt-10 px-3 py-2 space-y-4 md:space-y-6 bg-[#fffcfd] dark:bg-slate-950 transition-colors duration-300">
 

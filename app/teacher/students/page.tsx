@@ -23,22 +23,26 @@ export default function TeacherClassList() {
         initData()
     }, [])
 
-    async function initData() {
-        setLoading(true)
-        // 1. Fetch the Academic Year from school_settings
-        const { data: settings } = await supabase
-            .from('school_settings')
-            .select('academic_start_year, academic_end_year')
-            .eq('id', 1)
-            .single()
+  async function initData() {
+    setLoading(true)
+    const { data: settings } = await supabase
+        .from('school_settings')
+        .select('academic_start_year, academic_end_year')
+        .eq('id', 1)
+        .single()
 
-      if (settings) {
-    const yearString = `${settings.academic_start_year}-${settings.academic_end_year}`
-    console.log("Searching for Academic Year:", yearString); // CHECK THIS IN BROWSER CONSOLE
-    setCurrentAcademicYear(yearString)
-    await fetchTeacherAllocations(yearString)
-}
+    if (settings) {
+        // Convert 2027 to "27"
+        const shortEndYear = settings.academic_end_year.toString().slice(-2);
+        const yearString = `${settings.academic_start_year}-${shortEndYear}`;
+        
+        console.log("Searching for Academic Year:", yearString); 
+        setCurrentAcademicYear(yearString)
+        await fetchTeacherAllocations(yearString)
+    } else {
+        setLoading(false)
     }
+}
 
     async function fetchTeacherAllocations(yearString: string) {
         const email = localStorage.getItem('teacherEmail')

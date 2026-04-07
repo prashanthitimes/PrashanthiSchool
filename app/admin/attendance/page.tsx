@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
-    FiUserCheck, FiSearch, FiCalendar, 
+    FiUserCheck, FiSearch, FiCalendar,
     FiCircle, FiCheckCircle, FiXCircle, FiClock, FiFilter, FiSun, FiMoon
 } from 'react-icons/fi'
 
@@ -68,15 +68,29 @@ export default function AttendanceAdminPage() {
             if (error) throw error;
 
             let results = data || [];
-            
-            // Client-side Filter for Class-Section
-            if (selectedClass !== 'All') {
-                const [cls, sec] = selectedClass.split('-');
-                results = results.filter((item: any) =>
-                    String(item.students?.class_name) === cls &&
-                    item.students?.section === sec
-                );
-            }
+
+
+           // Client-side Filter for Class-Section
+if (selectedClass !== 'All') {
+    // This regex splits "7-C" into "7" and "C", or "Pre-KG-A" into "Pre-KG" and "A"
+    const lastDashIndex = selectedClass.lastIndexOf('-');
+    const cls = selectedClass.substring(0, lastDashIndex);
+    const sec = selectedClass.substring(lastDashIndex + 1);
+
+    results = results.filter((item: any) => {
+        const studentClass = String(item.students?.class_name || "").toLowerCase();
+        const studentSection = String(item.students?.section || "").toLowerCase();
+        
+        // Normalize the comparison: 
+        // Checks if "7th" includes "7" OR if they match exactly
+        const classMatch = studentClass === cls.toLowerCase() || 
+                           studentClass === `${cls.toLowerCase()}th`;
+                           
+        const sectionMatch = studentSection === sec.toLowerCase();
+        
+        return classMatch && sectionMatch;
+    });
+}
             setAttendance(results);
         } catch (error: any) {
             console.error("Supabase Query Error:", error.message);
