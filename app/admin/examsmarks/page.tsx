@@ -1,56 +1,73 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { BookOpen, Save, FileSpreadsheet, Search, CheckCircle2, XCircle, Loader2, AlertTriangle, Lock, UserMinus, Info, GraduationCap } from 'lucide-react'
+import { useEffect, useState, useMemo } from 'react'
+import { 
+  Save, 
+  FileSpreadsheet, 
+  Search, 
+  Loader2, 
+  GraduationCap, 
+  CheckCircle, 
+  UserPlus, 
+  ShieldCheck,
+  UserX
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast, Toaster } from 'sonner'
 
+// Updated Type to include 'Absent'
+interface MarkRecord {
+  student_id: string
+  name: string
+  roll_no: string
+  db_id: string | null
+  marks_obtained: string | number
+  remarks: string
+  status: 'Pass' | 'Fail' | 'Pending' | 'Absent'
+  is_locked: boolean
+}
+
+interface Exam { id: string; exam_name: string; classes: any }
+interface Subject { id: string; name: string }
+
 export default function ExamMarksManager() {
-  const [exams, setExams] = useState<any[]>([])
-  const [subjects, setSubjects] = useState<any[]>([])
-  const [marksData, setMarksData] = useState<any[]>([])
+  const [exams, setExams] = useState<Exam[]>([])
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [marksData, setMarksData] = useState<MarkRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isFetching, setIsFetching] = useState(false)
 
   // FILTER STATES
   const [selectedExamId, setSelectedExamId] = useState<string>('')
-  const [availableClasses, setAvailableClasses] = useState<string[]>([]) // Classes for the selected exam
+  const [availableClasses, setAvailableClasses] = useState<string[]>([])
   const [selectedClass, setSelectedClass] = useState<string>('')
   const [selectedSubject, setSelectedSubject] = useState<string>('')
 
   useEffect(() => {
     const loadFilters = async () => {
       setIsLoading(true)
-      // 1. Fetch Exams
-      const { data: ex } = await supabase
-        .from('exams')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      // 2. Fetch Subjects
-      const { data: sub } = await supabase
-        .from('subjects')
-        .select('*')
-        .order('name')
-
-      if (ex) setExams(ex)
-      if (sub) setSubjects(sub)
-      setIsLoading(false)
+      try {
+        const { data: ex } = await supabase.from('exams').select('id, exam_name, classes').order('created_at', { ascending: false })
+        const { data: sub } = await supabase.from('subjects').select('id, name').order('name')
+        if (ex) setExams(ex)
+        if (sub) setSubjects(sub)
+      } catch (err) {
+        toast.error("Failed to load setup data")
+      } finally {
+        setIsLoading(false)
+      }
     }
     loadFilters()
   }, [])
 
-  // Handle Exam Change: Update available classes based on exam selection
   const handleExamChange = (examId: string) => {
     setSelectedExamId(examId)
-    setSelectedClass('') // Reset class when exam changes
-    setMarksData([]) // Clear table
-
+    setSelectedClass('')
+    setMarksData([])
     const exam = exams.find(x => x.id === examId)
-    if (exam && exam.classes) {
-      // Ensure classes is handled as an array
-      setAvailableClasses(Array.isArray(exam.classes) ? exam.classes : [exam.classes])
-    } else {
-      setAvailableClasses([])
+    if (exam?.classes) {
+      const classList = typeof exam.classes === 'string' ? JSON.parse(exam.classes) : exam.classes
+      setAvailableClasses(Array.isArray(classList) ? classList : [])
     }
   }
 
@@ -60,260 +77,307 @@ export default function ExamMarksManager() {
       return
     }
 
-    setIsLoading(true)
-    setMarksData([])
-
+    setIsFetching(true)
     try {
-      // 1. Get students for the specific selected class
-      const { data: studentList } = await supabase
-        .from('students')
-        .select('id, full_name, roll_number, class_name')
-        .eq('class_name', selectedClass)
+      const lastDashIndex = selectedClass.lastIndexOf('-')
+      const classNamePart = selectedClass.substring(0, lastDashIndex)
+      const sectionPart = selectedClass.substring(lastDashIndex + 1)
+      const dbClassName = classNamePart.match(/^\d+$/) ? `${classNamePart}th` : classNamePart
 
-      // 2. Get existing marks
-      const { data: existingMarks } = await supabase
-        .from('exam_marks')
-        .select('*')
-        .eq('exam_id', selectedExamId)
-        .eq('subject_id', selectedSubject)
+      const [studentsRes, marksRes] = await Promise.all([
+        supabase.from('students').select('id, full_name, roll_number').eq('class_name', dbClassName).eq('section', sectionPart),
+        supabase.from('exam_marks').select('*').eq('exam_id', selectedExamId).eq('subject_id', selectedSubject)
+      ])
 
-      if (studentList) {
-        const formattedData = studentList.map(student => {
-          const record = existingMarks?.find(m => m.student_id === student.id)
-          return {
-            student_id: student.id,
-            name: student.full_name,
-            roll_no: student.roll_number,
-            db_id: record?.id || null,
-            marks_obtained: record?.marks_obtained ?? '',
-            remarks: record?.remarks || '',
-            status: record?.status || 'Pending',
-            is_locked: !!record
-          }
-        })
+      const formattedData: MarkRecord[] = (studentsRes.data || []).map(student => {
+        const record = marksRes.data?.find(m => m.student_id === student.id)
+        return {
+          student_id: student.id,
+          name: student.full_name,
+          roll_no: student.roll_number,
+          db_id: record?.id || null,
+          marks_obtained: record?.status === 'Absent' ? '' : (record?.marks_obtained ?? ''),
+          remarks: record?.remarks || '',
+          status: (record?.status as any) || 'Pending',
+          is_locked: !!record 
+        }
+      })
 
-        // Sort: Pending at top, then by Roll Number
-        const sortedData = formattedData.sort((a, b) => {
-          if (a.status === 'Pending' && b.status !== 'Pending') return -1
-          if (a.status !== 'Pending' && b.status === 'Pending') return 1
-          return (a.roll_no || 0) - (b.roll_no || 0)
-        })
-
-        setMarksData(sortedData)
-        toast.success(`Loaded ${studentList.length} students`)
-      }
+      setMarksData(formattedData)
+      toast.success(`Registry loaded: ${formattedData.length} records`)
     } catch (error) {
-      toast.error("Failed to fetch records")
+      toast.error("Error retrieving registry")
     } finally {
-      setIsLoading(false)
+      setIsFetching(false)
     }
   }
 
-  // ... (Keep updateRow, toggleAbsent, and handleBulkSave from your previous code)
-  const updateRow = (index: number, field: string, value: any) => {
-    if (marksData[index].is_locked) return;
-    const update = [...marksData]
-    update[index][field] = value
-    if (field === 'marks_obtained' && update[index].status !== 'Absent') {
-      update[index].status = parseFloat(value) >= 35 ? 'Pass' : 'Fail'
-    }
-    setMarksData(update)
-  }
+  // --- LOGIC FOR UPDATING ROWS & TOGGLING ABSENT ---
+ const updateRow = (studentId: string, field: keyof MarkRecord, value: any) => {
+  setMarksData(prev => prev.map(item => {
+    if (item.student_id === studentId) {
+      let finalValue = value;
 
-  const toggleAbsent = (index: number) => {
-    if (marksData[index].is_locked) return;
-    const update = [...marksData];
-    if (update[index].status === 'Absent') {
-      update[index].status = 'Pending';
-      update[index].marks_obtained = '';
-    } else {
-      update[index].status = 'Absent';
-      update[index].marks_obtained = 0;
-      update[index].remarks = 'Absent';
+      // Logic to block numbers greater than 100
+      if (field === 'marks_obtained' && value !== '') {
+        const numValue = parseFloat(value);
+        if (numValue > 100) {
+          finalValue = 100; // Force it to 100
+          toast.warning("Maximum marks allowed is 100");
+        } else if (numValue < 0) {
+          finalValue = 0; // Force it to 0
+        }
+      }
+
+      const updated = { ...item, [field]: finalValue };
+      
+      if (field === 'marks_obtained' && updated.status !== 'Absent') {
+        const numValue = parseFloat(String(finalValue));
+        updated.status = isNaN(numValue) ? 'Pending' : (numValue >= 35 ? 'Pass' : 'Fail');
+      }
+      return updated;
     }
-    setMarksData(update);
+    return item;
+  }))
+}
+
+  const toggleAbsent = (studentId: string) => {
+    setMarksData(prev => prev.map(item => {
+      if (item.student_id === studentId && !item.is_locked) {
+        const isCurrentlyAbsent = item.status === 'Absent'
+        return {
+          ...item,
+          status: isCurrentlyAbsent ? 'Pending' : 'Absent',
+          marks_obtained: isCurrentlyAbsent ? '' : 0, // Clear marks if absent
+          remarks: isCurrentlyAbsent ? item.remarks : 'Student was absent for the examination'
+        }
+      }
+      return item
+    }))
   }
 
   const handleBulkSave = async () => {
-    const payload = marksData
-      .filter(row => !row.is_locked && (row.marks_obtained !== '' || row.status === 'Absent'))
-      .map(row => ({
-        exam_id: selectedExamId, // Use exam_id consistent with fetch
-        subject_id: selectedSubject,
-        student_id: row.student_id,
-        marks_obtained: parseFloat(row.marks_obtained) || 0,
-        total_marks: 100,
-        remarks: row.remarks,
-        status: row.status
-      }))
+    const { data: { user } } = await supabase.auth.getUser()
+    const rowsToSave = marksData.filter(row => !row.is_locked && (row.marks_obtained !== '' || row.status === 'Absent'))
 
-    if (payload.length === 0) return toast.error("No new marks to save.")
+    if (rowsToSave.length === 0) return toast.error("No new changes to save.")
 
+    const payload = rowsToSave.map(row => ({
+      exam_id: selectedExamId,
+      subject_id: selectedSubject,
+      student_id: row.student_id,
+      teacher_id: user?.id || 'a735f722-cdd6-4b7e-bbf8-4e5e240fddc2', 
+      marks_obtained: row.status === 'Absent' ? 0 : (parseFloat(String(row.marks_obtained)) || 0),
+      total_marks: 100,
+      remarks: row.remarks,
+      status: row.status
+    }))
+
+    setIsFetching(true)
     const { error } = await supabase.from('exam_marks').insert(payload)
-    if (error) toast.error("Some entries might already exist.")
-    else {
-      toast.success("All marks saved successfully.")
+    if (error) {
+      toast.error("Save failed.")
+      setIsFetching(false)
+    } else {
+      toast.success("Marks archived successfully")
       fetchMarksheet()
     }
   }
 
-  const pendingCount = marksData.filter(m => m.status === 'Pending').length;
+  const pendingStudents = useMemo(() => marksData.filter(m => !m.is_locked), [marksData])
+  const savedStudents = useMemo(() => marksData.filter(m => m.is_locked), [marksData])
 
   return (
-    <div className="bg-[#fcfcfd] dark:bg-slate-950 p-6 md:p-10 transition-colors duration-300 min-h-screen">
+    <div className="bg-slate-50 dark:bg-slate-950 p-4 md:p-8 min-h-screen">
       <Toaster position="top-right" richColors />
 
       {/* HEADER */}
-      <header className="flex flex-wrap items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-8 py-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm mb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#fdf2f9] dark:bg-slate-800 text-[#a63d93] dark:text-pink-400 rounded-2xl flex items-center justify-center shadow-inner">
-            <FileSpreadsheet size={24} />
+      <header className="flex flex-wrap items-center justify-between bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl px-8 py-6 rounded-[2.5rem] border border-white dark:border-slate-800 shadow-xl shadow-brand/5 mb-8">
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 bg-brand-soft dark:bg-brand/20 text-brand rounded-2xl flex items-center justify-center">
+            <FileSpreadsheet size={28} />
           </div>
           <div>
-            <h1 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">Registry Allotment</h1>
-            <p className="text-[10px] font-bold text-[#a63d93] dark:text-pink-400/80 tracking-[0.2em] uppercase">
-              {selectedClass ? `Class: ${selectedClass}` : 'Select Class to Start'}
+            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">Registry Allotment</h1>
+            <p className="text-[10px] font-bold text-brand tracking-[0.2em] uppercase">
+              {selectedClass ? `Class: ${selectedClass}` : 'Filters required'}
             </p>
           </div>
         </div>
 
         <button 
           onClick={handleBulkSave} 
-          disabled={marksData.length === 0}
-          className="flex items-center gap-2 bg-[#a63d93] dark:bg-pink-700 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl disabled:opacity-50 transition-all hover:opacity-90"
+          disabled={rowsToSaveCount(marksData) === 0 || isFetching}
+          className="flex items-center gap-3 bg-brand hover:bg-brand-dark text-white px-10 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-brand/20 transition-all disabled:opacity-30"
         >
-          <Save size={16} /> Finalize Records
+          {isFetching ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 
+          Finalize Registry
         </button>
       </header>
 
       {/* FILTERS */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-wrap gap-4 items-center mb-8">
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-wrap gap-6 items-end mb-10">
+        <FilterSelect label="1. Select Exam" value={selectedExamId} onChange={handleExamChange} options={exams.map(e => ({ id: e.id, name: e.exam_name }))} />
+        <FilterSelect label="2. Target Class" value={selectedClass} onChange={setSelectedClass} options={availableClasses.map(c => ({ id: c, name: c }))} disabled={!selectedExamId} />
+        <FilterSelect label="3. Subject" value={selectedSubject} onChange={setSelectedSubject} options={subjects.map(s => ({ id: s.id, name: s.name }))} />
         
-        {/* 1. EXAM SELECT */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[9px] font-bold text-slate-400 uppercase ml-2">Step 1: Exam</span>
-          <select 
-            className="premium-select" 
-            value={selectedExamId} 
-            onChange={(e) => handleExamChange(e.target.value)}
-          >
-            <option value="">Choose Exam</option>
-            {exams.map(e => <option key={e.id} value={e.id}>{e.exam_name}</option>)}
-          </select>
-        </div>
-
-        {/* 2. CLASS SELECT (Filtered by Exam) */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[9px] font-bold text-slate-400 uppercase ml-2">Step 2: Class</span>
-          <select 
-            className="premium-select" 
-            value={selectedClass} 
-            disabled={!selectedExamId}
-            onChange={(e) => setSelectedClass(e.target.value)}
-          >
-            <option value="">Choose Class</option>
-            {availableClasses.map(cls => <option key={cls} value={cls}>{cls}</option>)}
-          </select>
-        </div>
-
-        {/* 3. SUBJECT SELECT */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[9px] font-bold text-slate-400 uppercase ml-2">Step 3: Subject</span>
-          <select 
-            className="premium-select" 
-            value={selectedSubject} 
-            onChange={(e) => setSelectedSubject(e.target.value)}
-          >
-            <option value="">Choose Subject</option>
-            {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </div>
-
-        <button 
-          onClick={fetchMarksheet} 
-          className="mt-5 flex items-center gap-3 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform"
-        >
-          {isLoading ? <Loader2 className="animate-spin" size={14} /> : <Search size={14} />} Fetch Students
+        <button onClick={fetchMarksheet} disabled={isFetching} className="h-[58px] px-10 bg-slate-900 dark:bg-brand-light text-white rounded-2xl flex items-center gap-3 hover:bg-brand transition-all font-black text-xs uppercase tracking-widest">
+          {isFetching ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />} Fetch
         </button>
       </div>
 
-      {/* TABLE SECTION (Remains largely the same as your previous design) */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden">
-        {marksData.length > 0 ? (
-          <div className="overflow-x-auto">
-             <table className="w-full text-left">
-                {/* ... existing table code ... */}
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">
-                    <th className="p-6">Roll</th>
-                    <th className="p-6">Student</th>
-                    <th className="p-6 text-center">Marks (100)</th>
-                    <th className="p-6">Remarks</th>
-                    <th className="p-6 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                  {marksData.map((row, idx) => (
-                    <tr key={row.student_id} className={`transition-all ${row.status === 'Pending' ? 'bg-pink-50/30 dark:bg-pink-900/10' : ''}`}>
-                      <td className="p-6 font-black text-slate-400 text-xs">#{row.roll_no}</td>
-                      <td className="p-6 font-black text-slate-700 dark:text-slate-200 text-xs uppercase">{row.name}</td>
-                      <td className="p-6 text-center">
-                        <input
-                          type="number"
-                          value={row.marks_obtained}
-                          disabled={row.is_locked || row.status === 'Absent'}
-                          onChange={(e) => updateRow(idx, 'marks_obtained', e.target.value)}
-                          className="w-20 p-2 text-center border-2 rounded-xl font-black outline-none border-slate-100 dark:bg-slate-800 dark:border-slate-700"
-                        />
-                      </td>
-                      <td className="p-6">
-                        <input
-                          type="text"
-                          value={row.remarks}
-                          disabled={row.is_locked}
-                          onChange={(e) => updateRow(idx, 'remarks', e.target.value)}
-                          className="w-full bg-transparent border-b border-slate-100 py-1 text-xs outline-none focus:border-[#a63d93]"
-                          placeholder="..."
-                        />
-                      </td>
-                      <td className="p-6 text-center">
-                        <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase border">
-                           {row.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-             </table>
-          </div>
-        ) : (
-          <div className="p-24 text-center">
-            <GraduationCap className="mx-auto text-slate-200 mb-4" size={48} />
-            <p className="font-black text-slate-300 uppercase text-xs tracking-[0.3em]">Select Filters to Load Registry</p>
-          </div>
-        )}
-      </div>
+      {/* DATA AREA */}
+      {marksData.length > 0 ? (
+        <div className="space-y-12">
+          <section>
+            <div className="flex items-center gap-4 mb-6 ml-6">
+              <div className="w-10 h-10 rounded-xl bg-brand-soft text-brand flex items-center justify-center"><UserPlus size={20} /></div>
+              <h2 className="text-base font-black uppercase tracking-[0.3em]">New Entries ({pendingStudents.length})</h2>
+            </div>
+            <div className="bg-white dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-brand/20 overflow-hidden">
+              <MarksTable data={pendingStudents} onUpdate={updateRow} onToggleAbsent={toggleAbsent} />
+            </div>
+          </section>
+
+          <section className="opacity-80">
+            <div className="flex items-center gap-4 mb-6 ml-6 text-slate-500">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center"><CheckCircle size={20} /></div>
+              <h2 className="text-base font-black uppercase tracking-[0.3em]">Locked Records ({savedStudents.length})</h2>
+            </div>
+            <div className="bg-white/50 dark:bg-slate-900/40 rounded-[3rem] border border-slate-100 overflow-hidden">
+              <MarksTable data={savedStudents} onUpdate={()=>{}} onToggleAbsent={()=>{}} isLocked={true} />
+            </div>
+          </section>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-slate-900 rounded-[4rem] p-40 text-center border border-slate-100">
+          <GraduationCap className="mx-auto text-brand-soft/50 mb-8" size={100} />
+          <p className="font-black text-slate-300 uppercase text-[12px] tracking-[0.8em]">Select parameters to load students</p>
+        </div>
+      )}
 
       <style jsx global>{`
         .premium-select { 
-          background: white; 
-          border: 2px solid #f1f5f9; 
-          padding: 0.8rem 1.2rem; 
-          border-radius: 1rem; 
-          font-size: 11px; 
-          font-weight: 800; 
-          text-transform: uppercase; 
-          outline: none; 
-          transition: all 0.2s; 
-          cursor: pointer; 
-          min-width: 180px;
+          appearance: none; background: #f8fafc; border: 2px solid #f1f5f9; padding: 0 1.5rem; height: 58px; 
+          border-radius: 1.25rem; font-size: 12px; font-weight: 800; text-transform: uppercase; outline: none; 
+          transition: all 0.3s; width: 100%; color: #1e293b;
         }
-        .dark .premium-select {
-          background: #1e293b;
-          border-color: #334155;
-          color: #f1f5f9;
-        }
+        .premium-select:focus { border-color: #8f1e7a; background: #fff; }
+        .dark .premium-select { background: #1e293b; border-color: #334155; color: #f1f5f9; }
       `}</style>
     </div>
   )
+}
+
+function FilterSelect({ label, value, onChange, options, disabled = false }: any) {
+  return (
+    <div className="flex-1 min-w-[200px] flex flex-col gap-2">
+      <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">{label}</label>
+      <select className="premium-select" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+        <option value="">Choose...</option>
+        {options.map((opt: any) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
+      </select>
+    </div>
+  )
+}
+
+function MarksTable({ data, onUpdate, onToggleAbsent, isLocked = false }: any) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left">
+        <thead>
+          <tr className="bg-slate-50/80 dark:bg-slate-800/50 text-[10px] font-black uppercase text-brand tracking-[0.25em] border-b border-slate-100">
+            <th className="p-8">ID / Roll</th>
+            <th className="p-8">Student Name</th>
+            <th className="p-8 text-center">Marks (100)</th>
+            <th className="p-8 text-center">Status</th>
+            <th className="p-8">Remarks</th>
+            <th className="p-8 text-center">Absent</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+          {data.map((row: MarkRecord) => {
+            const isAbsent = row.status === 'Absent';
+            return (
+              <tr key={row.student_id} className={`group transition-all ${isLocked ? 'grayscale-[0.4]' : ''}`}>
+                <td className="p-8 font-black text-brand-light/60 text-xs tabular-nums">#{row.roll_no || '00'}</td>
+                <td className="p-8">
+                  <p className="font-black text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight">{row.name}</p>
+                </td>
+                <td className="p-8 text-center">
+                  <input
+  type="number"
+  value={row.marks_obtained}
+  disabled={isLocked || isAbsent}
+  // Prevent typing 'e', '+', '-', etc. and clamp value
+  onChange={(e) => {
+    const val = e.target.value;
+    if (Number(val) <= 100) {
+      onUpdate(row.student_id, 'marks_obtained', val);
+    } else {
+      onUpdate(row.student_id, 'marks_obtained', 100);
+    }
+  }}
+  onKeyDown={(e) => {
+    // Optional: Block symbols like 'e' or '-' from being typed
+    if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault();
+  }}
+  className={`w-24 h-14 text-center rounded-2xl font-black text-lg outline-none transition-all border-2 ${
+    isAbsent || isLocked
+      ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 border-transparent cursor-not-allowed' 
+      : 'bg-brand-accent/30 dark:bg-slate-800 text-brand border-transparent focus:border-brand shadow-sm'
+  }`}
+/>
+                </td>
+                <td className="p-8 text-center">
+                  <StatusBadge status={row.status} />
+                </td>
+                <td className="p-8">
+                  <input
+                    type="text"
+                    value={row.remarks}
+                    disabled={isLocked || isAbsent}
+                    onChange={(e) => onUpdate(row.student_id, 'remarks', e.target.value)}
+                    className="w-full bg-transparent py-3 text-xs font-medium outline-none border-b-2 border-transparent focus:border-brand/20"
+                    placeholder="Enter observation..."
+                  />
+                </td>
+                <td className="p-8 text-center">
+                  <button 
+                    onClick={() => onToggleAbsent(row.student_id)}
+                    disabled={isLocked}
+                    className={`p-4 rounded-2xl transition-all border-2 ${
+                      isAbsent 
+                        ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-200' 
+                        : 'bg-white dark:bg-slate-800 text-slate-300 border-slate-100 dark:border-slate-700 hover:border-rose-200 hover:text-rose-400'
+                    }`}
+                  >
+                    <UserX size={20} />
+                  </button>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: any = {
+    Pass: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    Fail: 'bg-rose-50 text-rose-600 border-rose-100',
+    Absent: 'bg-slate-900 text-white border-slate-900',
+    Pending: 'bg-slate-50 text-slate-400 border-slate-100'
+  }
+  return (
+    <span className={`inline-flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-black uppercase border ${styles[status] || styles.Pending}`}>
+      {status}
+    </span>
+  )
+}
+
+function rowsToSaveCount(data: MarkRecord[]) {
+  return data.filter(row => !row.is_locked && (row.marks_obtained !== '' || row.status === 'Absent')).length;
 }

@@ -62,7 +62,7 @@ export default function StudentAdminPage() {
       const { data, error } = await supabase
         .from('students')
         .select('*')
-        .eq('academic_year', yearFilter)
+.eq('academic_year', yearFilter)
         .order('class_name', { ascending: true })
         .order('roll_number', { ascending: true });
 
@@ -159,10 +159,19 @@ export default function StudentAdminPage() {
       
       {/* HEADER */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Student Registry</h1>
-          <p className="text-brand font-bold text-xs uppercase tracking-[0.3em]">Current Session: {currentYearString}</p>
-        </div>
+       <div>
+  <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">
+    Student Registry
+  </h1>
+  <div className="flex items-center gap-2">
+    <p className="text-brand font-bold text-xs uppercase tracking-[0.3em]">
+      Current Session: {currentYearString}
+    </p>
+    <span className="bg-slate-200 dark:bg-slate-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
+      {filteredStudents.length} Students Total
+    </span>
+  </div>
+</div>
         
         <div className="flex flex-wrap gap-3">
           <button onClick={fetchData} className="p-3 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">

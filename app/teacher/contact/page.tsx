@@ -121,11 +121,30 @@ export default function SchoolContact() {
 
         {/* Socials */}
       {/* --- SOCIALS --- */}
-<div className="sm:col-span-2 flex flex-row gap-2">
+{/* --- SOCIALS --- */}
+<div className="sm:col-span-2 flex flex-row gap-3">
   {[
-    { icon: FiInstagram, link: settings?.instagram_link, label: "Instagram", color: "hover:text-pink-600" },
-    { icon: FiYoutube, link: settings?.youtube_link, label: "YouTube", color: "hover:text-red-600" },
-    { icon: FiMessageSquare, link: settings?.whatsapp_link, label: "WhatsApp", color: "hover:text-emerald-600" },
+    { 
+      icon: FiInstagram, 
+      link: settings?.instagram_link, 
+      label: "Instagram", 
+      brandColor: "#E4405F", // Instagram Brand Color
+      hoverBg: "hover:bg-[#E4405F]/10" 
+    },
+    { 
+      icon: FiYoutube, 
+      link: settings?.youtube_link, 
+      label: "YouTube", 
+      brandColor: "#FF0000", // YouTube Red
+      hoverBg: "hover:bg-[#FF0000]/10" 
+    },
+    { 
+      icon: FiMessageSquare, 
+      link: settings?.whatsapp_link, 
+      label: "WhatsApp", 
+      brandColor: "#25D366", // WhatsApp Green
+      hoverBg: "hover:bg-[#25D366]/10" 
+    },
   ].map((item, idx) => (
     item.link ? (
       <a 
@@ -134,10 +153,18 @@ export default function SchoolContact() {
         target="_blank" 
         rel="noreferrer" 
         aria-label={item.label}
-        className={`flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-16 rounded-2xl flex items-center justify-center text-slate-700 dark:text-slate-300 transition-all active:scale-95 shadow-sm ${item.color}`}
+        className={`flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-20 rounded-[1.5rem] flex flex-col items-center justify-center transition-all active:scale-95 shadow-sm group/btn ${item.hoverBg}`}
       >
-        {/* Simply render the component and pass size directly */}
-        <item.icon size={24} />
+        {/* Icon with fixed brand color */}
+        <item.icon 
+          size={24} 
+          style={{ color: item.brandColor }} 
+          className="transition-transform duration-300 group-hover/btn:scale-110"
+        />
+        {/* Optional Label */}
+        <span className="text-[8px] font-black uppercase tracking-[0.2em] mt-2 text-slate-400 group-hover/btn:text-slate-600 dark:group-hover/btn:text-slate-200 transition-colors">
+          {item.label}
+        </span>
       </a>
     ) : null
   ))}

@@ -26,6 +26,7 @@ interface StudentFee {
   paid_amount: number;
   payment_method: string;
   utr_number?: string;
+  remarks?: string; // ✅ ADD THIS
   created_at?: string;
 }
 
@@ -73,7 +74,7 @@ const [feeTypes, setFeeTypes] = useState<{ id: string; name: string }[]>([]);
   const [isSelectingStudent, setIsSelectingStudent] = useState(false);
   const [showSidebarMobile, setShowSidebarMobile] = useState(false);
   const [classForm, setClassForm] = useState({ class: "", fee_type: "", amount: "" });
-
+const [hasTransport, setHasTransport] = useState(false);
   const [studentForm, setStudentForm] = useState({
     student_id: "",
     student_name: "",
@@ -89,6 +90,8 @@ const [feeTypes, setFeeTypes] = useState<{ id: string; name: string }[]>([]);
     payment_method: "",
     utr_number: "", remarks: "",  // ✅ NEW
   });
+
+
 useEffect(() => {
   async function fetchFeeTypes() {
     const { data, error } = await supabase
@@ -97,7 +100,20 @@ useEffect(() => {
       .eq("is_active", true)
       .order("name", { ascending: true });
 
-    if (!error) setFeeTypes(data || []);
+    if (!error && data) {
+      setFeeTypes(data);
+
+      // ✅ Set default as Transport Fee
+      const transport = data.find(f => f.name === "Transport Fee");
+
+      if (transport) {
+        setStudentForm(prev => ({
+          ...prev,
+          fee_type_id: transport.id,
+          fee_type: transport.name,
+        }));
+      }
+    }
   }
 
   fetchFeeTypes();
@@ -132,23 +148,31 @@ useEffect(() => {
     const feeType = studentForm.fee_type;
     const studentId = studentForm.student_id;
 
-    if (!feeType || !studentId) return; // early return if incomplete
+    if (!feeType || !studentId) return;
 
     let standardAmount = 0;
 
-    // 1️⃣ Fetch standard amount
-    if (feeType === "Transport Fee") {
-      const { data } = await supabase
-        .from("transport_assignments")
-        .select("monthly_fare")
-        .eq("student_id", studentId)
-        .eq("status", "active")
-        .maybeSingle();
+    // ✅ TRANSPORT LOGIC
+  if (feeType === "Transport Fee") {
+  console.log("Fetching transport for:", studentId);
 
-      if (data) {
-        standardAmount = Number(data.monthly_fare);
-      }
-    } else {
+  const { data, error } = await supabase
+    .from("transport_assignments")
+    .select("*")
+    .eq("student_id", studentId)
+    .eq("status", "active");
+
+  console.log("Transport query result:", data, error);
+
+  if (data && data.length > 0) {
+    standardAmount = Number(data[0].monthly_fare);
+  } else {
+    standardAmount = 0;
+    toast.error("No transport assigned for this student");
+  }
+}
+    // ✅ OTHER FEES
+    else {
       const { data } = await supabase
         .from("class_fees")
         .select("amount")
@@ -161,7 +185,7 @@ useEffect(() => {
       }
     }
 
-    // 2️⃣ Fetch already paid amount
+    // ✅ FETCH ALREADY PAID
     const { data: payments } = await supabase
       .from("student_fees")
       .select("paid_amount")
@@ -171,12 +195,12 @@ useEffect(() => {
     const alreadyPaid =
       payments?.reduce((sum, p) => sum + Number(p.paid_amount), 0) || 0;
 
-    // 3️⃣ Update form state
+    // ✅ UPDATE FORM
     setStudentForm((prev) => ({
       ...prev,
       total_amount: standardAmount.toString(),
       already_paid: alreadyPaid.toString(),
-      paying_now: "", // reset on selection
+      paying_now: "",
     }));
   }
 
@@ -235,22 +259,32 @@ useEffect(() => {
   }
 
   // SELECT STUDENT FROM SEARCH DROPDOWN
-  const handleStudentPick = (student: DBStudent) => {
-    setIsSelectingStudent(true);   // 👈 add this
+const handleStudentPick = async (student: DBStudent) => {
+  setIsSelectingStudent(true);
 
-    setStudentForm((prev) => ({
-      ...prev,
-      student_id: student.id,
-      student_name: student.full_name,
-      father_name: student.father_name,
-      roll_no: student.roll_number?.toString() || "",
-      class: student.class_name,
-      section: student.section,
-    }));
+  // ✅ Check transport assignment
+  const { data } = await supabase
+    .from("transport_assignments")
+    .select("id")
+    .eq("student_id", student.id)
+    .eq("status", "active")
+    .maybeSingle();
 
-    setStudentSearch(student.full_name);
-    setStudentSuggestions([]);
-  };
+  setHasTransport(!!data); // true or false
+
+  setStudentForm((prev) => ({
+    ...prev,
+    student_id: student.id,
+    student_name: student.full_name,
+    father_name: student.father_name,
+    roll_no: student.roll_number?.toString() || "",
+    class: student.class_name,
+    section: student.section,
+  }));
+
+  setStudentSearch(student.full_name);
+  setStudentSuggestions([]);
+};
 
 
 
@@ -304,26 +338,37 @@ useEffect(() => {
     const payAmount = Number(studentForm.paying_now || 0);
 
     // 🔍 Check if record already exists
-    const { data: existingRecord } = await supabase
-      .from("student_fees")
-      .select("*")
-      .eq("student_id", studentForm.student_id)
-      .eq("fee_type", studentForm.fee_type)
-      .maybeSingle();
+    const { data: existingRecords } = await supabase
+  .from("student_fees")
+  .select("*")
+  .eq("student_id", studentForm.student_id)
+  .eq("fee_type", studentForm.fee_type);
 
-   if (existingRecord) {
-  const newPaidAmount = Number(existingRecord.paid_amount) + payAmount;
+ if (existingRecords && existingRecords.length > 0) {
+  const totalPaid = existingRecords.reduce(
+    (sum, r) => sum + Number(r.paid_amount),
+    0
+  );
+
+  const newTotalPaid = totalPaid + payAmount;
 
   const { error } = await supabase
     .from("student_fees")
-    .update({
-      paid_amount: newPaidAmount,
-      fee_type_id: studentForm.fee_type_id,
-      utr_number: studentForm.utr_number || null,
-      payment_method: studentForm.payment_method,
+    .insert([
+      {
+        student_id: studentForm.student_id,
+        student_name: studentForm.student_name,
+        roll_no: Number(studentForm.roll_no),
+        class: studentForm.class,
+        fee_type_id: studentForm.fee_type_id,
+        fee_type: studentForm.fee_type,
+        total_amount: Number(studentForm.total_amount),
+        paid_amount: payAmount,
+        payment_method: studentForm.payment_method,
+        utr_number: studentForm.utr_number || null,
         remarks: studentForm.remarks || "",
-    })
-    .eq("id", existingRecord.id);
+      },
+    ]);
 
   if (error) {
     toast.error(error.message);
@@ -471,6 +516,32 @@ setStudentForm({
     toast.success("Excel file downloaded successfully!");
   };
 
+  useEffect(() => {
+  if (!studentForm.student_id) return;
+
+  // ✅ If student has transport → auto select
+  if (hasTransport) {
+    const transport = feeTypes.find(f => f.name === "Transport Fee");
+
+    if (transport) {
+      setStudentForm(prev => ({
+        ...prev,
+        fee_type_id: transport.id,
+        fee_type: transport.name,
+      }));
+    }
+  } else {
+    // ❌ remove transport if not available
+    if (studentForm.fee_type === "Transport Fee") {
+      setStudentForm(prev => ({
+        ...prev,
+        fee_type_id: "",
+        fee_type: "",
+      }));
+    }
+  }
+}, [hasTransport, feeTypes]);
+
   return (
     <div className="bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       <div className="max-w-8xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 py-4 space-y-8 animate-in fade-in duration-500">
@@ -545,6 +616,7 @@ setStudentForm({
                       <th className="p-5 font-bold">Student Details</th>
                       <th className="p-5 font-bold">Type / Class</th>
                       <th className="p-5 font-bold">Status</th>
+                      <th className="p-5 font-bold">Remarks</th>
                       <th className="p-5 font-bold text-right">Outstanding</th>
                       <th className="p-5 font-bold text-center">Action</th>
                     </tr>
@@ -581,6 +653,11 @@ setStudentForm({
                                 {balance <= 0 ? "Fully Paid" : "Balance Due"}
                               </span>
                             </td>
+                            <td className="p-5">
+  <p className="text-xs text-slate-600 dark:text-slate-300 max-w-[200px] truncate">
+    {s.remarks || "--"}
+  </p>
+</td>
                             <td className="p-5 text-right font-mono font-bold text-lg text-brand">
                               ₹{balance.toLocaleString()}
                             </td>
@@ -757,7 +834,7 @@ setStudentForm({
                       <div className="bg-white dark:bg-slate-800/40 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-4">
                         <div className="space-y-1">
                           <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Payment For</label>
-                          <select
+    <select
   className="modal-input dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
   value={studentForm.fee_type_id}
   onChange={(e) => {
@@ -771,11 +848,18 @@ setStudentForm({
   required
 >
   <option value="">Select Fee Type</option>
-  {feeTypes.map(f => (
-    <option key={f.id} value={f.id}>
-      {f.name}
-    </option>
-  ))}
+
+  {feeTypes
+    .filter(f => {
+      // ❌ Hide Transport Fee if student has no transport
+      if (f.name === "Transport Fee" && !hasTransport) return false;
+      return true;
+    })
+    .map(f => (
+      <option key={f.id} value={f.id}>
+        {f.name}
+      </option>
+    ))}
 </select>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
@@ -795,15 +879,20 @@ setStudentForm({
                           ))}
                         </div>
 
-                     {(studentForm.payment_method === "UPI" || studentForm.payment_method === "Bank") && (
+                 {studentForm.payment_method && (
   <div className="animate-in slide-in-from-top-2 space-y-2">
-    <input
-      className="modal-input border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-sm"
-      placeholder="ENTER UTR / TRANSACTION ID"
-      value={studentForm.utr_number}
-      onChange={(e) => setStudentForm({ ...studentForm, utr_number: e.target.value })}
-      required
-    />
+    
+    {(studentForm.payment_method === "UPI" || studentForm.payment_method === "Bank") && (
+      <input
+        className="modal-input border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-sm"
+        placeholder="ENTER UTR / TRANSACTION ID"
+        value={studentForm.utr_number}
+        onChange={(e) => setStudentForm({ ...studentForm, utr_number: e.target.value })}
+        required
+      />
+    )}
+
+    {/* ✅ ALWAYS SHOW REMARKS */}
     <input
       className="modal-input border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono text-sm"
       placeholder="Enter remarks / notes"

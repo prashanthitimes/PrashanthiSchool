@@ -23,7 +23,7 @@ export default function TeacherClassList() {
         initData()
     }, [])
 
-  async function initData() {
+async function initData() {
     setLoading(true)
     const { data: settings } = await supabase
         .from('school_settings')
@@ -32,9 +32,8 @@ export default function TeacherClassList() {
         .single()
 
     if (settings) {
-        // Convert 2027 to "27"
-        const shortEndYear = settings.academic_end_year.toString().slice(-2);
-        const yearString = `${settings.academic_start_year}-${shortEndYear}`;
+        // Change this line to use the full year: 2026-2027
+        const yearString = `${settings.academic_start_year}-${settings.academic_end_year}`;
         
         console.log("Searching for Academic Year:", yearString); 
         setCurrentAcademicYear(yearString)

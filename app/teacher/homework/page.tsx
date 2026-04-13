@@ -28,16 +28,44 @@ export default function HomeworkPage() {
         fetchInitialData()
     }, [])
 
-    async function fetchInitialData() {
-        const userEmail = localStorage.getItem('teacherEmail')
-        if (!userEmail) return
-        const { data: teacher } = await supabase.from('teachers').select('id').eq('email', userEmail).single()
-        if (!teacher) return
+// 1. Update the state at the top
+const [allocatedClasses, setAllocatedClasses] = useState<any[]>([])
 
-        const { data: schedule } = await supabase.from('timetable').select('*, subjects(id, name)').eq('day', todayName)
-        setTodayClasses(schedule || [])
-        fetchHistory(teacher.id)
-    }
+// 2. Update the fetchInitialData function
+async function fetchInitialData() {
+    const userEmail = localStorage.getItem('teacherEmail')
+    if (!userEmail) return
+    
+    // Fetch Teacher ID
+    const { data: teacher } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('email', userEmail)
+        .single()
+        
+    if (!teacher) return
+
+    // FETCH ALL ALLOCATED CLASSES from your new table
+    const { data: allocations, error: allocError } = await supabase
+        .from('subject_assignments')
+        .select(`
+            id,
+            class_name,
+            section,
+            academic_year,
+            subject_id,
+            subjects (id, name)
+        `)
+        .eq('teacher_id', teacher.id)
+        .order('class_name', { ascending: true })
+
+    if (!allocError) setAllocatedClasses(allocations || [])
+    
+    // Keep your history fetch
+    fetchHistory(teacher.id)
+}
+
+
 
     async function fetchHistory(tId: string) {
         const oneWeekAgo = new Date()
@@ -213,48 +241,47 @@ return (
             </div>
 
             <div className="px-6 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* --- SIDEBAR --- */}
-                <div className="lg:col-span-4 space-y-8">
-                    <div className="space-y-4">
-                        <h2 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] px-2">Upcoming Deadlines</h2>
-                        {upcomingDeadlines.map(hw => (
-                            <div key={hw.id} className="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-brand-soft/50 dark:border-slate-800 shadow-sm group transition-colors">
-                                <div className="flex justify-between items-center mb-3">
-                                    <span className="text-[9px] font-black bg-brand-soft dark:bg-brand/20 text-brand-light dark:text-brand-soft px-2 py-1 rounded-md uppercase">
-                                        {hw.class_name}-{hw.section}
-                                    </span>
-                                    <span className="text-rose-400 dark:text-rose-500 font-bold text-[9px] uppercase flex items-center gap-1">
-                                        <FiClock /> Expiring
-                                    </span>
-                                </div>
-                                <h4 className="font-black text-slate-700 dark:text-slate-200 text-md">{hw.subjects?.name}</h4>
-                                <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 mt-1 line-clamp-1">{hw.title}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="space-y-4">
-                        <h2 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] px-2">Select Class</h2>
-                        <div className="grid gap-2">
-                            {todayClasses.map((slot) => (
-                                <button key={slot.id} onClick={() => { setSelectedSlot(slot); setEditingId(null); }}
-                                    className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-4
-                                    ${selectedSlot?.id === slot.id 
-                                        ? 'bg-brand-light dark:bg-brand text-white border-brand-light dark:border-brand shadow-md' 
-                                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-transparent dark:border-slate-800 shadow-sm hover:border-brand-soft dark:hover:border-slate-700'}`}
-                                >
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${selectedSlot?.id === slot.id ? 'bg-white/20' : 'bg-brand-soft dark:bg-slate-800 text-brand-light dark:text-brand-soft'}`}>
-                                        P{slot.period}
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="text-[9px] font-black uppercase opacity-70">Grade {slot.class}-{slot.section}</p>
-                                        <p className="font-black text-sm">{slot.subjects?.name}</p>
-                                    </div>
-                                </button>
-                            ))}
+{/* --- SIDEBAR --- */}
+<div className="lg:col-span-4 space-y-8">
+    <div className="space-y-4">
+        <h2 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] px-2">
+            My Allocated Classes
+        </h2>
+        <div className="grid gap-2">
+            {allocatedClasses.length > 0 ? (
+                allocatedClasses.map((item) => (
+                    <button 
+                        key={item.id} 
+                        onClick={() => { 
+                            setSelectedSlot({
+                                id: item.id,
+                                class: item.class_name,
+                                section: item.section,
+                                subject_id: item.subject_id,
+                                subjects: item.subjects
+                            }); 
+                            setEditingId(null); 
+                        }}
+                        className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-4
+                        ${selectedSlot?.id === item.id 
+                            ? 'bg-brand-light dark:bg-brand text-white border-brand-light dark:border-brand shadow-md' 
+                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-transparent dark:border-slate-800 shadow-sm hover:border-brand-soft dark:hover:border-slate-700'}`}
+                    >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${selectedSlot?.id === item.id ? 'bg-white/20' : 'bg-brand-soft dark:bg-slate-800 text-brand-light dark:text-brand-soft'}`}>
+                            {item.class_name[0]}
                         </div>
-                    </div>
-                </div>
+                        <div className="text-left">
+                            <p className="text-[9px] font-black uppercase opacity-70">Grade {item.class_name}-{item.section}</p>
+                            <p className="font-black text-sm">{item.subjects?.name}</p>
+                        </div>
+                    </button>
+                ))
+            ) : (
+                <p className="text-xs text-slate-400 p-4">No classes allocated yet.</p>
+            )}
+        </div>
+    </div>
+</div>
 
                 {/* --- FORM --- */}
                 <div className="lg:col-span-8">

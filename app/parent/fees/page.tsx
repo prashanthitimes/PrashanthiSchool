@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { CreditCard, History, CheckCircle, Clock, Upload, Bus, Calendar, ChevronRight } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { CreditCard, History, CheckCircle, Clock, Upload, Bus, Wallet, AlertCircle, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast, Toaster } from "sonner";
 
@@ -11,7 +11,6 @@ export default function ParentFees() {
     const [studentInfo, setStudentInfo] = useState<any>(null);
     const [paymentConfig, setPaymentConfig] = useState<any>(null);
     const [classFees, setClassFees] = useState<any[]>([]);
-
     const [verifiedFees, setVerifiedFees] = useState<any[]>([]);
     const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([]);
 
@@ -33,50 +32,31 @@ export default function ParentFees() {
 
             const { data: student } = await supabase.from("students").select("*").eq("id", childId).single();
             setStudentInfo(student);
-            const normalizedClass = student.class_name
-                .toLowerCase()
-                .replace(/(st|nd|rd|th)/g, "")
-                .trim();
 
-            console.log("Normalized class:", normalizedClass);
+            const normalizedClass = student.class_name.toLowerCase().replace(/(st|nd|rd|th)/g, "").trim();
 
-            const { data: config, error: configError } = await supabase
-                .from("payment_configs")
-                .select("*")
-                .overlaps("class_name", [
-                    `${normalizedClass} A`,
-                    `${normalizedClass} B`,
-                    `${normalizedClass} C`,
-                    `${normalizedClass} D`
-                ]).maybeSingle();
-
-            console.log("Payment config:", config);
-            console.log("Config error:", configError);
-
+            const { data: config } = await supabase.from("payment_configs").select("*")
+                .overlaps("class_name", [`${normalizedClass} A`, `${normalizedClass} B`, `${normalizedClass} C`, `${normalizedClass} D`]).maybeSingle();
             setPaymentConfig(config);
 
+            // Fetch Assigned Class Fees
             const { data: cFees } = await supabase.from("class_fees").select("*").eq("class", student.class_name);
             let combinedFees = cFees || [];
 
-            const { data: transport } = await supabase
-                .from("transport_assignments")
-                .select("monthly_fare, status")
-                .eq("student_id", childId)
-                .eq("status", "active")
-                .maybeSingle();
+            // Transport Logic
+            const { data: transport } = await supabase.from("transport_assignments")
+                .select("monthly_fare, status").eq("student_id", childId).eq("status", "active").maybeSingle();
 
             if (transport) {
-                combinedFees.push({
-                    id: 'transport-fee-id',
-                    fee_type: "Transport Fee",
-                    amount: transport.monthly_fare,
-                    is_transport: true
-                });
+                combinedFees.push({ id: 'trans-id', fee_type: "Transport Fee", amount: transport.monthly_fare, is_transport: true });
             }
-
             setClassFees(combinedFees);
+
+            // Fetch Records from student_fees (Verified/Partial)
             const { data: verified } = await supabase.from("student_fees").select("*").eq("student_id", childId);
             setVerifiedFees(verified || []);
+            
+            // Fetch Pending Submissions
             const { data: pending } = await supabase.from("fee_submissions").select("*").eq("student_id", childId).eq("status", "pending");
             setPendingSubmissions(pending || []);
 
@@ -88,17 +68,37 @@ export default function ParentFees() {
         }
     }
 
-    const getFeeStatus = (feeType: string) => {
-        const isVerified = verifiedFees.some(item => item.fee_type.toLowerCase().includes(feeType.toLowerCase()));
-        if (isVerified) return "verified";
-        const isPending = pendingSubmissions.some(item => item.fee_types?.toLowerCase().includes(feeType.toLowerCase()));
-        if (isPending) return "pending";
-        return "available";
-    };
+    // --- LOGIC FOR REMAINING BALANCES ---
+    const feeCalculation = useMemo(() => {
+        return classFees.map(cf => {
+            // Find if there's an entry in student_fees for this type
+            const record = verifiedFees.find(vf => vf.fee_type.toLowerCase() === cf.fee_type.toLowerCase());
+            const paid = record ? Number(record.paid_amount) : 0;
+            const total = Number(cf.amount);
+            const remaining = total - paid;
+            
+            // Check if there is a pending submission for this fee type
+            const isPending = pendingSubmissions.some(ps => ps.fee_types?.toLowerCase().includes(cf.fee_type.toLowerCase()));
 
-    const calculatedTotal = classFees
+            return {
+                ...cf,
+                total_assigned: total,
+                already_paid: paid,
+                remaining_balance: remaining,
+                status: remaining <= 0 ? "verified" : (isPending ? "pending" : "available")
+            };
+        });
+    }, [classFees, verifiedFees, pendingSubmissions]);
+
+    const stats = useMemo(() => {
+        const total = feeCalculation.reduce((sum, f) => sum + f.total_assigned, 0);
+        const paid = feeCalculation.reduce((sum, f) => sum + f.already_paid, 0);
+        return { total, paid, balance: total - paid };
+    }, [feeCalculation]);
+
+    const calculatedTotalSelection = feeCalculation
         .filter(f => selectedFeeTypes.includes(f.fee_type))
-        .reduce((sum, f) => sum + Number(f.amount), 0);
+        .reduce((sum, f) => sum + f.remaining_balance, 0);
 
     async function handlePaymentSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -107,14 +107,6 @@ export default function ParentFees() {
         setUploading(true);
         try {
             const childId = localStorage.getItem("childId");
-            const { data: dupPending } = await supabase.from("fee_submissions").select("id").eq("utr_number", utr).maybeSingle();
-            const { data: dupVerified } = await supabase.from("student_fees").select("id").eq("utr_number", utr).maybeSingle();
-
-            if (dupPending || dupVerified) {
-                setUploading(false);
-                return toast.error("UTR already exists");
-            }
-
             const fileName = `${childId}-${Date.now()}`;
             const { error: upErr } = await supabase.storage.from('payments').upload(`proofs/${fileName}`, file);
             if (upErr) throw upErr;
@@ -122,7 +114,7 @@ export default function ParentFees() {
 
             const { error: dbErr } = await supabase.from("fee_submissions").insert([{
                 student_id: childId,
-                amount_paid: calculatedTotal,
+                amount_paid: calculatedTotalSelection,
                 utr_number: utr,
                 payment_date: payDate,
                 proof_url: publicUrl,
@@ -131,7 +123,7 @@ export default function ParentFees() {
             }]);
 
             if (dbErr) throw dbErr;
-            toast.success("Submitted!");
+            toast.success("Submission Successful!");
             setUtr(""); setFile(null); setSelectedFeeTypes([]);
             fetchData();
         } catch (err: any) {
@@ -141,372 +133,185 @@ export default function ParentFees() {
         }
     }
 
-    if (loading) return <div className="p-10 text-center font-black animate-pulse text-slate-400">LOADING...</div>;
-
     return (
-        <div className="max-w-7xl mx-auto px-4 md:px-6 pt-2 pb-10 space-y-6 bg-transparent dark:text-slate-200">
-
+        <div className="max-w-7xl mx-auto px-4 md:px-6 pt-2 pb-10 space-y-6 dark:text-slate-200">
             <Toaster position="top-center" richColors />
 
             {/* HEADER */}
-            <header className="flex flex-col md:flex-row items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-4 md:px-8 md:py-6 rounded-3xl md:rounded-[2rem] border border-brand-soft dark:border-slate-700 shadow-sm gap-4">
-
-                <div className="flex items-center gap-4 w-full md:w-auto">
-
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-soft dark:bg-slate-800 text-brand-light rounded-xl md:rounded-2xl flex items-center justify-center">
-                        <CreditCard size={20} />
+            <header className="flex flex-col md:flex-row items-center justify-between bg-white dark:bg-slate-900 p-4 md:px-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-brand-soft dark:bg-slate-800 text-brand-light rounded-2xl flex items-center justify-center">
+                        <Wallet size={24} />
                     </div>
-
                     <div>
-                        <h1 className="text-lg md:text-xl font-black text-slate-800 dark:text-white uppercase leading-none">
-                            Fee Portal
-                        </h1>
-
-                        <p className="text-[9px] md:text-[10px] font-bold text-brand-light tracking-widest uppercase mt-1">
-                            {studentInfo?.full_name} • Class {studentInfo?.class_name}
-                        </p>
+                        <h1 className="text-xl font-black text-slate-800 dark:text-white uppercase leading-none">Payments</h1>
+                        <p className="text-[10px] font-bold text-brand-light tracking-widest uppercase mt-1">{studentInfo?.full_name}</p>
                     </div>
-
                 </div>
-
-                <div className="flex w-full md:w-auto items-center bg-brand-soft/30 dark:bg-slate-800 p-1 rounded-xl border border-brand-soft dark:border-slate-700">
-                    <TabButton active={activeTab === "pay"} onClick={() => setActiveTab("pay")} label="Pay" icon={<CreditCard size={12} />} />
-                    <TabButton active={activeTab === "history"} onClick={() => setActiveTab("history")} label="History" icon={<History size={12} />} />
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                    <TabButton active={activeTab === "pay"} onClick={() => setActiveTab("pay")} label="Pay Fees" />
+                    <TabButton active={activeTab === "history"} onClick={() => setActiveTab("history")} label="History" />
                 </div>
-
             </header>
 
+            {/* STATS SUMMARY */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <StatCard label="Total Course Fee" value={stats.total} icon={<Wallet />} color="text-slate-500" />
+                <StatCard label="Amount Paid" value={stats.paid} icon={<CheckCircle />} color="text-green-500" />
+                <StatCard label="Pending Balance" value={stats.balance} icon={<AlertCircle />} color="text-brand-light" />
+            </div>
 
             {activeTab === "pay" ? (
-                /* On Mobile: Flex-col with Order 1 (Form) and Order 2 (Bank)
-                   On Desktop: lg:grid-cols-3 with natural order
-                */
-                <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 md:gap-8">
-                    {/* --- NEW NOTICE HEADER --- */}
-                    <div className="order-1 lg:col-span-3 flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 p-3 rounded-2xl mb-2">
-                        <Clock size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                        <p className="text-[10px] md:text-xs font-bold text-amber-700 dark:text-amber-300 italic uppercase tracking-tight">
-                            (Receipt will be generated after 24 hours of working day)
-                        </p>
-                    </div>
-                    {/* 1. PAYMENT FORM (FEE DETAILS) - Appears FIRST on mobile */}
-                    <div className="order-1 lg:order-2 lg:col-span-2 bg-slate-900 dark:bg-slate-950 rounded-3xl md:rounded-[3rem] p-6 md:p-10 text-white shadow-2xl">
-
-                        <h2 className="text-xl md:text-2xl font-black italic mb-6">
-                            Make a Payment
-                        </h2>
-
-                        {/* FEE TYPES */}
-                        <div className="mb-8">
-                            <label className="text-[10px] font-black uppercase opacity-40 mb-4 block">
-                                Select Fee Type
-                            </label>
-
-                            {/* Changed grid-cols-2/3/4 to grid-cols-1 or just a flex-col */}
-                           <div className="flex flex-col gap-1.5"> {/* Smaller gap between rows */}
-  {classFees.map((f) => {
-    const status = getFeeStatus(f.fee_type)
-    const isDisabled = status !== "available"
-
-    return (
-      <button
-        key={f.id}
-        type="button"
-        disabled={isDisabled}
-        onClick={() =>
-          setSelectedFeeTypes((prev) =>
-            prev.includes(f.fee_type)
-              ? prev.filter((t) => t !== f.fee_type)
-              : [...prev, f.fee_type]
-          )
-        }
-        className={`relative w-full px-3 py-2 rounded-lg border text-left transition-all flex items-center justify-between
-        ${
-          isDisabled
-            ? "opacity-40 grayscale cursor-not-allowed bg-white/5 border-transparent"
-            : selectedFeeTypes.includes(f.fee_type)
-            ? "bg-brand-light/20 border-brand-light" 
-            : "bg-white/5 border-white/10"
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            {f.is_transport && (
-              <Bus size={12} className="shrink-0 text-brand-light" />
-            )}
-            <span className="text-[9px] font-black uppercase tracking-tight">
-              {f.fee_type}
-            </span>
-          </div>
-
-          {status !== "available" && (
-            <span
-              className={`text-[7px] px-1 py-0.5 rounded-sm font-black text-white
-              ${status === "verified" ? "bg-green-500" : "bg-amber-500"}`}
-            >
-              {status.toUpperCase()}
-            </span>
-          )}
-        </div>
-
-        <p className="text-sm font-black">
-          ₹{Number(f.amount).toLocaleString()}
-        </p>
-      </button>
-    )
-  })}
-</div>
-                        </div>
-
-                        {/* INPUTS */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black opacity-40 uppercase">
-                                    UTR Number
-                                </label>
-                                <input
-                                    value={utr}
-                                    onChange={e => setUtr(e.target.value)}
-                                    className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-sm outline-none focus:border-brand-light"
-                                    placeholder="12 Digit ID"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black opacity-40 uppercase">
-                                    Payment Date
-                                </label>
-                                <input
-                                    type="date"
-                                    value={payDate}
-                                    onChange={e => setPayDate(e.target.value)}
-                                    className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-sm outline-none focus:border-brand-light"
-                                />
+                <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
+                    {/* FORM SECTION */}
+                    <div className="lg:col-span-2 bg-slate-900 rounded-[2.5rem] p-6 md:p-10 text-white shadow-2xl">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-2xl font-black italic">Pay Remaining Balance</h2>
+                            <div className="bg-white/10 px-3 py-1 rounded-full flex items-center gap-2">
+                                <Clock size={12} className="text-amber-400" />
+                                <span className="text-[9px] font-bold uppercase tracking-tighter text-amber-400">Verification takes 24h</span>
                             </div>
                         </div>
 
-                        {/* UPLOAD */}
-                        <div className="mb-8 border-2 border-dashed border-white/10 rounded-2xl p-6 text-center hover:bg-white/5 active:bg-white/10 transition-colors">
-                            <input
-                                type="file"
-                                onChange={e => setFile(e.target.files?.[0] || null)}
-                                className="hidden"
-                                id="fileUp"
-                                accept="image/*"
-                            />
-                            <label htmlFor="fileUp" className="cursor-pointer flex flex-col items-center gap-2">
-                                <Upload size={24} className="text-brand-light" />
-                                <span className="text-xs font-bold opacity-70 break-all">
-                                    {file ? file.name : "Tap to Upload Screenshot"}
-                                </span>
+                        <div className="space-y-3 mb-8">
+                            <label className="text-[10px] font-black uppercase opacity-40 block">Select Pending Fees</label>
+                            {feeCalculation.map((f) => {
+                                const isDisabled = f.status !== "available";
+                                return (
+                                    <button
+                                        key={f.id}
+                                        type="button"
+                                        disabled={isDisabled}
+                                        onClick={() => setSelectedFeeTypes(prev => prev.includes(f.fee_type) ? prev.filter(t => t !== f.fee_type) : [...prev, f.fee_type])}
+                                        className={`w-full p-4 rounded-2xl border transition-all flex items-center justify-between text-left
+                                        ${isDisabled ? "opacity-40 grayscale bg-white/5 border-transparent" : 
+                                          selectedFeeTypes.includes(f.fee_type) ? "bg-brand-light/20 border-brand-light" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+                                    >
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                {f.is_transport && <Bus size={14} className="text-brand-light" />}
+                                                <span className="text-xs font-black uppercase">{f.fee_type}</span>
+                                            </div>
+                                            <span className="text-[10px] opacity-60 font-bold">Total: ₹{f.total_assigned.toLocaleString()} | Paid: ₹{f.already_paid.toLocaleString()}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-black text-brand-light">₹{f.remaining_balance.toLocaleString()}</p>
+                                            <span className="text-[8px] font-black uppercase">{f.status}</span>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <InputField label="UTR / Transaction ID" placeholder="Enter 12 digit UTR" value={utr} onChange={setUtr} />
+                            <InputField label="Payment Date" type="date" value={payDate} onChange={setPayDate} />
+                        </div>
+
+                        <div className="mb-8 border-2 border-dashed border-white/10 rounded-3xl p-8 text-center hover:bg-white/5 cursor-pointer transition-all">
+                            <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="hidden" id="fileUp" accept="image/*" />
+                            <label htmlFor="fileUp" className="cursor-pointer flex flex-col items-center gap-3">
+                                <Upload size={32} className="text-brand-light" />
+                                <span className="text-xs font-bold opacity-60">{file ? file.name : "Upload Payment Screenshot"}</span>
                             </label>
                         </div>
 
-                        {/* TOTAL & SUBMIT */}
-                        <div className="flex flex-col md:flex-row justify-between items-center border-t border-white/10 pt-6 gap-4">
-                            <div className="text-center md:text-left">
-                                <p className="text-[10px] font-black opacity-40 uppercase">
-                                    Total Amount
-                                </p>
-                                <p className="text-3xl md:text-4xl font-black text-brand-light italic">
-                                    ₹{calculatedTotal.toLocaleString()}
-                                </p>
+                        <div className="flex flex-col md:flex-row justify-between items-center border-t border-white/10 pt-8 gap-6">
+                            <div>
+                                <p className="text-[10px] font-black opacity-40 uppercase">Total to Pay Now</p>
+                                <p className="text-4xl font-black text-brand-light italic">₹{calculatedTotalSelection.toLocaleString()}</p>
                             </div>
-
                             <button
-                                disabled={uploading || calculatedTotal === 0}
+                                disabled={uploading || calculatedTotalSelection === 0}
                                 onClick={handlePaymentSubmit}
-                                className="w-full md:w-auto bg-white text-slate-900 px-10 py-4 rounded-xl font-black uppercase text-[11px] shadow-xl active:scale-95 transition-all disabled:opacity-50"
+                                className="w-full md:w-auto bg-brand-light text-white px-12 py-5 rounded-2xl font-black uppercase text-xs shadow-lg hover:brightness-110 active:scale-95 transition-all disabled:opacity-30"
                             >
-                                {uploading ? "SUBMITTING..." : "CONFIRM PAYMENT"}
+                                {uploading ? "Processing..." : "Submit Payment Proof"}
                             </button>
                         </div>
                     </div>
 
-                    {/* 2. BANK INFO (QR CODE) - Appears BELOW the form on mobile */}
-                    <div className="order-2 lg:order-1 bg-white dark:bg-slate-900 border border-brand-soft dark:border-slate-700 rounded-3xl p-6 md:p-8 h-fit">
-
-                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">
-                            Payment Destination
-                        </h3>
-
-                        {paymentConfig ? (
-                            paymentConfig.qr_url && (
-                                <div className="flex justify-center md:block">
-                                    <img
-                                        src={paymentConfig.qr_url}
-                                        className="w-48 md:w-full rounded-2xl border-4 border-brand-soft dark:border-slate-700 mb-6 p-2"
-                                        alt="QR"
-                                    />
-                                </div>
-                            )
-                        ) : (
-                            <p className="text-xs text-red-500 font-bold">
-                                Payment configuration not found
-                            </p>
+                    {/* BANK INFO */}
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 h-fit shadow-sm">
+                        <h3 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest">Bank Details</h3>
+                        {paymentConfig?.qr_url && (
+                            <img src={paymentConfig.qr_url} className="w-full rounded-3xl border-8 border-slate-50 dark:border-slate-800 mb-8 p-4 shadow-inner" alt="QR" />
                         )}
-
-                        <div className="grid grid-cols-1 gap-2 text-[11px]">
+                        <div className="space-y-3">
                             <BankRow label="Bank" value={paymentConfig?.bank_name} />
-                            <BankRow label="A/C" value={paymentConfig?.account_number} />
-                            <BankRow label="IFSC" value={paymentConfig?.ifsc_code} />
+                            <BankRow label="Account" value={paymentConfig?.account_number} />
+                            <BankRow label="IFSC Code" value={paymentConfig?.ifsc_code} />
                         </div>
-
                     </div>
-
                 </div>
             ) : (
-
-
                 <div className="space-y-8">
-
-                    <section>
-
-                        <div className="flex items-center gap-2 mb-4 px-2">
-
-                            <Clock size={16} className="text-amber-500" />
-
-                            <h3 className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">
-                                Pending Verification
-                            </h3>
-
-                        </div>
-
-                        <div className="space-y-3">
-
-                            {pendingSubmissions.map(item => (
-                                <HistoryCard key={item.id} item={item} status="pending" />
-                            ))}
-
-                            {pendingSubmissions.length === 0 && <EmptyState msg="No pending requests" />}
-
-                        </div>
-
-                    </section>
-
-
-                    <section>
-
-                        <div className="flex items-center gap-2 mb-4 px-2">
-
-                            <CheckCircle size={16} className="text-green-500" />
-
-                            <h3 className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">
-                                Payment Ledger
-                            </h3>
-
-                        </div>
-
-                        <div className="space-y-3">
-
-                            {verifiedFees.map(item => (
-                                <HistoryCard key={item.id} item={item} status="verified" />
-                            ))}
-
-                            {verifiedFees.length === 0 && <EmptyState msg="No verified records found" />}
-
-                        </div>
-
-                    </section>
-
+                    <HistorySection title="Pending Approval" items={pendingSubmissions} status="pending" />
+                    <HistorySection title="Verified Payments" items={verifiedFees} status="verified" />
                 </div>
-
             )}
-
         </div>
-    )
+    );
 }
 
-/** HELPER COMPONENTS **/
-function TabButton({ active, onClick, label, icon }: any) {
+// Sub-components
+function StatCard({ label, value, icon, color }: any) {
     return (
-        <button
-            onClick={onClick}
-            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2 rounded-lg md:rounded-xl text-[10px] font-black uppercase transition-all
-            ${active
-                    ? "bg-brand-light text-white shadow-md"
-                    : "text-brand-light dark:text-slate-300 hover:bg-brand-soft/30 dark:hover:bg-slate-800"
-                }`}
-        >
-            {icon} {label}
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+            <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 mb-1">{label}</p>
+                <p className={`text-2xl font-black ${color}`}>₹{value.toLocaleString()}</p>
+            </div>
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl text-slate-300">{icon}</div>
+        </div>
+    );
+}
+
+function InputField({ label, ...props }: any) {
+    return (
+        <div className="space-y-2">
+            <label className="text-[10px] font-black opacity-40 uppercase">{label}</label>
+            <input className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-brand-light text-white" {...props} />
+        </div>
+    );
+}
+
+function BankRow({ label, value }: any) {
+    return (
+        <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{label}</span>
+            <span className="text-xs font-black text-slate-900 dark:text-white">{value || "---"}</span>
+        </div>
+    );
+}
+
+function TabButton({ active, onClick, label }: any) {
+    return (
+        <button onClick={onClick} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${active ? "bg-white dark:bg-slate-700 text-brand-light shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+            {label}
         </button>
     );
 }
 
-function BankRow({ label, value }: { label: string, value: string }) {
+function HistorySection({ title, items, status }: any) {
     return (
-        <div className="flex justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-            <span className="text-slate-400 dark:text-slate-400 font-bold">
-                {label}
-            </span>
-            <span className="text-slate-900 dark:text-white font-black">
-                {value || "---"}
-            </span>
-        </div>
-    );
-}
-
-function HistoryCard({ item, status }: { item: any, status: "pending" | "verified" }) {
-    const isPending = status === "pending";
-
-    return (
-        <div className="bg-white dark:bg-slate-900 border border-brand-soft dark:border-slate-700 p-4 rounded-2xl shadow-sm flex flex-col gap-3">
-
-            <div className="flex justify-between items-start">
-
-                <div className="max-w-[70%]">
-                    <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-tight mb-1">
-                        {isPending ? item.fee_types : item.fee_type}
-                    </p>
-
-                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
-                        {isPending
-                            ? item.payment_date
-                            : new Date(item.created_at).toLocaleDateString()}
-                    </p>
-                </div>
-
-                <p
-                    className={`text-sm font-black ${isPending
-                        ? "text-amber-600 dark:text-amber-400"
-                        : "text-slate-900 dark:text-white"
-                        }`}
-                >
-                    ₹
-                    {Number(
-                        isPending ? item.amount_paid : item.paid_amount
-                    ).toLocaleString()}
-                </p>
-
+        <section>
+            <h3 className="text-xs font-black uppercase text-slate-400 mb-4 px-2 tracking-widest">{title}</h3>
+            <div className="space-y-3">
+                {items.map((item: any) => (
+                    <div key={item.id} className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{status === 'pending' ? item.fee_types : item.fee_type}</p>
+                            <p className="text-[9px] font-bold text-slate-400">{status === 'pending' ? item.payment_date : new Date(item.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className={`font-black ${status === 'pending' ? 'text-amber-500' : 'text-green-500'}`}>₹{Number(status === 'pending' ? item.amount_paid : item.paid_amount).toLocaleString()}</p>
+                            <code className="text-[8px] opacity-40">UTR: {item.utr_number}</code>
+                        </div>
+                    </div>
+                ))}
+                {items.length === 0 && <div className="p-10 text-center text-[10px] font-black opacity-20 uppercase">No Records</div>}
             </div>
-
-            <div className="flex justify-between items-center pt-3 border-t border-slate-50 dark:border-slate-700">
-
-                <code className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">
-                    UTR: {item.utr_number}
-                </code>
-
-                <span
-                    className={`text-[8px] font-black uppercase px-2 py-1 rounded-full
-                    ${isPending
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
-                            : "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300"
-                        }`}
-                >
-                    {isPending ? "Pending Approval" : "Verified"}
-                </span>
-
-            </div>
-        </div>
-    );
-}
-
-function EmptyState({ msg }: { msg: string }) {
-    return (
-        <div className="py-8 text-center bg-white/40 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
-            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                {msg}
-            </p>
-        </div>
+        </section>
     );
 }

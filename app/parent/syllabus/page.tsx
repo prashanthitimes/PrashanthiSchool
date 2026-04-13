@@ -1,51 +1,47 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { FiCalendar, FiClock, FiMapPin, FiBookOpen, FiDownload, FiInfo, FiChevronRight } from "react-icons/fi";
+import { 
+  FiCalendar, FiClock, FiMapPin, FiBookOpen, 
+  FiDownload, FiInfo, FiFileText, FiExternalLink, FiUser 
+} from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
-type Schedule = {
-  id: string | number
-  title: string
-  date: string
-  teacher: string
-}
+
 type Student = {
-  full_name: string
-  class_name: string
-  section: string
-}
+  full_name: string;
+  class_name: string;
+  section: string;
+  image_url?: string;
+};
 
 type Syllabus = {
-  id: string | number
-  subject_id: string | number
-  exam_name: string
-  chapters: string[]
-  class_name: string
-  section: string
-}
+  id: string | number;
+  subject_id: string | number;
+  exam_name: string;
+  chapters: string[];
+  pdf_url?: string;
+};
 
 type Exam = {
-  id: string | number
-  exam_date: string
-  start_time: string
-  end_time: string
-  room_no?: string
-  subjects?: {
-    name: string
-  }
-  exams?: {
-    exam_name: string
-  }
-  syllabus_details?: Syllabus
-}
+  id: string | number;
+  exam_date: string;
+  start_time: string;
+  end_time: string;
+  room_no?: string;
+  subjects?: { name: string };
+  exams?: { exam_name: string };
+  syllabus_details?: Syllabus;
+};
 
-type ExamGroup = [string, Exam[]] // [examName, schedules]
+type ExamGroup = [string, Exam[]];
+
 export default function ExamTimetable() {
-  const [exams, setExams] = useState<ExamGroup[]>([])
-  const [loading, setLoading] = useState(true)
-  const tableRef = useRef<HTMLDivElement>(null)
-  const [studentInfo, setStudentInfo] = useState<Student | null>(null)
+  const [exams, setExams] = useState<ExamGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const [studentInfo, setStudentInfo] = useState<Student | null>(null);
+
   useEffect(() => {
     fetchExamData();
   }, []);
@@ -56,21 +52,20 @@ export default function ExamTimetable() {
       const childId = localStorage.getItem("childId");
       if (!childId) return;
 
-      // 1. Get Student Data
+      // 1. Fetch Student with Photo
       const { data: student } = await supabase
         .from("students")
-        .select("full_name, class_name, section")
+        .select("full_name, class_name, section, image_url")
         .eq("id", childId)
         .single();
 
       if (!student) return;
       setStudentInfo(student);
 
-      // Clean formats for matching (e.g., "10th" or "10-A")
       const classRaw = student.class_name;
       const sectionLetter = student.section.split('-').pop()?.trim() || student.section;
 
-      // 2. Fetch Timetable AND Syllabus concurrently
+      // 2. Fetch Timetable and Syllabus (including pdf_url)
       const [timetableRes, syllabusRes] = await Promise.all([
         supabase
           .from("exam_timetables")
@@ -86,7 +81,6 @@ export default function ExamTimetable() {
 
       if (timetableRes.error) throw timetableRes.error;
 
-      // 3. Map Syllabus to Timetable rows
       const timetableWithSyllabus = timetableRes.data.map((item: any) => {
         const syllabus = syllabusRes.data?.find(
           (s: any) => s.subject_id === item.subject_id && s.exam_name === item.exams?.exam_name
@@ -94,7 +88,6 @@ export default function ExamTimetable() {
         return { ...item, syllabus_details: syllabus };
       });
 
-      // 4. Group by Exam Name
       const grouped = timetableWithSyllabus.reduce((acc: any, curr: any) => {
         const examTitle = curr.exams?.exam_name || "Official Examination";
         if (!acc[examTitle]) acc[examTitle] = [];
@@ -112,218 +105,131 @@ export default function ExamTimetable() {
 
   const downloadImage = async () => {
     if (tableRef.current) {
-      const canvas = await html2canvas(tableRef.current, { scale: 2, backgroundColor: "#ffffff" });
+      const canvas = await html2canvas(tableRef.current, { 
+        scale: 2, 
+        backgroundColor: "#ffffff",
+        useCORS: true // Allows downloading external images (profile photos)
+      });
       const link = document.createElement("a");
-      link.download = `Syllabus_Schedule_${studentInfo?.full_name}.png`;
+      link.download = `Exam_Plan_${studentInfo?.full_name}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     }
   };
 
-  if (loading) return <div className="p-20 text-center font-black text-[#a63d93] animate-pulse">GENERATING STUDY PLAN...</div>;
+  if (loading) return <div className="p-20 text-center font-black text-[#a63d93] animate-pulse">LOADING ACADEMIC PLAN...</div>;
 
   return (
-    <div className="p-3 md:p-6 bg-[#fffcfd] dark:bg-slate-950 ">
-
-      {/* Action Bar */}
-      <div className="max-w-8xl mx-auto flex justify-end mb-4 md:mb-6">
+    <div className="p-3 md:p-6 bg-[#fffcfd] dark:bg-slate-950 min-h-screen">
+      
+      <div className="max-w-7xl mx-auto flex justify-end mb-4">
         <button
           onClick={downloadImage}
-          className="flex items-center justify-center gap-2 w-full md:w-auto px-5 py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#a63d93] transition"
+          className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#a63d93] transition shadow-lg"
         >
-          <FiDownload size={14} /> Download Plan
+          <FiDownload size={14} /> Download Schedule
         </button>
       </div>
 
-      <div
-        ref={tableRef}
-        className="max-w-8xl mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-[#e9d1e4] dark:border-slate-800 overflow-hidden"
-      >
-
+      <div ref={tableRef} className="max-w-7xl mx-auto bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-[#e9d1e4] dark:border-slate-800 overflow-hidden">
+        
         {/* HEADER */}
-        <div className="bg-[#a63d93] p-5 md:p-7 text-white relative overflow-hidden">
-          <div className="relative z-10">
+        <div className="bg-[#a63d93] p-6 md:p-8 text-white relative overflow-hidden">
+          <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
+            
+            {/* Student Photo */}
+            <div className="w-24 h-24 rounded-2xl border-4 border-white/20 overflow-hidden bg-white/10 flex items-center justify-center shrink-0">
+              {studentInfo?.image_url ? (
+                <img src={studentInfo.image_url} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <FiUser size={32} className="opacity-40" />
+              )}
+            </div>
 
-            <h2 className="text-2xl md:text-4xl font-black tracking-tight uppercase mb-3">
-              Exam Syllabus
-            </h2>
-
-            <div className="flex flex-col md:flex-row gap-2 md:gap-3">
-
-              <div className="bg-white/20 border border-white/30 px-3 py-1.5 rounded-lg">
-                <p className="text-[7px] uppercase font-black opacity-60">Academic Year</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest">2026 Season</p>
-              </div>
-
-              <div className="bg-white text-[#a63d93] px-3 py-1.5 rounded-lg">
-                <p className="text-[7px] uppercase font-black opacity-60">Student</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest">
+            <div className="text-center md:text-left">
+              <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tight mb-3">Exam Syllabus</h2>
+              <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                <span className="bg-white/20 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-white/10">
                   {studentInfo?.full_name}
-                </p>
+                </span>
+                <span className="bg-white text-[#a63d93] px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">
+                  Class: {studentInfo?.class_name} — {studentInfo?.section}
+                </span>
               </div>
-
-              <div className="bg-white/20 border border-white/30 px-3 py-1.5 rounded-lg">
-                <p className="text-[7px] uppercase font-black opacity-60">Class</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest">
-                  {studentInfo?.class_name} — {studentInfo?.section}
-                </p>
-              </div>
-
             </div>
           </div>
-
-          <FiBookOpen className="absolute right-[-20px] bottom-[-20px] text-white/5 size-28 md:size-48 -rotate-12" />
+          <FiBookOpen className="absolute right-[-20px] bottom-[-20px] text-white/5 size-48 -rotate-12" />
         </div>
 
+        {/* EXAM LIST */}
+        <div className="p-4 md:p-8 space-y-10">
+          {exams.map(([examName, schedules]) => (
+            <div key={examName}>
+              <h3 className="text-[10px] font-black text-[#a63d93] uppercase tracking-[0.3em] mb-6 flex items-center gap-4">
+                {examName} <div className="h-px flex-1 bg-pink-50 dark:bg-slate-800"></div>
+              </h3>
 
-        {/* CONTENT */}
-        <div className="p-4 md:p-6">
-
-          {exams.length > 0 ? (
-            exams.map(([examName, schedules]) => (
-
-              <div key={examName} className="mb-8 md:mb-10">
-
-                {/* Section Header */}
-                <h3 className="text-[9px] md:text-[10px] font-black text-[#a63d93] dark:text-brand-soft uppercase tracking-[0.25em] mb-4 flex items-center gap-3">
-                  <span>{examName}</span>
-                  <div className="h-px flex-1 bg-pink-100 dark:bg-slate-800"></div>
-                </h3>
-
-                <div className="space-y-4">
-
-                  {schedules.map((item: Exam) => (
-                    <div
-                      key={item.id}
-                      className="grid grid-cols-1 lg:grid-cols-12 border border-[#e9d1e4] dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-lg transition"
-                    >
-
-                      {/* LEFT INFO */}
-                      <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-800/50 p-4 border-b lg:border-b-0 lg:border-r border-[#e9d1e4] dark:border-slate-800">
-
-                        <div className="flex items-center gap-3 mb-3">
-
-                          <div className="bg-white dark:bg-slate-900 border border-[#e9d1e4] dark:border-slate-800 rounded-lg text-center px-3 py-2">
-                            <p className="text-[8px] font-black text-slate-400 uppercase">
-                              {new Date(item.exam_date).toLocaleDateString('en-US', { month: 'short' })}
-                            </p>
-                            <p className="text-xl font-black text-[#a63d93] dark:text-brand-soft">
-                              {new Date(item.exam_date).getDate()}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                              {new Date(item.exam_date).toLocaleDateString('en-US', { weekday: 'long' })}
-                            </p>
-
-                            <h4 className="text-base font-black text-slate-800 dark:text-slate-100 uppercase">
-                              {item.subjects?.name}
-                            </h4>
-                          </div>
-
+              <div className="space-y-4">
+                {schedules.map((item: Exam) => (
+                  <div key={item.id} className="grid grid-cols-1 lg:grid-cols-12 border border-[#e9d1e4] dark:border-slate-800 rounded-3xl overflow-hidden hover:shadow-md transition">
+                    
+                    {/* Time/Subject Info */}
+                    <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-800/40 p-5 border-b lg:border-b-0 lg:border-r border-[#e9d1e4] dark:border-slate-800">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="bg-white dark:bg-slate-900 border border-[#e9d1e4] rounded-xl p-2 text-center min-w-[60px]">
+                          <p className="text-[8px] font-black text-slate-400 uppercase">{new Date(item.exam_date).toLocaleDateString('en-US', { month: 'short' })}</p>
+                          <p className="text-xl font-black text-[#a63d93]">{new Date(item.exam_date).getDate()}</p>
                         </div>
-
-                        <div className="flex gap-4 text-slate-400">
-
-                          <div className="flex items-center gap-1">
-                            <FiClock size={12} />
-                            <span className="text-[9px] font-bold uppercase">
-                              {item.start_time.slice(0, 5)} — {item.end_time.slice(0, 5)}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1">
-                            <FiMapPin size={12} />
-                            <span className="text-[9px] font-bold uppercase">
-                              Room {item.room_no || "TBA"}
-                            </span>
-                          </div>
-
+                        <div>
+                          <p className="text-[8px] font-black text-slate-400 uppercase">{new Date(item.exam_date).toLocaleDateString('en-US', { weekday: 'long' })}</p>
+                          <h4 className="text-base font-black text-slate-800 dark:text-slate-100 uppercase">{item.subjects?.name}</h4>
                         </div>
-
                       </div>
-
-
-                      {/* SYLLABUS */}
-                      <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-4">
-
-                        <div className="flex items-center gap-2 mb-3">
-                          <FiInfo className="text-pink-400" size={12} />
-                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                            Chapters
-                          </span>
-                        </div>
-
-                        {item.syllabus_details ? (
-
-                          <div className="flex flex-wrap gap-2">
-
-                            {item.syllabus_details.chapters.map((chapter, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-2 bg-[#fcfaff] dark:bg-slate-800 border border-pink-50 dark:border-slate-700 px-2 py-1 rounded-lg"
-                              >
-
-                                <div className="w-1 h-1 rounded-full bg-[#a63d93]"></div>
-
-                                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300 uppercase">
-                                  {chapter}
-                                </span>
-
-                              </div>
-                            ))}
-
-                          </div>
-
-                        ) : (
-
-                          <div className="text-center py-6 text-slate-400 text-[9px] font-bold uppercase">
-                            Syllabus update pending
-                          </div>
-
-                        )}
-
+                      <div className="flex gap-4 text-slate-400 text-[9px] font-black uppercase">
+                        <span className="flex items-center gap-1"><FiClock /> {item.start_time.slice(0, 5)}</span>
+                        <span className="flex items-center gap-1"><FiMapPin /> {item.room_no || "TBA"}</span>
                       </div>
-
                     </div>
 
-                  ))}
+                    {/* Syllabus & PDF */}
+                    <div className="lg:col-span-8 p-5 bg-white dark:bg-slate-900">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-2 text-slate-400">
+                          <FiInfo size={12} className="text-[#a63d93]" />
+                          <span className="text-[9px] font-black uppercase tracking-widest">Chapters</span>
+                        </div>
+                        
+                        {/* PDF View Button */}
+                        {item.syllabus_details?.pdf_url && (
+                          <button 
+                            onClick={() => window.open(item.syllabus_details?.pdf_url, '_blank')}
+                            className="flex items-center gap-2 bg-pink-50 hover:bg-[#a63d93] text-[#a63d93] hover:text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border border-pink-100"
+                          >
+                            <FiFileText size={12} /> View Full PDF <FiExternalLink size={10} />
+                          </button>
+                        )}
+                      </div>
 
-                </div>
+                      <div className="flex flex-wrap gap-2">
+                        {item.syllabus_details?.chapters.map((chapter, idx) => (
+                          <span key={idx} className="bg-[#fcfaff] dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-pink-50 dark:border-slate-700 text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">
+                            {chapter}
+                          </span>
+                        )) || <p className="text-[9px] text-slate-300 uppercase font-bold italic">Syllabus details pending</p>}
+                      </div>
+                    </div>
 
+                  </div>
+                ))}
               </div>
-
-            ))
-          ) : (
-
-            <div className="text-center py-16 bg-slate-50 dark:bg-slate-900 rounded-3xl border-2 border-dashed border-[#e9d1e4] dark:border-slate-800">
-              <FiCalendar size={32} className="mx-auto mb-3 text-slate-300" />
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                No schedules found
-              </p>
             </div>
-
-          )}
-
+          ))}
         </div>
 
-
-        {/* FOOTER */}
-        <div className="p-5 bg-slate-50 dark:bg-slate-900 border-t border-[#e9d1e4] dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-2">
-
-          <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">
-            Official Prashanti Vidyalaya & High School
-          </p>
-
-          <p className="text-[8px] font-black text-[#a63d93] dark:text-brand-soft uppercase tracking-[0.25em]">
-            Generated: {new Date().toLocaleDateString()}
-          </p>
-
-        </div>
-
+        <footer className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 text-center">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Official Prashanti Vidyalaya Portal</p>
+        </footer>
       </div>
-
     </div>
-  )
+  );
 }
