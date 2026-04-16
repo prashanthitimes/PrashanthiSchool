@@ -6,7 +6,8 @@ import ParentSidebar from '@/components/ParentSidebar'
 import ParentMobileDashboard from '@/components/ParentMobileDashboard'
 import { FiUser, FiLogOut, FiArrowLeft, FiHeart } from 'react-icons/fi'
 import { PushNotifications } from '@capacitor/push-notifications'
-import { supabase } from '@/lib/supabase' // Ensure this path matches your Supabase client file
+import { Capacitor } from '@capacitor/core' // 👈 Added Capacitor core
+import { supabase } from '@/lib/supabase'
 
 export default function ParentLayout({
   children,
@@ -25,64 +26,77 @@ export default function ParentLayout({
   // --- PUSH NOTIFICATIONS LOGIC ---
   useEffect(() => {
     const setupPush = async () => {
-      // 1. Check permissions
-      let permStatus = await PushNotifications.checkPermissions();
-
-      if (permStatus.receive === 'prompt') {
-        permStatus = await PushNotifications.requestPermissions();
+      // 1. SILENTLY EXIT IF ON WEB
+      // This prevents the "Plugin not implemented" error in the browser
+      if (Capacitor.getPlatform() === 'web') {
+        console.log('Push notifications are disabled on web browser.');
+        return;
       }
 
-      if (permStatus.receive === 'granted') {
-        // 2. Register with Apple/Google to get the token
-        await PushNotifications.register();
+      try {
+        // 2. Check permissions
+        let permStatus = await PushNotifications.checkPermissions();
 
-        // 3. Listen for the registration token
-        await PushNotifications.addListener('registration', async (token) => {
-          const deviceToken = token.value;
-          console.log('Push Token Generated:', deviceToken);
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
 
-          // Get the student's UUID (id) saved during login
-          const studentId = localStorage.getItem('userId'); 
+        if (permStatus.receive === 'granted') {
+          // 3. Register with Apple/Google to get the token
+          await PushNotifications.register();
 
-          if (studentId) {
-            // SAVE TO THE STUDENTS TABLE
-            const { error } = await supabase
-              .from('students') 
-              .update({ fcm_token: deviceToken })
-              .eq('id', studentId);
+          // 4. Listen for the registration token
+          await PushNotifications.addListener('registration', async (token) => {
+            const deviceToken = token.value;
+            console.log('Push Token Generated:', deviceToken);
 
-            if (error) {
-              console.error('Error saving token to Supabase:', error);
-            } else {
-              console.log('Token successfully linked to student record!');
+            const studentId = localStorage.getItem('userId'); 
+
+            if (studentId) {
+              const { error } = await supabase
+                .from('students') 
+                .update({ fcm_token: deviceToken })
+                .eq('id', studentId);
+
+              if (error) {
+                console.error('Error saving token to Supabase:', error);
+              } else {
+                console.log('Token successfully linked to student record!');
+              }
             }
-          }
-        });
+          });
 
-        // 4. Handle errors if registration fails
-        await PushNotifications.addListener('registrationError', (err) => {
-          console.error('Push registration error: ', err.error);
-        });
+          // 5. Handle errors if registration fails
+          await PushNotifications.addListener('registrationError', (err) => {
+            console.error('Push registration error: ', err.error);
+          });
 
-        // 5. Handle notification received while app is active
-        await PushNotifications.addListener('pushNotificationReceived', (notification) => {
-          console.log('Notification received in foreground:', notification);
-        });
+          // 6. Handle notification received while app is active
+          await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            console.log('Notification received in foreground:', notification);
+          });
+        }
+      } catch (err) {
+        console.error('Failed to initialize push notifications:', err);
       }
     };
 
     setupPush();
 
-    // Cleanup listeners on unmount
     return () => {
-      PushNotifications.removeAllListeners();
+      // Only attempt to remove listeners if not on web
+      if (Capacitor.getPlatform() !== 'web') {
+        PushNotifications.removeAllListeners();
+      }
     };
   }, []);
 
   // --- UI LOGIC ---
   useEffect(() => {
-    setParentName(localStorage.getItem('parentName') || 'Parent')
-    setChildName(localStorage.getItem('childName') || 'Student')
+    if (typeof window !== 'undefined') {
+      setParentName(localStorage.getItem('parentName') || 'Parent')
+      setChildName(localStorage.getItem('childName') || 'Student')
+    }
     const handleScroll = () => setIsScrolled(window.scrollY > 10)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
@@ -104,7 +118,7 @@ export default function ParentLayout({
   }
 
   return (
-    <div className="flex bg-[#fffcfd] font-sans transition-colors duration-500">
+    <div className="flex bg-[#fffcfd] font-sans transition-colors duration-500 min-h-screen">
 
       {/* DESKTOP SIDEBAR */}
       <div className="hidden lg:block">
@@ -116,7 +130,7 @@ export default function ParentLayout({
 
         {/* HEADER */}
         <header
-          className={`sticky top-3 md:top-0 pt-[20px] z-40 px-4 md:px-8 h-[68px] md:h-[74px] flex items-center justify-between transition-all duration-300
+          className={`sticky top-0 z-40 px-4 md:px-8 h-[68px] md:h-[74px] flex items-center justify-between transition-all duration-300
             ${isScrolled 
               ? 'bg-white/90 backdrop-blur-md shadow-sm border-b' 
               : 'bg-white border-transparent'
@@ -134,7 +148,7 @@ export default function ParentLayout({
               <div className="w-9 h-9 bg-white rounded-lg p-1 border border-slate-100 shadow-sm">
                 <img src="/Schoollogo.jpg" alt="Logo" className="w-full h-full object-contain" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col text-left">
                 <h1 className="text-[13px] font-black text-slate-800 leading-none uppercase">Prashanti Vidyalaya</h1>
                 <span className="text-[9px] font-bold text-brand tracking-tighter uppercase opacity-70">Parent Panel</span>
               </div>
@@ -181,14 +195,14 @@ export default function ParentLayout({
         </header>
 
         {/* CONTENT */}
-        <main className={`px-4 md:px-8 flex-1 w-full ${pathname === "/parent" ? "pb-4 pt-8 md:pt-8" : "pb-4 pt-6 md:pt-8"}`}>
+        <main className={`px-4 md:px-8 flex-1 w-full ${pathname === "/parent" ? "pb-4 pt-8" : "pb-4 pt-6"}`}>
           {pathname === "/parent" && (
             <div className="lg:hidden">
-              <div className="mb-2 px-1 text-center">
+              <div className="mb-4 px-1 text-center">
                 <h3 className="text-xl font-black text-slate-800 tracking-tight">
                   Hello, <span className="text-brand uppercase">{parentName}!</span>
                 </h3>
-                <p className="hidden xs:block text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                <p className="xs:block text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
                   Academic overview for {childName}
                 </p>
               </div>

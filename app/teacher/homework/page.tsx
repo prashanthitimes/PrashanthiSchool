@@ -28,27 +28,27 @@ export default function HomeworkPage() {
         fetchInitialData()
     }, [])
 
-// 1. Update the state at the top
-const [allocatedClasses, setAllocatedClasses] = useState<any[]>([])
+    // 1. Update the state at the top
+    const [allocatedClasses, setAllocatedClasses] = useState<any[]>([])
 
-// 2. Update the fetchInitialData function
-async function fetchInitialData() {
-    const userEmail = localStorage.getItem('teacherEmail')
-    if (!userEmail) return
-    
-    // Fetch Teacher ID
-    const { data: teacher } = await supabase
-        .from('teachers')
-        .select('id')
-        .eq('email', userEmail)
-        .single()
-        
-    if (!teacher) return
+    // 2. Update the fetchInitialData function
+    async function fetchInitialData() {
+        const userEmail = localStorage.getItem('teacherEmail')
+        if (!userEmail) return
 
-    // FETCH ALL ALLOCATED CLASSES from your new table
-    const { data: allocations, error: allocError } = await supabase
-        .from('subject_assignments')
-        .select(`
+        // Fetch Teacher ID
+        const { data: teacher } = await supabase
+            .from('teachers')
+            .select('id')
+            .eq('email', userEmail)
+            .single()
+
+        if (!teacher) return
+
+        // FETCH ALL ALLOCATED CLASSES from your new table
+        const { data: allocations, error: allocError } = await supabase
+            .from('subject_assignments')
+            .select(`
             id,
             class_name,
             section,
@@ -56,14 +56,14 @@ async function fetchInitialData() {
             subject_id,
             subjects (id, name)
         `)
-        .eq('teacher_id', teacher.id)
-        .order('class_name', { ascending: true })
+            .eq('teacher_id', teacher.id)
+            .order('class_name', { ascending: true })
 
-    if (!allocError) setAllocatedClasses(allocations || [])
-    
-    // Keep your history fetch
-    fetchHistory(teacher.id)
-}
+        if (!allocError) setAllocatedClasses(allocations || [])
+
+        // Keep your history fetch
+        fetchHistory(teacher.id)
+    }
 
 
 
@@ -91,17 +91,19 @@ async function fetchInitialData() {
 
         if (!teacher) return
 
-    const payload = {
-    title: homeworkForm.title,
-    description: homeworkForm.description,
-    due_date: homeworkForm.dueDate,
-    teacher_id: teacher.id, // 👈 UNCOMMENT THIS: It is required for your schema
-    class_name: selectedSlot.class,
-    section: selectedSlot.section,
-    period: selectedSlot.period,
-    subject_id: selectedSlot.subject_id ?? selectedSlot.subjects?.id,
-    assigned_date: new Date().toISOString().split('T')[0]
-}
+        // ... inside handleSubmit function
+        const payload = {
+            title: homeworkForm.title,
+            description: homeworkForm.description,
+            due_date: homeworkForm.dueDate,
+            teacher_id: teacher.id,
+            class_name: selectedSlot.class,
+            section: selectedSlot.section,
+            // Change this line below:
+            period: selectedSlot.period || 1,
+            subject_id: selectedSlot.subject_id ?? selectedSlot.subjects?.id,
+            assigned_date: new Date().toISOString().split('T')[0]
+        }
 
 
 
@@ -174,7 +176,7 @@ async function fetchInitialData() {
         const diff = new Date(hw.due_date).getTime() - new Date().getTime();
         return diff > -86400000 && diff < 172800000;
     });
-return (
+    return (
         <div className="bg-[#FDFCFD] dark:bg-slate-950 pb-20 relative transition-colors duration-300">
 
             {/* --- MODAL POPUP --- */}
@@ -241,47 +243,49 @@ return (
             </div>
 
             <div className="px-6 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-{/* --- SIDEBAR --- */}
-<div className="lg:col-span-4 space-y-8">
-    <div className="space-y-4">
-        <h2 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] px-2">
-            My Allocated Classes
-        </h2>
-        <div className="grid gap-2">
-            {allocatedClasses.length > 0 ? (
-                allocatedClasses.map((item) => (
-                    <button 
-                        key={item.id} 
-                        onClick={() => { 
-                            setSelectedSlot({
-                                id: item.id,
-                                class: item.class_name,
-                                section: item.section,
-                                subject_id: item.subject_id,
-                                subjects: item.subjects
-                            }); 
-                            setEditingId(null); 
-                        }}
-                        className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-4
-                        ${selectedSlot?.id === item.id 
-                            ? 'bg-brand-light dark:bg-brand text-white border-brand-light dark:border-brand shadow-md' 
-                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-transparent dark:border-slate-800 shadow-sm hover:border-brand-soft dark:hover:border-slate-700'}`}
-                    >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${selectedSlot?.id === item.id ? 'bg-white/20' : 'bg-brand-soft dark:bg-slate-800 text-brand-light dark:text-brand-soft'}`}>
-                            {item.class_name[0]}
+                {/* --- SIDEBAR --- */}
+                <div className="lg:col-span-4 space-y-8">
+                    <div className="space-y-4">
+                        <h2 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] px-2">
+                            My Allocated Classes
+                        </h2>
+                        <div className="grid gap-2">
+                            {allocatedClasses.length > 0 ? (
+                                allocatedClasses.map((item) => (
+                                    <button
+                                        key={item.id}
+                                        // Look for the "My Allocated Classes" button in your code and update onClick
+                                        onClick={() => {
+                                            setSelectedSlot({
+                                                id: item.id,
+                                                class: item.class_name,
+                                                section: item.section,
+                                                period: 1, // <--- Add this default here
+                                                subject_id: item.subject_id,
+                                                subjects: item.subjects
+                                            });
+                                            setEditingId(null);
+                                        }}
+                                        className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-4
+                        ${selectedSlot?.id === item.id
+                                                ? 'bg-brand-light dark:bg-brand text-white border-brand-light dark:border-brand shadow-md'
+                                                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-transparent dark:border-slate-800 shadow-sm hover:border-brand-soft dark:hover:border-slate-700'}`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${selectedSlot?.id === item.id ? 'bg-white/20' : 'bg-brand-soft dark:bg-slate-800 text-brand-light dark:text-brand-soft'}`}>
+                                            {item.class_name[0]}
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-[9px] font-black uppercase opacity-70">Grade {item.class_name}-{item.section}</p>
+                                            <p className="font-black text-sm">{item.subjects?.name}</p>
+                                        </div>
+                                    </button>
+                                ))
+                            ) : (
+                                <p className="text-xs text-slate-400 p-4">No classes allocated yet.</p>
+                            )}
                         </div>
-                        <div className="text-left">
-                            <p className="text-[9px] font-black uppercase opacity-70">Grade {item.class_name}-{item.section}</p>
-                            <p className="font-black text-sm">{item.subjects?.name}</p>
-                        </div>
-                    </button>
-                ))
-            ) : (
-                <p className="text-xs text-slate-400 p-4">No classes allocated yet.</p>
-            )}
-        </div>
-    </div>
-</div>
+                    </div>
+                </div>
 
                 {/* --- FORM --- */}
                 <div className="lg:col-span-8">
