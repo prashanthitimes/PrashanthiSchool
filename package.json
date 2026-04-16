@@ -13,6 +13,7 @@
     "@capacitor/app": "^8.0.1",
     "@capacitor/cli": "^8.1.0",
     "@capacitor/core": "^8.1.0",
+    "@capacitor/push-notifications": "^8.0.3",
     "@supabase/supabase-js": "^2.x.x",
     "date-fns": "^4.1.0",
     "file-saver": "^2.0.5",

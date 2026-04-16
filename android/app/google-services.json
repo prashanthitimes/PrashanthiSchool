@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "32913372783",
+    "project_id": "prashanthi-school",
+    "storage_bucket": "prashanthi-school.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32913372783:android:01354758c730c2eddd7f9a",
+        "android_client_info": {
+          "package_name": "com.prashanthischool.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxAaf_Wi2oYo__OFhNpQ6RVEHpZiwetxs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
