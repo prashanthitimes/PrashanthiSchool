@@ -146,7 +146,7 @@ export default function UnifiedLoginPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-accent/50 blur-[100px] rounded-full" />
 
       <div className="w-full max-w-md bg-brand rounded-[2rem] md:rounded-[2.5rem] shadow-2xl shadow-brand-soft/20 p-6 md:p-10 space-y-8 relative z-10 border border-brand-accent">
-        
+
         {/* HEADER */}
         <div className="flex flex-col items-center text-center">
           <div className="w-20 h-20 relative p-1 rounded-3xl bg-white shadow-xl border border-brand-accent mb-4">
@@ -306,12 +306,30 @@ export default function UnifiedLoginPage() {
             </div>
           </div>
         )}
+<footer className="mt-8 pt-6 border-t border-white/10">
+  <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center">
+    {/* Copyright Part */}
+    <p className="text-[10px] text-white/70 font-bold uppercase tracking-[0.15em]">
+      © 2026 Prashanti Vidyalaya & High School
+    </p>
 
-        <div className="text-center pt-4 border-t border-brand-accent/30">
-          <p className="text-[10px] text-white font-bold uppercase tracking-[0.2em]">
-            © 2026 Prashanti Vidyalaya & High School
-          </p>
-        </div>
+    {/* Dot Separator (Hidden on mobile, shown on desktop) */}
+    <span className="hidden md:block w-1 h-1 bg-white/20 rounded-full"></span>
+
+    {/* Developer Part */}
+    <p className="text-[10px] text-white/70 font-bold uppercase tracking-[0.15em]">
+      Developed by{" "}
+      <a
+        href="https://rakvih.in/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-white hover:text-brand-soft transition-colors underline underline-offset-4 decoration-white/30 hover:decoration-brand-soft"
+      >
+        Rakvih
+      </a>
+    </p>
+  </div>
+</footer>
       </div>
     </div>
   )
