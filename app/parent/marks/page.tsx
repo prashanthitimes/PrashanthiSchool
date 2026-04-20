@@ -146,7 +146,7 @@ const getMark = (subjectId: string, examId: string) => {
     <div className="min-h-screen pb-24 font-sans bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
 
       {/* 1. TOP RESPONSIVE ACTION BAR */}
-      <div className="bg-white dark:bg-slate-900 border-b border-brand-soft dark:border-slate-800 p-4 top-0 z-[60] shadow-sm max-w-7xl mx-auto md:mt-4 md:rounded-2xl flex justify-between items-center transition-colors">
+      <div className="bg-white dark:bg-slate-900 border-b border-brand-soft dark:border-slate-800 p-4 sticky top-0 z-[60] shadow-sm max-w-7xl mx-auto md:mt-4 md:rounded-2xl flex justify-between items-center transition-colors">
         <div className="flex items-center gap-3">
 
           <div className="hidden sm:block">
