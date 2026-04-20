@@ -307,16 +307,13 @@ export default function UnifiedLoginPage() {
           </div>
         )}
 <footer className="mt-8 pt-6 border-t border-white/10">
-  <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center">
-    {/* Copyright Part */}
+  <div className="flex flex-col items-center justify-center space-y-3 text-center">
+    {/* Copyright Line */}
     <p className="text-[10px] text-white/70 font-bold uppercase tracking-[0.15em]">
       © 2026 Prashanti Vidyalaya & High School
     </p>
 
-    {/* Dot Separator (Hidden on mobile, shown on desktop) */}
-    <span className="hidden md:block w-1 h-1 bg-white/20 rounded-full"></span>
-
-    {/* Developer Part */}
+    {/* Developer Line */}
     <p className="text-[10px] text-white/70 font-bold uppercase tracking-[0.15em]">
       Developed by{" "}
       <a
