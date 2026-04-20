@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation' // Added to track current URL
 import {
   FiUsers, FiShield, FiBook, FiClipboard, FiCalendar, FiSettings,
-  FiTruck,  FiHome, FiUserCheck, FiUser,
+  FiTruck,  FiHome, FiUserCheck, FiUser,FiDatabase,
   FiActivity, FiLayers, FiImage, FiCreditCard, FiCamera, FiX,
   FiSun, FiMoon,FiFileText// Added for Theme Toggle
 } from 'react-icons/fi'
@@ -63,42 +63,74 @@ export default function AdminSidebar({ activeMenu, setActiveMenu, isOpen, setIsO
     }
   }
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <FiHome />, path: '/admin', group: 'Overview' },
-    { id: 'admin-management', label: 'Admin Management', icon: <FiShield />, path: '/admin/management', group: 'System' },
-    { id: 'teachers', label: 'Teachers', icon: <FiUsers />, path: '/admin/teachers', group: 'Academics' },
-    { id: 'students', label: 'Students', icon: <FiUser />, path: '/admin/students', group: 'Academics' },
-    // { id: 'parents', label: 'Parents', icon: <FiUserCheck />, path: '/admin/parents', group: 'Academics' },
-    { id: 'classes-sections', label: 'Classes & Sections', icon: <FiLayers />, path: '/admin/classes', group: 'Academics' },
-    { id: 'subjects', label: 'Subjects', icon: <FiBook />, path: '/admin/subjects', group: 'Academics' },
-    { id: 'timetable', label: 'Time Table', icon: <FiClock />, path: '/admin/timetable', group: 'Academics' },
-    { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/admin/attendance', group: 'Operations' },
-    { id: 'exam-registry', label: 'Exam Setup', icon: <FiSettings />, path: '/admin/exams', group: 'Operations' },
-    { id: 'exam-schedule', label: 'Exam Time Table', icon: <FiCalendar />, path: '/admin/examtimetable', group: 'Operations' },
-    { id: 'exams-marks', label: 'Marks Ledger', icon: <FiClipboard />, path: '/admin/examsmarks', group: 'Operations' },
-    {
-      id: 'fee-setup',
-      label: 'Fee Setup',
-      icon: <FiFileText size={16} />,
-      path: '/admin/FeeTypeManager', // Link to your FeeTypeManager page
-      group: 'Operations'
-    },
-    { id: 'fee-management', label: 'Fee Management', icon: <IndianRupee size={16} />, path: '/admin/fees', group: 'Operations' },
-    { id: 'fee-ledger', label: 'Fee Ledger', icon: <FiCreditCard />, path: '/admin/viewfeesdeatils', group: 'Operations' },
-    { id: 'payment-scanner', label: 'Scanner Setup', icon: <FiCamera />, path: '/admin/scanner', group: 'Operations' },
-    { id: 'transport', label: 'Transport', icon: <FiTruck />, path: '/admin/transport', group: 'Logistics' },
-    { id: 'notices-circulars', label: 'Notices', icon: <FiFileText />, path: '/admin/notices', group: 'Communication' },
-    { id: 'calendar', label: 'Calendar', icon: <FiCalendar />, path: '/admin/calendar', group: 'Communication' },
-    { id: 'photo-gallery', label: 'Photo Gallery', icon: <FiImage />, path: '/admin/gallery', group: 'Communication' },
-    { id: 'settings', label: 'Settings', icon: <FiSettings />, path: '/admin/settings', group: 'System' },
-  ]
+const menuItems = [
+  { id: 'dashboard', label: 'Dashboard', icon: <FiHome />, path: '/admin', group: 'Overview' },
 
-  const visibleMenu = menuItems.filter(item => {
-    if (item.id === 'dashboard') return true
-    return permissions[item.id] === true
-  })
+  // SYSTEM
+  { id: 'admin-management', label: 'Admin Management', icon: <FiShield />, path: '/admin/management', group: 'System' },
 
-  const groups = ['Overview', 'Academics', 'Operations', 'Logistics', 'Communication', 'System']
+  // ACADEMICS
+  { id: 'teachers', label: 'Teachers', icon: <FiUsers />, path: '/admin/teachers', group: 'Academics' },
+  { id: 'students', label: 'Students', icon: <FiUser />, path: '/admin/students', group: 'Academics' },
+  { id: 'classes-sections', label: 'Classes & Sections', icon: <FiLayers />, path: '/admin/classes', group: 'Academics' },
+  { id: 'subjects', label: 'Subjects', icon: <FiBook />, path: '/admin/subjects', group: 'Academics' },
+  { id: 'timetable', label: 'Time Table', icon: <FiClock />, path: '/admin/timetable', group: 'Academics' },
+
+  // OPERATIONS
+  { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/admin/attendance', group: 'Operations' },
+  { id: 'exam-registry', label: 'Exam Setup', icon: <FiSettings />, path: '/admin/exams', group: 'Operations' },
+  { id: 'exam-schedule', label: 'Exam Time Table', icon: <FiCalendar />, path: '/admin/examtimetable', group: 'Operations' },
+  {
+    id: 'fee-setup',
+    label: 'Fee Setup',
+    icon: <FiFileText size={16} />,
+    path: '/admin/FeeTypeManager',
+    group: 'Operations'
+  },
+  { id: 'payment-scanner', label: 'Scanner Setup', icon: <FiCamera />, path: '/admin/scanner', group: 'Operations' },
+
+  // ✅ DATA CENTER (NEW CLEAN TAB)
+  {
+    id: 'exams-marks',
+    label: 'Marks Ledger',
+    icon: <FiClipboard />,
+    path: '/admin/examsmarks',
+    group: 'Data Center'
+  },
+  {
+    id: 'fee-management',
+    label: 'Fee Management',
+    icon: <IndianRupee size={16} />,
+    path: '/admin/fees',
+    group: 'Data Center'
+  },
+  {
+    id: 'fee-ledger',
+    label: 'Fee Ledger',
+    icon: <FiCreditCard />,
+    path: '/admin/viewfeesdeatils',
+    group: 'Data Center'
+  },
+
+  // LOGISTICS
+  { id: 'transport', label: 'Transport', icon: <FiTruck />, path: '/admin/transport', group: 'Logistics' },
+
+  // COMMUNICATION
+  { id: 'notices-circulars', label: 'Notices', icon: <FiFileText />, path: '/admin/notices', group: 'Communication' },
+  { id: 'calendar', label: 'Calendar', icon: <FiCalendar />, path: '/admin/calendar', group: 'Communication' },
+  { id: 'photo-gallery', label: 'Photo Gallery', icon: <FiImage />, path: '/admin/gallery', group: 'Communication' },
+
+  // SYSTEM
+  { id: 'settings', label: 'Settings', icon: <FiSettings />, path: '/admin/settings', group: 'System' },
+  { id: 'data-manager', label: 'Data Manager', icon: <FiDatabase />, path: '/admin/data-manager', group: 'Data Clear' }
+]
+
+ const visibleMenu = menuItems.filter(item => {
+  if (item.id === 'dashboard' || item.id === 'data-manager') return true
+  return permissions[item.id] === true
+})
+
+  const groups = ['Overview', 'Academics', 'Operations', 'Data Center', 'Logistics', 'Communication', 'System', 'Data Clear']
 
   return (
     <>

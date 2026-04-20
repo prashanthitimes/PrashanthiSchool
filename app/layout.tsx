@@ -13,12 +13,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Metadata ONLY works in Server Components (no "use client" at the top)
 export const metadata: Metadata = {
   title: "Prashanti Vidyalaya & High School.",
   description: "School Management System",
   icons: {
     icon: [
-      { url: "/Schoollogo.jpg", sizes: "20x30", type: "image/png" },
+      { url: "/Schoollogo.jpg", sizes: "32x32", type: "image/jpeg" },
     ],
   },
 };
@@ -31,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}>
+        {/* This component can be a client component internally */}
         <BackButtonHandler />
         {children}
       </body>
