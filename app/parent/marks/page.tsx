@@ -63,13 +63,12 @@ export default function ParentMarks() {
         setAssignments(asgn || []);
 
         const { data: marksData } = await supabase
-          .from("exam_marks")
-          .select(`
-            *,
-            subjects (id, name),
-            exam_syllabus (id, exam_id)
-          `)
-          .eq("student_id", childId);
+  .from("exam_marks")
+  .select(`
+    *,
+    subjects (id, name)
+  `)
+  .eq("student_id", childId);
 
         setMarks(marksData || []);
       }
@@ -80,9 +79,12 @@ export default function ParentMarks() {
     }
   }
 
-  const getMark = (subjectId: string, examId: string) => {
-    return marks.find(m => m.subject_id === subjectId && m.exam_syllabus?.exam_id === examId);
-  };
+const getMark = (subjectId: string, examId: string) => {
+  return marks.find(m => 
+    m.subject_id === subjectId && 
+    m.exam_id === examId   // ✅ use exam_id directly
+  );
+};
 
   const getExamChartData = () => {
     if (!availableExams.length || !assignments.length) return [];
@@ -144,7 +146,7 @@ export default function ParentMarks() {
     <div className="min-h-screen pb-24 font-sans bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
 
       {/* 1. TOP RESPONSIVE ACTION BAR */}
-      <div className="bg-white dark:bg-slate-900 border-b border-brand-soft dark:border-slate-800 p-4 sticky top-0 z-[60] shadow-sm max-w-7xl mx-auto md:mt-4 md:rounded-2xl flex justify-between items-center transition-colors">
+      <div className="bg-white dark:bg-slate-900 border-b border-brand-soft dark:border-slate-800 p-4 top-0 z-[60] shadow-sm max-w-7xl mx-auto md:mt-4 md:rounded-2xl flex justify-between items-center transition-colors">
         <div className="flex items-center gap-3">
 
           <div className="hidden sm:block">

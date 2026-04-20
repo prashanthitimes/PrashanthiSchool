@@ -139,11 +139,9 @@ export default function ExamTimetable() {
             
             {/* Student Photo */}
             <div className="w-24 h-24 rounded-2xl border-4 border-white/20 overflow-hidden bg-white/10 flex items-center justify-center shrink-0">
-              {studentInfo?.image_url ? (
-                <img src={studentInfo.image_url} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
+              
                 <FiUser size={32} className="opacity-40" />
-              )}
+             
             </div>
 
             <div className="text-center md:text-left">

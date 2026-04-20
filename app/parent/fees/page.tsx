@@ -169,7 +169,7 @@ export default function ParentFees() {
                             <h2 className="text-2xl font-black italic">Pay Remaining Balance</h2>
                             <div className="bg-white/10 px-3 py-1 rounded-full flex items-center gap-2">
                                 <Clock size={12} className="text-amber-400" />
-                                <span className="text-[9px] font-bold uppercase tracking-tighter text-amber-400">Verification takes 24h</span>
+                                <span className="text-[9px] font-bold tracking-tighter text-amber-400">Receipt will be generated after 24 hours of working day.</span>
                             </div>
                         </div>
 
