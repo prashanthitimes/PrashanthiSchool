@@ -21,28 +21,29 @@ export default function ParentMarks() {
   const [availableExams, setAvailableExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const reportRef = useRef<HTMLDivElement>(null);
+const [isMobile, setIsMobile] = useState(false);
+useEffect(() => {
+  setIsMobile(window.innerWidth < 640);
+}, []);
 
   useEffect(() => {
     initFetch();
-    
-    // --- SYSTEM THEME LOGIC ---
-    // This effect ensures that if the system changes from light to dark, the UI follows.
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (e.matches) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    };
 
-    // Initial check
-    handleChange(mediaQuery);
 
-    // Listen for changes
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
+
+ useEffect(() => {
+  const savedTheme = localStorage.getItem("theme");
+
+  if (savedTheme) {
+    // Use saved theme
+    document.documentElement.classList.toggle("dark", savedTheme === "dark");
+  } else {
+    // Optional fallback (ONLY if you want system theme initially)
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.classList.toggle("dark", prefersDark);
+  }
+}, []);
 
   async function initFetch() {
     setLoading(true);
@@ -141,7 +142,7 @@ export default function ParentMarks() {
 
   return (
     <div className="min-h-screen pb-24 font-sans bg-slate-50 dark:bg-slate-950 transition-colors">
-      
+
       {/* 1. TOP ACTION BAR */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 top-0 z-[100] shadow-sm max-w-7xl mx-auto md:mt-4 md:rounded-2xl flex justify-between items-center transition-colors">
         <div className="flex items-center gap-3">
@@ -264,8 +265,8 @@ export default function ParentMarks() {
 
           {/* Swipe Indicator for mobile */}
           <div className="flex md:hidden items-center justify-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50">
-             <FiChevronRight className="text-brand animate-bounce-x" />
-             <span className="text-[9px] font-black uppercase text-slate-500">Swipe table for more</span>
+            <FiChevronRight className="text-brand animate-bounce-x" />
+            <span className="text-[9px] font-black uppercase text-slate-500">Swipe table for more</span>
           </div>
         </div>
 
@@ -278,24 +279,24 @@ export default function ParentMarks() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={getExamChartData()} margin={{ top: 0, right: 0, left: -20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 10, fontWeight: 700 }} 
-                  axisLine={false} 
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 10, fontWeight: 700 }}
+                  axisLine={false}
                   tickLine={false}
                   angle={-15}
                   textAnchor="end"
                 />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip 
+                <Tooltip
                   cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                 />
-                <Bar 
-                  dataKey="value" 
-                  fill="#7c3aed" 
-                  radius={[6, 6, 0, 0]} 
-                  barSize={window.innerWidth < 640 ? 25 : 45} 
+                <Bar
+                  dataKey="value"
+                  fill="#7c3aed"
+                  radius={[6, 6, 0, 0]}
+                  barSize={isMobile ? 25 : 45}
                 />
               </BarChart>
             </ResponsiveContainer>
