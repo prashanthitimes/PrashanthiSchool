@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { FiAward, FiDownload, FiUser, FiBookOpen, FiChevronRight } from "react-icons/fi";
+import { FiAward, FiDownload, FiUser, FiBookOpen, FiChevronRight, FiPrinter } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
 import {
@@ -20,30 +20,22 @@ export default function ParentMarks() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [availableExams, setAvailableExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
+  
   const reportRef = useRef<HTMLDivElement>(null);
-const [isMobile, setIsMobile] = useState(false);
-useEffect(() => {
-  setIsMobile(window.innerWidth < 640);
-}, []);
+  const printTemplateRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    setIsMobile(window.innerWidth < 640);
     initFetch();
-
-
+    
+    // Theme Sync
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme) {
+      document.documentElement.classList.toggle("dark", savedTheme === "dark");
+    }
   }, []);
-
- useEffect(() => {
-  const savedTheme = localStorage.getItem("theme");
-
-  if (savedTheme) {
-    // Use saved theme
-    document.documentElement.classList.toggle("dark", savedTheme === "dark");
-  } else {
-    // Optional fallback (ONLY if you want system theme initially)
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    document.documentElement.classList.toggle("dark", prefersDark);
-  }
-}, []);
 
   async function initFetch() {
     setLoading(true);
@@ -51,37 +43,20 @@ useEffect(() => {
       const childId = localStorage.getItem('childId');
       if (!childId) return;
 
-      const { data: studentData } = await supabase
-        .from("students")
-        .select("*")
-        .eq("id", childId)
-        .maybeSingle();
-
+      const { data: studentData } = await supabase.from("students").select("*").eq("id", childId).maybeSingle();
       setStudent(studentData);
 
       if (studentData) {
         const cleanClassName = studentData.class_name.replace(/(th|st|nd|rd)/gi, "");
         const matchString = `${cleanClassName}-${studentData.section}`;
 
-        const { data: examData } = await supabase
-          .from("exams")
-          .select("*")
-          .contains("classes", [matchString]);
-
+        const { data: examData } = await supabase.from("exams").select("*").contains("classes", [matchString]);
         setAvailableExams(examData || []);
 
-        const { data: asgn } = await supabase
-          .from("subject_assignments")
-          .select(`*, subjects (id, name)`)
-          .eq("class_name", studentData.class_name)
-          .eq("section", studentData.section);
+        const { data: asgn } = await supabase.from("subject_assignments").select(`*, subjects (id, name)`).eq("class_name", studentData.class_name).eq("section", studentData.section);
         setAssignments(asgn || []);
 
-        const { data: marksData } = await supabase
-          .from("exam_marks")
-          .select(`*, subjects (id, name)`)
-          .eq("student_id", childId);
-
+        const { data: marksData } = await supabase.from("exam_marks").select(`*, subjects (id, name)`).eq("student_id", childId);
         setMarks(marksData || []);
       }
     } catch (err) {
@@ -115,19 +90,27 @@ useEffect(() => {
     });
   };
 
-  const downloadImage = async () => {
-    if (reportRef.current) {
-      // Check current mode for canvas background
-      const isDark = document.documentElement.classList.contains('dark');
-      const canvas = await html2canvas(reportRef.current, {
-        backgroundColor: isDark ? "#0f172a" : "#ffffff",
-        scale: 2,
+  const downloadOfficialCard = async () => {
+    if (printTemplateRef.current) {
+      setIsDownloading(true);
+      const element = printTemplateRef.current;
+      
+      // Make the hidden template visible for capture
+      element.style.display = "block";
+
+      const canvas = await html2canvas(element, {
+        scale: 3, // High resolution
         useCORS: true,
+        backgroundColor: "#ffffff",
       });
+
+      element.style.display = "none";
+
       const link = document.createElement("a");
-      link.download = `${student?.full_name}_Marksheet.png`;
+      link.download = `Official_Marks_Card_${student?.full_name}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
+      setIsDownloading(false);
     }
   };
 
@@ -135,39 +118,95 @@ useEffect(() => {
     <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-brand font-black text-[10px] uppercase tracking-widest">Building Report Card...</p>
+        <p className="text-brand font-black text-[10px] uppercase tracking-widest">Generating Report...</p>
       </div>
     </div>
   );
 
   return (
     <div className="min-h-screen pb-24 font-sans bg-slate-50 dark:bg-slate-950 transition-colors">
+      
+      {/* --- HIDDEN PRINT TEMPLATE (This is what downloads) --- */}
+      <div 
+        ref={printTemplateRef}
+        style={{ display: 'none', width: '800px', padding: '60px', backgroundColor: 'white' }}
+      >
+        <div style={{ border: '12px double #1e293b', padding: '40px', position: 'relative' }}>
+          <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
+            <h1 style={{ fontSize: '32px', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>Prashanti Vidyalaya</h1>
+            <p style={{ fontSize: '10px', fontWeight: 'bold', letterSpacing: '2px', color: '#64748b' }}>OFFICIAL ACADEMIC PROGRESS REPORT</p>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
+            <div style={{ fontSize: '12px' }}><strong>STUDENT:</strong> {student?.full_name?.toUpperCase()}</div>
+            <div style={{ fontSize: '12px' }}><strong>CLASS:</strong> {student?.class_name}-{student?.section}</div>
+            <div style={{ fontSize: '12px' }}><strong>ACADEMIC YEAR:</strong> 2025-2026</div>
+            <div style={{ fontSize: '12px' }}><strong>DATE:</strong> {new Date().toLocaleDateString()}</div>
+          </div>
 
-      {/* 1. TOP ACTION BAR */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 top-0 z-[100] shadow-sm max-w-7xl mx-auto md:mt-4 md:rounded-2xl flex justify-between items-center transition-colors">
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '40px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f8fafc' }}>
+                <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left', fontSize: '11px' }}>SUBJECT</th>
+                {availableExams.map(ex => (
+                  <th key={ex.id} style={{ border: '1px solid #000', padding: '10px', fontSize: '11px' }}>{ex.exam_name}</th>
+                ))}
+                <th style={{ border: '1px solid #000', padding: '10px', fontSize: '11px' }}>AVG %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assignments.map(asgn => {
+                let total = 0, count = 0;
+                return (
+                  <tr key={asgn.subjects?.id}>
+                    <td style={{ border: '1px solid #000', padding: '10px', fontWeight: 'bold', fontSize: '11px' }}>{asgn.subjects?.name}</td>
+                    {availableExams.map(ex => {
+                      const m = getMark(asgn.subjects?.id, ex.id);
+                      if (m) { total += (m.marks_obtained / m.total_marks) * 100; count++; }
+                      return (
+                        <td key={ex.id} style={{ border: '1px solid #000', padding: '10px', textAlign: 'center', fontSize: '11px' }}>
+                          {m ? `${m.marks_obtained}/${m.total_marks}` : '-'}
+                        </td>
+                      );
+                    })}
+                    <td style={{ border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: '900', fontSize: '11px' }}>
+                      {count > 0 ? Math.round(total / count) + "%" : "-"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <div style={{ marginTop: '80px', display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ textAlign: 'center', width: '150px', borderTop: '1px solid #000', paddingTop: '5px', fontSize: '10px', fontWeight: 'bold' }}>CLASS TEACHER</div>
+            <div style={{ textAlign: 'center', width: '150px', borderTop: '1px solid #000', paddingTop: '5px', fontSize: '10px', fontWeight: 'bold' }}>PRINCIPAL</div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- DASHBOARD VIEW (What the user sees) --- */}
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 sticky top-0 z-[100] shadow-sm max-w-7xl mx-auto md:mt-4 md:rounded-2xl flex justify-between items-center transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-brand/10 rounded-lg flex items-center justify-center">
             <FiAward className="text-brand" />
           </div>
           <div>
             <h2 className="text-[10px] font-black text-brand uppercase leading-none">Student Portal</h2>
-            <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Academic Records</p>
+            <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Interactive Dashboard</p>
           </div>
         </div>
 
         <button
-          onClick={downloadImage}
+          onClick={downloadOfficialCard}
+          disabled={isDownloading}
           className="bg-brand text-white px-5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all text-[10px] font-black uppercase flex items-center gap-2"
         >
-          <FiDownload /> <span>Save Image</span>
+          {isDownloading ? "Generating..." : <><FiDownload /> <span>Official Marks Card</span></>}
         </button>
       </div>
 
-      {/* 2. THE MAIN REPORT CARD CONTAINER */}
-      <div
-        ref={reportRef}
-        className="max-w-[100vw] md:max-w-7xl mx-auto bg-white dark:bg-slate-900 overflow-hidden shadow-2xl mt-6 md:rounded-3xl border border-slate-100 dark:border-slate-800 transition-colors"
-      >
+      <div className="max-w-[100vw] md:max-w-7xl mx-auto bg-white dark:bg-slate-900 overflow-hidden shadow-2xl mt-6 md:rounded-3xl border border-slate-100 dark:border-slate-800 transition-colors">
         {/* BRANDED HEADER */}
         <div className="bg-brand p-6 md:p-8 text-white relative overflow-hidden">
           <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -191,69 +230,42 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* 3. SCROLLABLE TABLE AREA */}
+        {/* INTERACTIVE TABLE */}
         <div className="relative">
-          <div className="overflow-x-auto overflow-y-hidden scrollbar-hide">
+          <div className="overflow-x-auto scrollbar-hide">
             <table className="w-full border-collapse min-w-[600px]">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  {/* Sticky Subject Header */}
-                  <th className="p-4 md:p-6 text-left text-[10px] md:text-xs uppercase font-black sticky left-0 bg-slate-900 z-30 min-w-[140px] md:min-w-[200px] border-b border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">
-                    Subject
-                  </th>
-
+                  <th className="p-4 md:p-6 text-left text-[10px] md:text-xs uppercase font-black sticky left-0 bg-slate-900 z-30 min-w-[140px] md:min-w-[200px]">Subject</th>
                   {availableExams.map(ex => (
-                    <th key={ex.id} className="p-4 text-center text-[9px] md:text-[11px] uppercase font-black border-l border-white/5 border-b border-white/5">
-                      {ex.exam_name}
-                    </th>
+                    <th key={ex.id} className="p-4 text-center text-[9px] md:text-[11px] uppercase font-black border-l border-white/5">{ex.exam_name}</th>
                   ))}
-
-                  {/* Sticky Average Header */}
-                  <th className="p-4 text-center text-[10px] md:text-xs uppercase font-black bg-brand sticky right-0 z-30 min-w-[80px] md:min-w-[100px] border-b border-white/5 shadow-[-2px_0_5px_rgba(0,0,0,0.2)]">
-                    Avg
-                  </th>
+                  <th className="p-4 text-center text-[10px] md:text-xs uppercase font-black bg-brand sticky right-0 z-30">Avg</th>
                 </tr>
               </thead>
-
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {assignments.map((asgn, idx) => {
                   const subId = asgn.subjects?.id;
                   let subjectTotal = 0;
                   let examCount = 0;
-
                   return (
-                    <tr key={subId} className={`${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800/20'} transition-colors`}>
-                      {/* Sticky Subject Cell */}
-                      <td className="p-4 md:p-6 font-black text-[11px] md:text-sm uppercase text-slate-800 dark:text-slate-200 sticky left-0 bg-inherit z-20 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+                    <tr key={subId} className={`${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800/20'}`}>
+                      <td className="p-4 md:p-6 font-black text-[11px] md:text-sm uppercase sticky left-0 bg-inherit z-20 border-r dark:border-slate-800">
                         <div className="flex items-center gap-2">
-                          <div className="w-1 h-4 bg-brand rounded-full shrink-0"></div>
-                          <span className="truncate">{asgn.subjects?.name}</span>
+                          <div className="w-1.5 h-1.5 bg-brand rounded-full"></div>
+                          {asgn.subjects?.name}
                         </div>
                       </td>
-
                       {availableExams.map(ex => {
                         const m = getMark(subId, ex.id);
-                        if (m) {
-                          subjectTotal += (m.marks_obtained / m.total_marks) * 100;
-                          examCount++;
-                        }
+                        if (m) { subjectTotal += (m.marks_obtained / m.total_marks) * 100; examCount++; }
                         return (
                           <td key={ex.id} className="p-4 text-center">
-                            {m ? (
-                              <div className="inline-flex flex-col items-center">
-                                <span className="font-black text-sm md:text-lg text-slate-900 dark:text-white leading-none">{m.marks_obtained}</span>
-                                <div className="w-full h-[1px] bg-slate-200 dark:bg-slate-700 my-1"></div>
-                                <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase">{m.total_marks}</span>
-                              </div>
-                            ) : (
-                              <span className="opacity-10">—</span>
-                            )}
+                            {m ? <span className="font-bold text-slate-800 dark:text-white">{m.marks_obtained}/{m.total_marks}</span> : <span className="opacity-20">—</span>}
                           </td>
                         );
                       })}
-
-                      {/* Sticky Average Cell */}
-                      <td className="p-4 text-center bg-brand/5 dark:bg-brand/10 font-black text-brand dark:text-brand-light text-sm md:text-lg sticky right-0 z-20 shadow-[-2px_0_5px_rgba(0,0,0,0.02)] backdrop-blur-sm">
+                      <td className="p-4 text-center bg-brand/5 dark:bg-brand/10 font-black text-brand sticky right-0 z-20 backdrop-blur-sm">
                         {examCount > 0 ? Math.round(subjectTotal / examCount) + "%" : "-"}
                       </td>
                     </tr>
@@ -262,70 +274,30 @@ useEffect(() => {
               </tbody>
             </table>
           </div>
-
-          {/* Swipe Indicator for mobile */}
-          <div className="flex md:hidden items-center justify-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50">
-            <FiChevronRight className="text-brand animate-bounce-x" />
-            <span className="text-[9px] font-black uppercase text-slate-500">Swipe table for more</span>
-          </div>
         </div>
 
-        {/* 📊 CHART SECTION */}
+        {/* PERFORMANCE CHART */}
         <div className="p-6 md:p-10 border-t border-slate-100 dark:border-slate-800">
-          <h2 className="text-lg md:text-2xl font-black text-center mb-8 text-slate-800 dark:text-white uppercase tracking-tight">
-            Performance Trend
+          <h2 className="text-lg md:text-xl font-black mb-8 text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-3">
+             <div className="w-2 h-6 bg-brand rounded-full"></div> Progress Summary
           </h2>
-          <div className="w-full h-[280px] md:h-[400px]">
+          <div className="w-full h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={getExamChartData()} margin={{ top: 0, right: 0, left: -20, bottom: 20 }}>
+              <BarChart data={getExamChartData()}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 10, fontWeight: 700 }}
-                  axisLine={false}
-                  tickLine={false}
-                  angle={-15}
-                  textAnchor="end"
-                />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 900 }} axisLine={false} tickLine={false} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(0,0,0,0.05)' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                />
-                <Bar
-                  dataKey="value"
-                  fill="#7c3aed"
-                  radius={[6, 6, 0, 0]}
-                  barSize={isMobile ? 25 : 45}
-                />
+                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ borderRadius: '12px', border: 'none', fontWeight: 'bold' }} />
+                <Bar dataKey="value" fill="#7c3aed" radius={[4, 4, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* FOOTER */}
-        <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800">
-          <p className="text-[9px] md:text-[10px] text-slate-400 dark:text-slate-500 font-black tracking-[0.3em] uppercase text-center">
-            Digital Marksheet • Prashanti Vidyalaya Official Records
-          </p>
-        </div>
       </div>
 
       <style jsx global>{`
-        @keyframes bounce-x {
-          0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(5px); }
-        }
-        .animate-bounce-x {
-          animation: bounce-x 1s infinite;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        /* Prevent scroll chaining on mobile table */
-        .overflow-x-auto {
-          overscroll-behavior-x: contain;
-        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .overflow-x-auto { overscroll-behavior-x: contain; }
       `}</style>
     </div>
   );
