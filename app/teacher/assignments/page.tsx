@@ -93,7 +93,7 @@ export default function AssignmentsPage() {
                   <FiFileText size={24} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-brand-light uppercase tracking-widest">Graded Task</p>
+                  <p className="text-[10px] font-black text-brand-light uppercase tracking-widest">Graded Task.</p>
                   <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">{viewingAssignment.subjects?.name}</h3>
                 </div>
               </div>
