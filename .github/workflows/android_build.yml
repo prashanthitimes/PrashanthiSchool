@@ -43,20 +43,22 @@ jobs:
           chmod +x gradlew
           ./gradlew bundleRelease
 
-      # This signs the AAB using the secrets you added to GitHub
-      - name: Sign AAB
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: android/app/build/outputs/bundle/release
-          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_CONTENT }}
-          alias: school-alias
-          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      - name: Create and Sign AAB
+        run: |
+          # 1. Create a fresh keystore inside the GitHub runner
+          keytool -genkey -v -keystore release.keystore -alias school-alias -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -dname "CN=Prashanthi School, OU=Education, O=School, L=Bangalore, S=Karnataka, C=IN"
 
-      # Upload the SIGNED file (it adds "-signed" to the filename)
+          # 2. Sign the AAB file
+          jarsigner -keystore release.keystore \
+            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            android/app/build/outputs/bundle/release/app-release.aab school-alias
+
       - name: Upload Signed AAB
         uses: actions/upload-artifact@v4
         with:
           name: Signed_Prashanthi_AAB
-          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
