@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Prashanti Vidyalaya And High School</string>
     <string name="title_activity_main">Prashanti Vidyalaya And High School</string>
-    <string name="package_name">com.prashanthischool.app</string>
-    <string name="custom_url_scheme">com.prashanthischool.app</string>
+    <string name="package_name">com.prashanthividyalaya.app</string>
+    <string name="custom_url_scheme">com.prashanthividyalaya.app</string>
 </resources>
