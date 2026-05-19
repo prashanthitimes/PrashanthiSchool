@@ -43,19 +43,17 @@ jobs:
           chmod +x gradlew
           ./gradlew bundleRelease
 
-      - name: Create and Sign AAB
+      - name: Extract and Sign AAB
         run: |
-          # 1. Create a fresh keystore inside the GitHub runner
-          keytool -genkey -v -keystore release.keystore -alias school-alias -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -keypass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -dname "CN=Prashanthi School, OU=Education, O=School, L=Bangalore, S=Karnataka, C=IN"
+          # 1. Decode your permanent keystore from your secret back into a physical file
+          echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | base64 -d > release.keystore
 
-          # 2. Sign the AAB file
+          # 2. Sign the compiled AAB using jarsigner and your repository credentials
           jarsigner -keystore release.keystore \
             -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -keypass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            android/app/build/outputs/bundle/release/app-release.aab school-alias
+            -keypass "${{ secrets.ANDROID_KEY_PASSWORD }}" \
+            android/app/build/outputs/bundle/release/app-release.aab \
+            "${{ secrets.ANDROID_KEY_ALIAS }}"
 
       - name: Upload Signed AAB
         uses: actions/upload-artifact@v4
