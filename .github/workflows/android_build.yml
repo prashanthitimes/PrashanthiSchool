@@ -37,25 +37,6 @@ jobs:
       - name: Generate Assets (Icons)
         run: npx @capacitor/assets generate --android --assetPath public
 
-      - name: Extract Google Play Public Certificate (.PEM)
-        run: |
-          # 1. Decode the binary keystore file safely
-          echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | tr -d '[:space:]' | base64 -d > release.keystore
-
-          # 2. Extract the true public PEM certificate Google requires
-          keytool -export -rfc \
-            -keystore release.keystore \
-            -alias "${{ secrets.ANDROID_KEY_ALIAS }}" \
-            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -file google_play_ready.pem
-
-          echo ""
-          echo "=========================================================================="
-          echo "👇 COPY EVERYTHING BETWEEN AND INCLUDING THE DASHED LINES BELOW FOR GOOGLE 👇"
-          echo "=========================================================================="
-          cat google_play_ready.pem
-          echo "=========================================================================="
-
       - name: Build AAB
         run: |
           cd android
@@ -64,10 +45,10 @@ jobs:
 
       - name: Extract and Sign AAB
         run: |
-          # Re-verify keystore binary exists for signing step
+          # 1. Convert the Base64 Secret back into a real keystore file safely
           echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | tr -d '[:space:]' | base64 -d > release.keystore
 
-          # Sign the compiled AAB using jarsigner
+          # 2. Sign the compiled AAB using jarsigner
           jarsigner -keystore release.keystore \
             -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
             -keypass "${{ secrets.ANDROID_KEY_PASSWORD }}" \
