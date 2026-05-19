@@ -282,19 +282,123 @@ export default function StudentManagement() {
         });
 
         // 4. SUPABASE INSERT
-        if (validRecords.length > 0) {
-          const { error } = await supabase.from("students").insert(validRecords);
+    // 4. SUPABASE INSERT
+if (validRecords.length > 0) {
+  const duplicateErrors: string[] = [];
 
-          if (error) {
-            console.error("Supabase Error Details:", error);
-            toast.error(`Database Error: ${error.message}`);
-          } else {
-            toast.success(`Successfully imported ${validRecords.length} students`);
-            lastAction.current = { type: 'import', data: validRecords };
-            setCanUndo(true);
-            fetchStudents();
-          }
-        }
+  try {
+    // ============================================
+    // FETCH EXISTING STUDENTS ONLY ONCE
+    // ============================================
+    const { data: existingStudents, error: fetchError } = await supabase
+      .from("students")
+      .select("class_name, section, roll_number, full_name");
+
+    if (fetchError) {
+      console.error(fetchError);
+      toast.error("Failed to validate duplicate roll numbers");
+      setIsImporting(false);
+      return;
+    }
+
+    // ============================================
+    // CREATE LOOKUP MAP FOR EXISTING DATABASE DATA
+    // ============================================
+    const existingMap = new Map<string, string>();
+
+    existingStudents?.forEach((student) => {
+      const key = `${student.class_name}-${student.section}-${student.roll_number}`;
+
+      existingMap.set(key, student.full_name);
+    });
+
+    // ============================================
+    // CHECK DUPLICATES INSIDE EXCEL ITSELF
+    // ============================================
+    const excelMap = new Set<string>();
+
+    validRecords.forEach((student, index) => {
+      if (!student.roll_number) return;
+
+      const key = `${student.class_name}-${student.section}-${student.roll_number}`;
+
+      // Duplicate in database
+      if (existingMap.has(key)) {
+  duplicateErrors.push(
+    `Roll No ${student.roll_number} already exists in Class ${student.class_name}-${student.section}`
+  );
+}
+
+if (excelMap.has(key)) {
+  duplicateErrors.push(
+    `Duplicate Roll No ${student.roll_number} found in Excel file`
+  );
+}
+      excelMap.add(key);
+    });
+
+    // ============================================
+    // STOP IMPORT IF DUPLICATES FOUND
+    // ============================================
+    if (duplicateErrors.length > 0) {
+      console.error("Duplicate Errors:", duplicateErrors);
+
+      duplicateErrors.slice(0, 5).forEach((err) => {
+        toast.error(err);
+      });
+
+      if (duplicateErrors.length > 5) {
+        toast.error(
+ `Import failed: ${duplicateErrors.length} duplicate roll numbers found`
+        );
+      }
+
+      setIsImporting(false);
+      return;
+    }
+
+    // ============================================
+    // BULK INSERT
+    // ============================================
+    const { error: insertError } = await supabase
+      .from("students")
+      .insert(validRecords);
+
+    if (insertError) {
+      console.error("Insert Error:", insertError);
+
+      toast.error(`Database Error: ${insertError.message}`);
+      setIsImporting(false);
+      return;
+    }
+
+    // ============================================
+    // SUCCESS
+    // ============================================
+    toast.success(
+      `Successfully imported ${validRecords.length} students`
+    );
+
+    lastAction.current = {
+      type: "import",
+      data: validRecords,
+    };
+
+    setCanUndo(true);
+
+    await fetchStudents();
+  } catch (err: any) {
+    console.error("Import Crash:", err);
+
+    toast.error("Import failed unexpectedly");
+  } finally {
+    setIsImporting(false);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+}
 
         if (parsingErrors.length > 0) {
           toast.warning(`${parsingErrors.length} rows were skipped due to errors.`);
