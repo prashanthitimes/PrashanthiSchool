@@ -559,7 +559,7 @@ if (excelMap.has(key)) {
               </div>
               <div>
                 <h1 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tighter uppercase">
-                  STUDENT<span className="text-[#d487bd] dark:text-[#e9d1e4]">REGISTRY.</span>
+                  STUDENT<span className="text-[#d487bd] dark:text-[#e9d1e4]">REGISTRY</span>
                 </h1>
                 <div className="flex items-center gap-2 lg:gap-3 mt-1">
                   <p className="text-[#d487bd] dark:text-[#e9d1e4] font-bold text-[9px] lg:text-[10px] tracking-[0.1em] lg:tracking-[0.2em] uppercase opacity-80">
