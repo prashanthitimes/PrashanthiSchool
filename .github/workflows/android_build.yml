@@ -45,10 +45,10 @@ jobs:
 
       - name: Extract and Sign AAB
         run: |
-          # 1. Decode your permanent keystore from your secret back into a physical file
-          echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | base64 -d > release.keystore
+          # 1. Strip all whitespaces/newlines and then decode the keystore file safely
+          echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | tr -d '[:space:]' | base64 -d > release.keystore
 
-          # 2. Sign the compiled AAB using jarsigner and your repository credentials
+          # 2. Sign the compiled AAB using jarsigner
           jarsigner -keystore release.keystore \
             -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
             -keypass "${{ secrets.ANDROID_KEY_PASSWORD }}" \
@@ -60,15 +60,3 @@ jobs:
         with:
           name: Signed_Prashanthi_AAB
           path: android/app/build/outputs/bundle/release/app-release.aab
-      
-      - name: Extract and Sign AAB
-        run: |
-          # 1. Strip all whitespaces/newlines and then decode the keystore file
-          echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | tr -d '[:space:]' | base64 -d > release.keystore
-
-          # 2. Sign the compiled AAB using jarsigner
-          jarsigner -keystore release.keystore \
-            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -keypass "${{ secrets.ANDROID_KEY_PASSWORD }}" \
-            android/app/build/outputs/bundle/release/app-release.aab \
-            "${{ secrets.ANDROID_KEY_ALIAS }}"

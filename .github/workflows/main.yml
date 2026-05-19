@@ -1,0 +1,30 @@
+name: Grab Clean Base64 Key
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  generate-clean-string:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Fresh Keystore File
+        run: |
+          # 1. Generate the keystore
+          keytool -genkeypair -v \
+            -keystore permanent-upload-key.jks \
+            -alias schoolkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "Prashanthi2026" \
+            -keypass "Prashanthi2026" \
+            -dname "CN=Vyshnavi, O=Rakvih, C=IN"
+
+          echo ""
+          echo "=========================================================================="
+          echo "👇 COPY THE ONE SINGLE LINE BELOW (Double-click it to select everything) 👇"
+          echo "=========================================================================="
+          base64 -w 0 permanent-upload-key.jks
+          echo ""
+          echo "=========================================================================="
