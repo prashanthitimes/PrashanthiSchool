@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { CreditCard, History, CheckCircle, Clock, Upload, Bus, Wallet, AlertCircle, ArrowRight } from "lucide-react";
+import { CreditCard, History, CheckCircle, Clock, Upload, Bus, Wallet, AlertCircle, ArrowRight, Layers, FileText } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast, Toaster } from "sonner";
 
@@ -39,20 +39,59 @@ export default function ParentFees() {
                 .overlaps("class_name", [`${normalizedClass} A`, `${normalizedClass} B`, `${normalizedClass} C`, `${normalizedClass} D`]).maybeSingle();
             setPaymentConfig(config);
 
-            // Fetch Assigned Class Fees
+            // 1. Fetch Assigned Standard Class Fees
             const { data: cFees } = await supabase.from("class_fees").select("*").eq("class", student.class_name);
             let combinedFees = cFees || [];
 
-            // Transport Logic
+            // 2. Transport Logic
             const { data: transport } = await supabase.from("transport_assignments")
                 .select("monthly_fare, status").eq("student_id", childId).eq("status", "active").maybeSingle();
 
             if (transport) {
-                combinedFees.push({ id: 'trans-id', fee_type: "Transport Fee", amount: transport.monthly_fare, is_transport: true });
+                combinedFees.push({ 
+                    id: 'trans-id', 
+                    fee_type: "Transport Fee", 
+                    amount: transport.monthly_fare, 
+                    is_transport: true 
+                });
             }
+
+            // 3. Opening Balance Logic
+            const { data: openingBalanceRecord } = await supabase.from("student_fees_ob")
+                .select("id, opening_balance, description")
+                .eq("student_id", childId)
+                .maybeSingle();
+
+            if (openingBalanceRecord && Number(openingBalanceRecord.opening_balance) > 0) {
+                combinedFees.push({
+                    id: openingBalanceRecord.id,
+                    fee_type: "Opening Balance",
+                    amount: openingBalanceRecord.opening_balance,
+                    description: openingBalanceRecord.description || "Previous Outstanding Dues",
+                    is_opening_balance: true
+                });
+            }
+
+            // 4. Custom Fee Entries Logic -> Changed to "Entries Fee"
+            const { data: customEntries } = await supabase.from("student_fees_entries")
+                .select("id, amount_fees, description")
+                .eq("student_id", childId);
+
+            if (customEntries && customEntries.length > 0) {
+                customEntries.forEach((entry) => {
+                    combinedFees.push({
+                        id: entry.id,
+                        fee_type: "Entries Fee", // Explicitly labeled as requested
+                        amount: entry.amount_fees,
+                        description: entry.description || "Academic Entry Fee",
+                        is_custom_entry: true
+                    });
+                });
+            }
+
             setClassFees(combinedFees);
 
-            // Fetch Records from student_fees (Verified/Partial)
+            // Fetch Records from student_fees
             const { data: verified } = await supabase.from("student_fees").select("*").eq("student_id", childId);
             setVerifiedFees(verified || []);
             
@@ -71,13 +110,11 @@ export default function ParentFees() {
     // --- LOGIC FOR REMAINING BALANCES ---
     const feeCalculation = useMemo(() => {
         return classFees.map(cf => {
-            // Find if there's an entry in student_fees for this type
             const record = verifiedFees.find(vf => vf.fee_type.toLowerCase() === cf.fee_type.toLowerCase());
             const paid = record ? Number(record.paid_amount) : 0;
             const total = Number(cf.amount);
             const remaining = total - paid;
             
-            // Check if there is a pending submission for this fee type
             const isPending = pendingSubmissions.some(ps => ps.fee_types?.toLowerCase().includes(cf.fee_type.toLowerCase()));
 
             return {
@@ -118,7 +155,7 @@ export default function ParentFees() {
                 utr_number: utr,
                 payment_date: payDate,
                 proof_url: publicUrl,
-                fee_types: selectedFeeTypes.join(", "),
+                fee_types: selectedFeeTypes.join(", "), // This will now include "Entries Fee"
                 status: 'pending'
             }]);
 
@@ -190,9 +227,14 @@ export default function ParentFees() {
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
                                                 {f.is_transport && <Bus size={14} className="text-brand-light" />}
+                                                {f.is_opening_balance && <Layers size={14} className="text-amber-400" />}
+                                                {f.is_custom_entry && <FileText size={14} className="text-blue-400" />}
                                                 <span className="text-xs font-black uppercase">{f.fee_type}</span>
                                             </div>
-                                            <span className="text-[10px] opacity-60 font-bold">Total: ₹{f.total_assigned.toLocaleString()} | Paid: ₹{f.already_paid.toLocaleString()}</span>
+                                            {/* Subtitle displays custom context if it is a custom entry */}
+                                            <span className="text-[10px] opacity-60 font-bold">
+                                                {f.is_custom_entry ? `${f.description} | ` : ""}Total: ₹{f.total_assigned.toLocaleString()} | Paid: ₹{f.already_paid.toLocaleString()}
+                                            </span>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-sm font-black text-brand-light">₹{f.remaining_balance.toLocaleString()}</p>
@@ -204,8 +246,8 @@ export default function ParentFees() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                            <InputField label="UTR / Transaction ID" placeholder="Enter 12 digit UTR" value={utr} onChange={setUtr} />
-                            <InputField label="Payment Date" type="date" value={payDate} onChange={setPayDate} />
+                            <InputField label="UTR / Transaction ID" placeholder="Enter 12 digit UTR" value={utr} onChange={(e: any) => setUtr(e.target.value)} />
+                            <InputField label="Payment Date" type="date" value={payDate} onChange={(e: any) => setPayDate(e.target.value)} />
                         </div>
 
                         <div className="mb-8 border-2 border-dashed border-white/10 rounded-3xl p-8 text-center hover:bg-white/5 cursor-pointer transition-all">
@@ -267,11 +309,17 @@ function StatCard({ label, value, icon, color }: any) {
     );
 }
 
-function InputField({ label, ...props }: any) {
+// ... Keep other Sub-components (InputField, BankRow, TabButton, HistorySection) exactly as they were in your version
+function InputField({ label, onChange, value, ...props }: any) {
     return (
         <div className="space-y-2">
             <label className="text-[10px] font-black opacity-40 uppercase">{label}</label>
-            <input className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-brand-light text-white" {...props} />
+            <input 
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-brand-light text-white" 
+                value={value}
+                onChange={onChange}
+                {...props} 
+            />
         </div>
     );
 }
@@ -285,33 +333,60 @@ function BankRow({ label, value }: any) {
     );
 }
 
-function TabButton({ active, onClick, label }: any) {
+function TabButton({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
     return (
-        <button onClick={onClick} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${active ? "bg-white dark:bg-slate-700 text-brand-light shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+        <button
+            type="button"
+            onClick={onClick}
+            className={`px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all
+            ${active 
+                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" 
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
+        >
             {label}
         </button>
     );
 }
 
-function HistorySection({ title, items, status }: any) {
+function HistorySection({ title, items, status }: { title: string; items: any[]; status: "pending" | "verified" }) {
     return (
-        <section>
-            <h3 className="text-xs font-black uppercase text-slate-400 mb-4 px-2 tracking-widest">{title}</h3>
-            <div className="space-y-3">
-                {items.map((item: any) => (
-                    <div key={item.id} className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{status === 'pending' ? item.fee_types : item.fee_type}</p>
-                            <p className="text-[9px] font-bold text-slate-400">{status === 'pending' ? item.payment_date : new Date(item.created_at).toLocaleDateString()}</p>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-6 shadow-sm">
+            <h3 className="text-sm font-black text-slate-800 dark:text-white mb-4 uppercase tracking-tight">{title}</h3>
+            {items.length === 0 ? (
+                <p className="text-xs text-slate-400 dark:text-slate-500 py-4 italic">No payment records found.</p>
+            ) : (
+                <div className="space-y-3">
+                    {items.map((item) => (
+                        <div 
+                            key={item.id} 
+                            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl gap-3"
+                        >
+                            <div className="space-y-1">
+                                <p className="text-xs font-black text-slate-800 dark:text-white uppercase">
+                                    {status === "pending" ? (item.fee_types || "Fee Payment") : (item.fee_type || "Academic Fee")}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-400 dark:text-slate-500 font-bold">
+                                    <span>Date: {status === "pending" ? item.payment_date : (item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "---")}</span>
+                                    {item.utr_number && <span>UTR: {item.utr_number}</span>}
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between sm:justify-end gap-4">
+                                <span className="text-sm font-black text-slate-900 dark:text-white">
+                                    ₹{(status === "pending" ? item.amount_paid : item.paid_amount)?.toLocaleString()}
+                                </span>
+                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5
+                                    ${status === "verified" 
+                                        ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-400" 
+                                        : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400"}`}
+                                >
+                                    {status === "verified" ? <CheckCircle size={10} /> : <Clock size={10} />}
+                                    {status}
+                                </span>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <p className={`font-black ${status === 'pending' ? 'text-amber-500' : 'text-green-500'}`}>₹{Number(status === 'pending' ? item.amount_paid : item.paid_amount).toLocaleString()}</p>
-                            <code className="text-[8px] opacity-40">UTR: {item.utr_number}</code>
-                        </div>
-                    </div>
-                ))}
-                {items.length === 0 && <div className="p-10 text-center text-[10px] font-black opacity-20 uppercase">No Records</div>}
-            </div>
-        </section>
+                    ))}
+                </div>
+            )}
+        </div>
     );
 }

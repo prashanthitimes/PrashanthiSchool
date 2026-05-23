@@ -8,7 +8,7 @@ import {
 } from 'react-icons/fi'
 import { toast, Toaster } from 'react-hot-toast'
 
-// Keep the TABLE_GROUPS exactly as you have them
+// Table Groups with your newly defined table schemas mapped out cleanly
 const TABLE_GROUPS = [
   {
     title: "Core Entities",
@@ -36,6 +36,8 @@ const TABLE_GROUPS = [
     title: "Finance & Fees",
     description: "All transaction and fee configuration records.",
     tables: [
+      { id: 'student_fees_entries', label: 'Student Fees Entries (New/Current)' },
+      { id: 'student_fees_ob', label: 'Student Opening Balances' },
       { id: 'student_fees', label: 'Student Fee Records' },
       { id: 'student_payments', label: 'Payment Transactions' },
       { id: 'fee_submissions', label: 'Fee Submissions (UTR)' },
@@ -91,9 +93,9 @@ export default function DataManager() {
 
     try {
       /**
-       * ORDER MATTERS: We must delete child records (Attendance, Marks, Payments) 
+       * ORDER MATTERS: We must delete child records (Entries, OB, Attendance, Marks) 
        * before we delete Parent records (Students, Teachers). 
-       * This list ensures "students" and "teachers" are cleared LAST.
+       * Added 'student_fees_entries' and 'student_fees_ob' to the process rules.
        */
       const parents = ['students', 'teachers', 'subjects', 'exams', 'transport_routes', 'fee_types'];
       
@@ -158,7 +160,7 @@ export default function DataManager() {
         <div>
           <h3 className="text-red-800 dark:text-red-300 font-bold">DANGER ZONE</h3>
           <p className="text-red-700 dark:text-red-400/80 text-sm">
-            Clearing tables will permanently delete all records. This UI automatically sorts deletions to handle database dependencies.
+            Clearing tables will permanently delete all records. This UI automatically sorts deletions to handle database dependencies safely.
           </p>
         </div>
       </div>

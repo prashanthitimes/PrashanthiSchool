@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { Toaster, toast } from "sonner";
 import { useEffect, useState, Children, isValidElement, cloneElement } from "react";
 
+// Updated with Fees Desk child menu structures
 const PERMISSION_STRUCTURE = [
   {
     category: "Overview",
@@ -32,15 +33,20 @@ const PERMISSION_STRUCTURE = [
       { id: 'attendance', label: 'Attendance', icon: <CheckCircle size={14} /> },
       { id: 'exam-registry', label: 'Exam Registry', icon: <ClipboardList size={14} /> },
       { id: 'exam-schedule', label: 'Exam Timetable', icon: <Clock size={14} /> },
+      { id: 'payment-scanner', label: 'Payment Scanner', icon: <Camera size={14} /> },
+    ]
+  },
+  {
+    category: "Data Center (Fees & Ledgers)",
+    items: [
       { id: 'marks-entry', label: 'Marks Ledger', icon: <Edit2 size={14} /> },
       { id: 'fee-management', label: 'Fee Management', icon: <Wallet size={14} /> },
-      {
-        id: 'fee-setup',
-        label: 'Fee Setup',
-        icon: <IndianRupee size={16} />
-      },
+      { id: 'fee-setup', label: 'Fee Setup', icon: <IndianRupee size={14} /> },
       { id: 'fee-ledger', label: 'Fee Ledger', icon: <Wallet size={14} /> },
-      { id: 'payment-scanner', label: 'Payment Scanner', icon: <Camera size={14} /> },
+      // ✅ ADDED FEES DESK SUB-ITEMS INTO DATA MATRIX REGISTER
+      { id: 'fees-desk', label: 'Fees Desk Parent', icon: <IndianRupee size={14} /> },
+      { id: 'fees-ob', label: 'Fees OB', icon: <FileText size={14} /> },
+      { id: 'enter-fees', label: 'Enter Fees', icon: <Plus size={14} /> },
     ]
   },
   {
@@ -72,9 +78,8 @@ export default function AdminManagement() {
   const [counts, setCounts] = useState({ total: 0, super: 0, sub: 0 });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  // Inside AdminManagement component
   const [formData, setFormData] = useState({
-    name: "", email: "", phone: "", role: "sub_admin", description: "", password: "" // Add password here
+    name: "", email: "", phone: "", role: "sub_admin", description: "", password: ""
   });
 
   const validate = () => {
@@ -86,7 +91,6 @@ export default function AdminManagement() {
       newErrors.email = "Invalid email format";
     }
 
-    // Password validation: Required for new admins, optional for edits unless you want to change it
     if (!editAdmin && !formData.password) {
       newErrors.password = "Password is required for new accounts";
     } else if (formData.password && formData.password.length < 6) {
@@ -126,8 +130,6 @@ export default function AdminManagement() {
     setSelectedPerms(newState);
   };
 
-
-
   const handleOpenModal = (admin: any = null) => {
     setErrors({});
 
@@ -144,30 +146,18 @@ export default function AdminManagement() {
       setSelectedPerms(admin.permissions || {});
     } else {
       setEditAdmin(null);
-
-      // ✅ JUST RESET STATE (NO useState here)
       setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        role: "sub_admin",
-        description: "",
-        password: ""
+        name: "", email: "", phone: "", role: "sub_admin", description: "", password: ""
       });
-
       setSelectedPerms({});
     }
-
     setShowModal(true);
   };
 
   const handleSubmit = async () => {
     const userRole = localStorage.getItem('userRole');
-
     if (userRole !== 'admin') {
-      toast.error("Security Blocked", {
-        description: "You must be signed in as an Admin."
-      });
+      toast.error("Security Blocked", { description: "You must be signed in as an Admin." });
       return;
     }
 
@@ -184,7 +174,6 @@ export default function AdminManagement() {
       status: "active",
     };
 
-    // Only include password if it's been typed (prevents overwriting with empty string on edits)
     if (formData.password) {
       payload.password = formData.password;
     }
@@ -192,7 +181,7 @@ export default function AdminManagement() {
     const toastId = toast.loading(editAdmin ? "Updating..." : "Creating...");
 
     try {
-      const { data, error } = editAdmin
+      const { error } = editAdmin
         ? await supabase.from("admin_users").update(payload).eq("id", editAdmin.id)
         : await supabase.from("admin_users").insert([payload]);
 
@@ -201,8 +190,6 @@ export default function AdminManagement() {
         toast.error("Save Failed", { description: error.message, id: toastId });
       } else {
         toast.success(editAdmin ? "Admin updated!" : "Admin created!", { id: toastId });
-
-        // CRITICAL: Refresh the list and close the modal
         setShowModal(false);
         fetchAdmins();
       }
@@ -386,7 +373,6 @@ export default function AdminManagement() {
                     placeholder="Required"
                   />
                 </InputGroup>
-                {/* Add this block inside the <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"> */}
 
                 <InputGroup label={editAdmin ? "New Password (Optional)" : "Password *"} icon={<Key size={16} />} error={errors.password}>
                   <input
@@ -397,6 +383,7 @@ export default function AdminManagement() {
                     placeholder={editAdmin ? "Leave blank to keep current" : "Minimum 6 chars"}
                   />
                 </InputGroup>
+                
                 <InputGroup label="Phone Number" icon={<Phone size={16} />}>
                   <input
                     value={formData.phone}
@@ -513,7 +500,6 @@ function StatCard({ title, value, icon }: any) {
   );
 }
 
-
 function InputGroup({ label, children, icon, error }: any) {
   return (
     <div className="space-y-1.5 w-full flex flex-col group">
@@ -521,7 +507,6 @@ function InputGroup({ label, children, icon, error }: any) {
         {label}
       </label>
       <div className="relative flex items-center">
-        {/* Icon Container: Ensure it has a fixed width and height for centering */}
         <div className="absolute left-4 z-10 pointer-events-none text-brand-light/50 group-focus-within:text-brand-light transition-colors flex items-center justify-center w-5 h-5">
           {icon}
         </div>

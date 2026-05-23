@@ -61,20 +61,22 @@ export default function FeesPage() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-
+  const [allFees, setAllFees] = useState<any[]>([]);
   // Modal States
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState<number>(-1);
-const [feeTypes, setFeeTypes] = useState<{ id: string; name: string }[]>([]);
+  const [feeTypes, setFeeTypes] = useState<{ id: string; name: string }[]>([]);
   // Student Search State
+  const [feesEntries, setFeesEntries] = useState<any[]>([]);
+  const [feesOB, setFeesOB] = useState<any>(null);
+  const [hasTransport, setHasTransport] = useState(false);
   const [studentSearch, setStudentSearch] = useState("");
   const [studentSuggestions, setStudentSuggestions] = useState<DBStudent[]>([]);
   const [fetchingStudents, setFetchingStudents] = useState(false);
   const [isSelectingStudent, setIsSelectingStudent] = useState(false);
   const [showSidebarMobile, setShowSidebarMobile] = useState(false);
   const [classForm, setClassForm] = useState({ class: "", fee_type: "", amount: "" });
-const [hasTransport, setHasTransport] = useState(false);
   const [studentForm, setStudentForm] = useState({
     student_id: "",
     student_name: "",
@@ -82,44 +84,48 @@ const [hasTransport, setHasTransport] = useState(false);
     roll_no: "",
     class: "",
     section: "",
-   fee_type_id: "",   
-   fee_type: "",
+    fee_type_id: "",
+    fee_type: "",
     total_amount: "",
     already_paid: "",     // ✅ NEW
     paying_now: "",       // ✅ NEW (installment)
     payment_method: "",
+    fee_source: "",
     utr_number: "", remarks: "",  // ✅ NEW
   });
 
 
-useEffect(() => {
-  async function fetchFeeTypes() {
-    const { data, error } = await supabase
-      .from("fee_types")
-      .select("id, name")
-      .eq("is_active", true)
-      .order("name", { ascending: true });
+  useEffect(() => {
+    async function fetchFeeTypes() {
+      const { data, error } = await supabase
+        .from("fee_types")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
 
-    if (!error && data) {
-      setFeeTypes(data);
+      if (!error && data) {
+        setFeeTypes(data);
 
-      // ✅ Set default as Transport Fee
-      const transport = data.find(f => f.name === "Transport Fee");
+        // ✅ Set default as Transport Fee
+        const transport = data.find(f => f.name === "Transport Fee");
 
-      if (transport) {
-        setStudentForm(prev => ({
-          ...prev,
-          fee_type_id: transport.id,
-          fee_type: transport.name,
-        }));
+        if (transport) {
+          setStudentForm(prev => ({
+            ...prev,
+            fee_type_id: transport.id,
+            fee_type: transport.name,
+          }));
+        }
       }
     }
-  }
 
-  fetchFeeTypes();
-}, []);
+    fetchFeeTypes();
+  }, []);
 
-
+const liveRemaining =
+  Number(studentForm.total_amount || 0)
+  - Number(studentForm.already_paid || 0)
+  - Number(studentForm.paying_now || 0);
   const isFullyPaid =
     Number(studentForm.total_amount || 0) -
     Number(studentForm.already_paid || 0) <= 0;
@@ -127,10 +133,15 @@ useEffect(() => {
     Number(studentForm.already_paid || 0) === 0;
 
   const remainingBalance =
-    Number(studentForm.total_amount || 0) -
-    Number(studentForm.already_paid || 0) -
-    Number(studentForm.paying_now || 0);
+    Number(studentForm.total_amount || 0)
+    -
+    Number(studentForm.already_paid || 0);
+  const totalEntryFees = feesEntries.reduce(
+    (sum, item) => sum + Number(item.amount_fees || 0),
+    0
+  );
 
+  const grandTotal = Number(studentForm.total_amount || 0);
   const ACADEMIC_CLASSES = [
     "Pre-KG", "LKG", "UKG",
     "1st", "2nd", "3rd", "4th", "5th",
@@ -142,70 +153,77 @@ useEffect(() => {
   }, []);
 
   // AUTO FETCH TOTAL AMOUNT FROM class_fees TABLE
-useEffect(() => {
-  async function autoFetchFeeAmount() {
-    const className = studentForm.class;
-    const feeType = studentForm.fee_type;
-    const studentId = studentForm.student_id;
+  useEffect(() => {
+    async function autoFetchFeeAmount() {
+      const className = studentForm.class;
+      const feeType = studentForm.fee_type;
+      const studentId = studentForm.student_id;
 
     if (!feeType || !studentId) return;
 
-    let standardAmount = 0;
-
-    // ✅ TRANSPORT LOGIC
-  if (feeType === "Transport Fee") {
-  console.log("Fetching transport for:", studentId);
-
-  const { data, error } = await supabase
-    .from("transport_assignments")
-    .select("*")
-    .eq("student_id", studentId)
-    .eq("status", "active");
-
-  console.log("Transport query result:", data, error);
-
-  if (data && data.length > 0) {
-    standardAmount = Number(data[0].monthly_fare);
-  } else {
-    standardAmount = 0;
-    toast.error("No transport assigned for this student");
-  }
+// ✅ DO NOT AUTO FETCH FOR MANUAL FEES
+if (
+  feeType === "Opening Balance" ||
+feeType === "Entries Fees"
+) {
+  return;
 }
-    // ✅ OTHER FEES
-    else {
-      const { data } = await supabase
-        .from("class_fees")
-        .select("amount")
-        .eq("class", className)
-        .eq("fee_type", feeType)
-        .maybeSingle();
+      let standardAmount = 0;
 
-      if (data) {
-        standardAmount = Number(data.amount);
+      // ✅ TRANSPORT LOGIC
+      if (feeType === "Transport Fee") {
+        console.log("Fetching transport for:", studentId);
+
+        const { data, error } = await supabase
+          .from("transport_assignments")
+          .select("*")
+          .eq("student_id", studentId)
+          .eq("status", "active");
+
+        console.log("Transport query result:", data, error);
+
+        if (data && data.length > 0) {
+          standardAmount = Number(data[0].monthly_fare);
+        } else {
+          standardAmount = 0;
+          toast.error("No transport assigned for this student");
+        }
       }
+      // ✅ OTHER FEES
+      else {
+        const { data } = await supabase
+          .from("class_fees")
+          .select("amount")
+          .eq("class", className)
+          .eq("fee_type", feeType)
+          .maybeSingle();
+
+        if (data) {
+          standardAmount = Number(data.amount);
+        }
+      }
+
+      // ✅ FETCH ALREADY PAID
+      const { data: payments } = await supabase
+        .from("student_fees")
+        .select("paid_amount")
+        .eq("student_id", studentId)
+        .eq("fee_type", feeType);
+
+      const alreadyPaid =
+        payments?.reduce((sum, p) => sum + Number(p.paid_amount), 0) || 0;
+
+      // ✅ UPDATE FORM
+      setStudentForm((prev) => ({
+        ...prev,
+        total_amount: standardAmount.toString(),
+        already_paid: alreadyPaid.toString(),
+        paying_now: "",
+      }));
     }
 
-    // ✅ FETCH ALREADY PAID
-    const { data: payments } = await supabase
-      .from("student_fees")
-      .select("paid_amount")
-      .eq("student_id", studentId)
-      .eq("fee_type", feeType);
-
-    const alreadyPaid =
-      payments?.reduce((sum, p) => sum + Number(p.paid_amount), 0) || 0;
-
-    // ✅ UPDATE FORM
-    setStudentForm((prev) => ({
-      ...prev,
-      total_amount: standardAmount.toString(),
-      already_paid: alreadyPaid.toString(),
-      paying_now: "",
-    }));
-  }
-
-  autoFetchFeeAmount();
-}, [studentForm.fee_type, studentForm.class, studentForm.student_id]);
+    autoFetchFeeAmount();
+  }, [studentForm.fee_type, studentForm.class, studentForm.student_id]);
 
   // FETCH STUDENT SUGGESTIONS BASED ON SEARCH INPUT
   useEffect(() => {
@@ -219,6 +237,8 @@ useEffect(() => {
 
       if (!studentSearch || studentSearch.length < 2) {
         setStudentSuggestions([]);
+        setFeesEntries([]);
+        setFeesOB(null);
         return;
       }
 
@@ -259,33 +279,135 @@ useEffect(() => {
   }
 
   // SELECT STUDENT FROM SEARCH DROPDOWN
-const handleStudentPick = async (student: DBStudent) => {
-  setIsSelectingStudent(true);
+  const handleStudentPick = async (student: DBStudent) => {
 
-  // ✅ Check transport assignment
-  const { data } = await supabase
-    .from("transport_assignments")
-    .select("id")
-    .eq("student_id", student.id)
-    .eq("status", "active")
-    .maybeSingle();
+    setIsSelectingStudent(true);
 
-  setHasTransport(!!data); // true or false
+    // student info
+    setStudentForm((prev) => ({
+      ...prev,
+      student_id: student.id,
+      student_name: student.full_name,
+      father_name: student.father_name,
+      roll_no: student.roll_number?.toString() || "",
+      class: student.class_name,
+      section: student.section,
+    }));
 
-  setStudentForm((prev) => ({
-    ...prev,
-    student_id: student.id,
-    student_name: student.full_name,
-    father_name: student.father_name,
-    roll_no: student.roll_number?.toString() || "",
-    class: student.class_name,
-    section: student.section,
-  }));
 
-  setStudentSearch(student.full_name);
-  setStudentSuggestions([]);
-};
+    // ALL FEES ARRAY
+    let combinedFees: any[] = [];
 
+
+    // =========================
+    // 1. CLASS FEES
+    // =========================
+
+  // =========================
+// 1. CLASS FEES
+// =========================
+
+const { data: classFeesData } = await supabase
+  .from("class_fees")
+  .select("*")
+  .eq("class", student.class_name);
+
+if (classFeesData) {
+
+  classFeesData.forEach((fee) => {
+
+  combinedFees.push({
+  id: fee.id,
+  fee_type_id: fee.id,
+  label: fee.fee_type,
+  fee_type: fee.fee_type,
+  amount: Number(fee.amount),
+});
+
+  });
+
+}
+
+
+    // =========================
+    // 2. TRANSPORT FEES
+    // =========================
+
+    const { data: transportData } = await supabase
+      .from("transport_assignments")
+      .select("*")
+      .eq("student_id", student.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (transportData) {
+
+      combinedFees.push({
+  id: "transport",
+  label: "Transport Fee",
+  fee_type: "Transport Fee",
+  amount: Number(transportData.monthly_fare),
+});
+
+    }
+
+
+
+    // =========================
+    // 3. OPENING BALANCE
+    // =========================
+
+    const { data: obData } = await supabase
+      .from("student_fees_ob")
+      .select("*")
+      .eq("student_id", student.id)
+      .maybeSingle();
+
+    if (obData && Number(obData.opening_balance) > 0) {
+
+combinedFees.push({
+  id: obData.id,
+  label: "Opening Balance",
+  fee_type: "Opening Balance",
+  amount: Number(obData.opening_balance),
+});
+
+    }
+
+
+
+    // =========================
+    // 4. EXTRA FEES
+    // =========================
+
+    const { data: entryData } = await supabase
+      .from("student_fees_entries")
+      .select("*")
+      .eq("student_id", student.id);
+
+   if (entryData) {
+
+  entryData.forEach((entry) => {
+
+   combinedFees.push({
+  id: entry.id,
+  label: "Entries Fees",
+  fee_type: "Entries Fees",
+  amount: Number(entry.amount_fees),
+});
+
+  });
+
+}
+
+
+    // SAVE ALL FEES
+    setAllFees(combinedFees);
+
+    setStudentSearch(student.full_name);
+
+    setStudentSuggestions([]);
+  };
 
 
   const handleSaveClassFee = async (e: React.FormEvent) => {
@@ -326,82 +448,80 @@ const handleStudentPick = async (student: DBStudent) => {
     }
 
     const remaining =
-      Number(studentForm.total_amount || 0) -
-      Number(studentForm.already_paid || 0);
-
-    if (Number(studentForm.paying_now || 0) > remaining) {
-      toast.error("Payment exceeds remaining balance.");
-      setLoading(false);
-      return;
-    }
+      grandTotal - Number(studentForm.already_paid || 0);
+if (Number(studentForm.paying_now || 0) > remaining) {
+  toast.error("Payment exceeds remaining balance.");
+  setLoading(false);
+  return;
+}
 
     const payAmount = Number(studentForm.paying_now || 0);
 
     // 🔍 Check if record already exists
     const { data: existingRecords } = await supabase
-  .from("student_fees")
-  .select("*")
-  .eq("student_id", studentForm.student_id)
-  .eq("fee_type", studentForm.fee_type);
+      .from("student_fees")
+      .select("*")
+      .eq("student_id", studentForm.student_id)
+      .eq("fee_type", studentForm.fee_type);
 
- if (existingRecords && existingRecords.length > 0) {
-  const totalPaid = existingRecords.reduce(
-    (sum, r) => sum + Number(r.paid_amount),
-    0
-  );
+    if (existingRecords && existingRecords.length > 0) {
+      const totalPaid = existingRecords.reduce(
+        (sum, r) => sum + Number(r.paid_amount),
+        0
+      );
 
-  const newTotalPaid = totalPaid + payAmount;
+      const newTotalPaid = totalPaid + payAmount;
 
-  const { error } = await supabase
-    .from("student_fees")
-    .insert([
-      {
-        student_id: studentForm.student_id,
-        student_name: studentForm.student_name,
-        roll_no: Number(studentForm.roll_no),
-        class: studentForm.class,
-        fee_type_id: studentForm.fee_type_id,
-        fee_type: studentForm.fee_type,
-        total_amount: Number(studentForm.total_amount),
-        paid_amount: payAmount,
-        payment_method: studentForm.payment_method,
-        utr_number: studentForm.utr_number || null,
-        remarks: studentForm.remarks || "",
-      },
-    ]);
+      const { error } = await supabase
+        .from("student_fees")
+        .insert([
+          {
+            student_id: studentForm.student_id,
+            student_name: studentForm.student_name,
+            roll_no: Number(studentForm.roll_no),
+            class: studentForm.class,
+            fee_type_id: studentForm.fee_type_id || null,
+            fee_type: studentForm.fee_type,
+            total_amount: Number(studentForm.total_amount),
+            paid_amount: payAmount,
+            payment_method: studentForm.payment_method,
+            utr_number: studentForm.utr_number || null,
+            remarks: studentForm.remarks || "",
+          },
+        ]);
 
-  if (error) {
-    toast.error(error.message);
-    setLoading(false);
-    return;
-  }
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
 
-  toast.success("Installment added successfully!");
-} else {
-  const { error } = await supabase.from("student_fees").insert([
-    {
-      student_id: studentForm.student_id,
-      student_name: studentForm.student_name,
-      roll_no: Number(studentForm.roll_no),
-      class: studentForm.class,
-      fee_type_id: studentForm.fee_type_id, // ✅ save fee type ID
-      fee_type: studentForm.fee_type,       // optional for display
-      total_amount: Number(studentForm.total_amount),
-      paid_amount: payAmount,
-      payment_method: studentForm.payment_method,
-      utr_number: studentForm.utr_number || null, // ✅ save UTR
-     remarks: studentForm.remarks || "",
-    },
-  ]);
+      toast.success("Installment added successfully!");
+    } else {
+      const { error } = await supabase.from("student_fees").insert([
+        {
+          student_id: studentForm.student_id,
+          student_name: studentForm.student_name,
+          roll_no: Number(studentForm.roll_no),
+          class: studentForm.class,
+          fee_type_id: studentForm.fee_type_id || null, // ✅ save fee type ID
+          fee_type: studentForm.fee_type,       // optional for display
+          total_amount: Number(studentForm.total_amount),
+          paid_amount: payAmount,
+          payment_method: studentForm.payment_method,
+          utr_number: studentForm.utr_number || null, // ✅ save UTR
+          remarks: studentForm.remarks || "",
+        },
+      ]);
 
-  if (error) {
-    toast.error(error.message);
-    setLoading(false);
-    return;
-  }
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
 
-  toast.success("Fee added successfully!");
-}
+      toast.success("Fee added successfully!");
+    }
 
     closeModals();
     fetchAll();
@@ -429,22 +549,22 @@ const handleStudentPick = async (student: DBStudent) => {
       });
       setIsClassModalOpen(true);
     } else {
-     setStudentForm({
-  student_id: item.student_id || "",
-  student_name: item.student_name || "",
-  father_name: item.father_name || "",
-  roll_no: item.roll_no?.toString() || "",
-  class: item.class || "",
-  section: item.section || "",
-  fee_type_id: item.fee_type_id || "",   // ✅ ADD
-  fee_type: item.fee_type || "",
-  total_amount: item.total_amount?.toString() || "",
-  already_paid: "",
-  paying_now: "",
-  payment_method: item.payment_method || "",
-  utr_number: item.utr_number || "",
-  remarks: item.remarks || "",
-});
+      setStudentForm({
+        student_id: item.student_id || "",
+        student_name: item.student_name || "",
+        father_name: item.father_name || "",
+        roll_no: item.roll_no?.toString() || "",
+        class: item.class || "",
+        section: item.section || "",
+        fee_type_id: item.fee_type_id || "",   // ✅ ADD
+        fee_type: item.fee_type || "",
+        total_amount: item.total_amount?.toString() || "",
+        already_paid: "",
+        paying_now: "",
+        payment_method: item.payment_method || "",
+        utr_number: item.utr_number || "",
+        remarks: item.remarks || "",
+      });
 
 
       setStudentSearch(item.student_name);
@@ -460,22 +580,24 @@ const handleStudentPick = async (student: DBStudent) => {
 
     setClassForm({ class: "", fee_type: "", amount: "" });
 
-setStudentForm({
-  student_id: "",
-  student_name: "",
-  father_name: "",
-  roll_no: "",
-  class: "",
-  section: "",
-  fee_type_id: "",
-  fee_type: "", // ✅ ADD THIS LINE
-  total_amount: "",
-  already_paid: "",
-  paying_now: "",
-  payment_method: "",
-  utr_number: "",
-  remarks: "",
-});
+    setStudentForm({
+      student_id: "",
+      student_name: "",
+      father_name: "",
+      roll_no: "",
+      class: "",
+      section: "",
+      fee_type_id: "",
+      fee_type: "", // ✅ ADD THIS LINE
+      total_amount: "",
+      already_paid: "",
+      paying_now: "",
+      payment_method: "",
+      utr_number: "",
+      remarks: "",
+      ob_amount: "",
+      entry_amount: "",
+    });
 
 
     setStudentSearch("");
@@ -517,30 +639,30 @@ setStudentForm({
   };
 
   useEffect(() => {
-  if (!studentForm.student_id) return;
+    if (!studentForm.student_id) return;
 
-  // ✅ If student has transport → auto select
-  if (hasTransport) {
-    const transport = feeTypes.find(f => f.name === "Transport Fee");
+    // ✅ If student has transport → auto select
+    if (hasTransport) {
+      const transport = feeTypes.find(f => f.name === "Transport Fee");
 
-    if (transport) {
-      setStudentForm(prev => ({
-        ...prev,
-        fee_type_id: transport.id,
-        fee_type: transport.name,
-      }));
+      if (transport) {
+        setStudentForm(prev => ({
+          ...prev,
+          fee_type_id: transport.id,
+          fee_type: transport.name,
+        }));
+      }
+    } else {
+      // ❌ remove transport if not available
+      if (studentForm.fee_type === "Transport Fee") {
+        setStudentForm(prev => ({
+          ...prev,
+          fee_type_id: "",
+          fee_type: "",
+        }));
+      }
     }
-  } else {
-    // ❌ remove transport if not available
-    if (studentForm.fee_type === "Transport Fee") {
-      setStudentForm(prev => ({
-        ...prev,
-        fee_type_id: "",
-        fee_type: "",
-      }));
-    }
-  }
-}, [hasTransport, feeTypes]);
+  }, [hasTransport, feeTypes]);
 
   return (
     <div className="bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
@@ -572,7 +694,7 @@ setStudentForm({
 
           {/* Action Buttons */}
           <div className="flex flex-wrap md:flex-row items-center gap-2 md:gap-3">
-          
+
 
             <button
               onClick={() => setIsStudentModalOpen(true)}
@@ -592,7 +714,7 @@ setStudentForm({
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
 
-      
+
 
           {/* Main Table Area */}
           <div className="lg:col-span-4 space-y-6">
@@ -654,10 +776,10 @@ setStudentForm({
                               </span>
                             </td>
                             <td className="p-5">
-  <p className="text-xs text-slate-600 dark:text-slate-300 max-w-[200px] truncate">
-    {s.remarks || "--"}
-  </p>
-</td>
+                              <p className="text-xs text-slate-600 dark:text-slate-300 max-w-[200px] truncate">
+                                {s.remarks || "--"}
+                              </p>
+                            </td>
                             <td className="p-5 text-right font-mono font-bold text-lg text-brand">
                               ₹{balance.toLocaleString()}
                             </td>
@@ -747,15 +869,17 @@ setStudentForm({
                     <p className="text-[10px] uppercase font-black tracking-widest opacity-70 mb-3 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Live Balance
                     </p>
-                    <div className="space-y-1">
-                      <p className="text-xs opacity-80 font-medium">Remaining Amount</p>
-                      <div className="flex justify-between items-end">
-                        <p className="text-3xl font-mono font-bold tracking-tighter">₹{Number(remainingBalance).toLocaleString()}</p>
-                        <span className={`text-[9px] px-2 py-1 rounded-lg font-black tracking-tighter ${remainingBalance <= 0 ? "bg-emerald-500/20 text-emerald-200" : "bg-orange-500/20 text-orange-200"}`}>
-                          {remainingBalance <= 0 ? "SETTLED" : "DUE"}
-                        </span>
-                      </div>
-                    </div>
+                    <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800 p-3 rounded-xl">
+  <p className="text-xs font-bold text-slate-500 uppercase">
+    Remaining After Payment
+  </p>
+
+  <p className={`text-lg font-black ${
+    liveRemaining < 0 ? "text-red-500" : "text-emerald-500"
+  }`}>
+    ₹{liveRemaining.toLocaleString()}
+  </p>
+</div>
                   </div>
                 )}
                 <p className="relative z-10 text-[9px] font-bold opacity-50 uppercase tracking-[0.3em]">Finance Ledger v2.0</p>
@@ -831,46 +955,96 @@ setStudentForm({
                       </div>
 
                       {/* Payment Inputs */}
-                      <div className="bg-white dark:bg-slate-800/40 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-4">
+                      <div className="space-y-4">
+
+                        {/* PAYMENT FOR */}
+                        <select
+                          className="modal-input"
+                          value={studentForm.fee_type}
+                          onChange={async (e) => {
+
+                            const selected = allFees.find(
+                              (f) => f.label === e.target.value
+                            );
+
+                            if (!selected) return;
+
+
+                            // CHECK ALREADY PAID
+
+                            const { data: payments } = await supabase
+                              .from("student_fees")
+                              .select("paid_amount")
+                              .eq("student_id", studentForm.student_id)
+                              .eq("fee_type", selected.fee_type);
+
+
+                            const alreadyPaid =
+                              payments?.reduce(
+                                (sum, item) =>
+                                  sum + Number(item.paid_amount),
+                                0
+                              ) || 0;
+
+
+setStudentForm({
+  ...studentForm,
+
+  // ✅ only save fee_type_id for real fee_types table entries
+  fee_type_id:
+    selected.fee_type === "Opening Balance" ||
+    selected.fee_type === "Entries Fees" ||
+    selected.fee_type === "Transport Fee"
+      ? null
+      : selected.id,
+
+  fee_type: selected.fee_type,
+  total_amount: selected.amount.toString(),
+  already_paid: alreadyPaid.toString(),
+  paying_now: "",
+});
+
+                          }}
+                        >
+
+                          <option value="">Select Fee</option>
+
+                          {allFees.map((fee) => (
+
+                            <option
+                              key={fee.id}
+                              value={fee.label}
+                            >
+                              {fee.label} - ₹{fee.amount}
+                            </option>
+
+                          ))}
+
+                        </select>
+
+
+
+                                         {/* PAY NOW */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Payment For</label>
-    <select
-  className="modal-input dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-  value={studentForm.fee_type_id}
-  onChange={(e) => {
-    const selectedFee = feeTypes.find(f => f.id === e.target.value);
-    setStudentForm({
-      ...studentForm,
-      fee_type_id: e.target.value,
-      fee_type: selectedFee?.name || "",
-    });
-  }}
-  required
->
-  <option value="">Select Fee Type</option>
+                          <label className="text-[10px] font-black text-orange-600 uppercase ml-1">
+                            Enter Fee Amount
+                          </label>
 
-  {feeTypes
-    .filter(f => {
-      // ❌ Hide Transport Fee if student has no transport
-      if (f.name === "Transport Fee" && !hasTransport) return false;
-      return true;
-    })
-    .map(f => (
-      <option key={f.id} value={f.id}>
-        {f.name}
-      </option>
-    ))}
-</select>
+                          <input
+                            className="modal-input border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 font-black text-xl"
+                            type="number"
+                            placeholder="Enter amount"
+                            value={studentForm.paying_now}
+                            onChange={(e) =>
+                              setStudentForm({
+                                ...studentForm,
+                                paying_now: e.target.value,
+                              })
+                            }
+                            required
+                          />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="col-span-2 space-y-1">
-                            <label className="text-[10px] font-black text-brand uppercase ml-1">Pay Now</label>
-                            <input className="modal-input border-brand-soft dark:border-brand/30 dark:bg-slate-800 dark:text-slate-100 font-black text-brand text-lg" type="number" value={studentForm.paying_now} onChange={(e) => setStudentForm({ ...studentForm, paying_now: e.target.value })} disabled={isFullyPaid} required />
-                          </div>
-                        </div>
-
-                        {/* Payment Method */}
-                        <div className="flex gap-2">
+ <div className="flex gap-2">
                           {["Cash", "UPI", "Bank"].map((method) => (
                             <button key={method} type="button" onClick={() => setStudentForm({ ...studentForm, payment_method: method })}
                               className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${studentForm.payment_method === method ? "bg-slate-900 dark:bg-brand text-white border-slate-900 shadow-lg" : "bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700"}`}>
@@ -901,6 +1075,7 @@ setStudentForm({
     />
   </div>
 )}
+                    
                       </div>
                     </div>
                   )}

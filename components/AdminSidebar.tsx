@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation' // Added to track current URL
+import { usePathname } from 'next/navigation'
 import {
   FiUsers, FiShield, FiBook, FiClipboard, FiCalendar, FiSettings,
-  FiTruck,  FiHome, FiUserCheck, FiUser,FiDatabase,
+  FiTruck,  FiHome, FiUserCheck, FiUser, FiDatabase,
   FiActivity, FiLayers, FiImage, FiCreditCard, FiCamera, FiX,
-  FiSun, FiMoon,FiFileText// Added for Theme Toggle
+  FiSun, FiMoon, FiFileText, FiChevronDown, FiChevronUp // Added Chevron Icons
 } from 'react-icons/fi'
 import { FiClock } from 'react-icons/fi'
 import { IndianRupee } from 'lucide-react'
@@ -20,15 +20,29 @@ type Props = {
 }
 
 export default function AdminSidebar({ activeMenu, setActiveMenu, isOpen, setIsOpen }: Props) {
-  const pathname = usePathname() // Get current path
+  const pathname = usePathname()
   const [permissions, setPermissions] = useState<Record<string, boolean>>({})
   const [isDarkMode, setIsDarkMode] = useState(false)
+  
+  // Track dropdown expand state
+  const [isFeesDropdownOpen, setIsFeesDropdownOpen] = useState(false)
 
-  // 1. Fix: Sync activeMenu with the URL on refresh
+  // 1. Sync activeMenu and auto-open parent dropdown if current route matches a child link
   useEffect(() => {
     const currentItem = menuItems.find(item => item.path === pathname)
     if (currentItem) {
       setActiveMenu(currentItem.id)
+    } else {
+      // Look inside nested sub-menus
+      const parentDropdown = menuItems.find(item => 
+        item.subItems?.some(sub => sub.path === pathname)
+      )
+      if (parentDropdown) {
+        setActiveMenu(parentDropdown.id)
+        if (parentDropdown.id === 'fees-desk') {
+          setIsFeesDropdownOpen(true)
+        }
+      }
     }
   }, [pathname])
 
@@ -63,72 +77,58 @@ export default function AdminSidebar({ activeMenu, setActiveMenu, isOpen, setIsO
     }
   }
 
-const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: <FiHome />, path: '/admin', group: 'Overview' },
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: <FiHome />, path: '/admin', group: 'Overview' },
 
-  // SYSTEM
-  { id: 'admin-management', label: 'Admin Management', icon: <FiShield />, path: '/admin/management', group: 'System' },
+    // SYSTEM
+    { id: 'admin-management', label: 'Admin Management', icon: <FiShield />, path: '/admin/management', group: 'System' },
 
-  // ACADEMICS
-  { id: 'teachers', label: 'Teachers', icon: <FiUsers />, path: '/admin/teachers', group: 'Academics' },
-  { id: 'students', label: 'Students', icon: <FiUser />, path: '/admin/students', group: 'Academics' },
-  { id: 'classes-sections', label: 'Classes & Sections', icon: <FiLayers />, path: '/admin/classes', group: 'Academics' },
-  { id: 'subjects', label: 'Subjects', icon: <FiBook />, path: '/admin/subjects', group: 'Academics' },
-  { id: 'timetable', label: 'Time Table', icon: <FiClock />, path: '/admin/timetable', group: 'Academics' },
+    // ACADEMICS
+    { id: 'teachers', label: 'Teachers', icon: <FiUsers />, path: '/admin/teachers', group: 'Academics' },
+    { id: 'students', label: 'Students', icon: <FiUser />, path: '/admin/students', group: 'Academics' },
+    { id: 'classes-sections', label: 'Classes & Sections', icon: <FiLayers />, path: '/admin/classes', group: 'Academics' },
+    { id: 'subjects', label: 'Subjects', icon: <FiBook />, path: '/admin/subjects', group: 'Academics' },
+    { id: 'timetable', label: 'Time Table', icon: <FiClock />, path: '/admin/timetable', group: 'Academics' },
 
-  // OPERATIONS
-  { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/admin/attendance', group: 'Operations' },
-  { id: 'exam-registry', label: 'Exam Setup', icon: <FiSettings />, path: '/admin/exams', group: 'Operations' },
-  { id: 'exam-schedule', label: 'Exam Time Table', icon: <FiCalendar />, path: '/admin/examtimetable', group: 'Operations' },
-  {
-    id: 'fee-setup',
-    label: 'Fee Setup',
-    icon: <FiFileText size={16} />,
-    path: '/admin/FeeTypeManager',
-    group: 'Operations'
-  },
-  { id: 'payment-scanner', label: 'Scanner Setup', icon: <FiCamera />, path: '/admin/scanner', group: 'Operations' },
+    // OPERATIONS
+    { id: 'attendance', label: 'Attendance', icon: <FiActivity />, path: '/admin/attendance', group: 'Operations' },
+    { id: 'exam-registry', label: 'Exam Setup', icon: <FiSettings />, path: '/admin/exams', group: 'Operations' },
+    { id: 'exam-schedule', label: 'Exam Time Table', icon: <FiCalendar />, path: '/admin/examtimetable', group: 'Operations' },
+    { id: 'fee-setup', label: 'Fee Setup', icon: <FiFileText size={16} />, path: '/admin/FeeTypeManager', group: 'Operations' },
+    { id: 'payment-scanner', label: 'Scanner Setup | Verify Fees', icon: <FiCamera />, path: '/admin/scanner', group: 'Operations' },
 
-  // ✅ DATA CENTER (NEW CLEAN TAB)
-  {
-    id: 'exams-marks',
-    label: 'Marks Ledger',
-    icon: <FiClipboard />,
-    path: '/admin/examsmarks',
-    group: 'Data Center'
-  },
-  {
-    id: 'fee-management',
-    label: 'Fee Management',
-    icon: <IndianRupee size={16} />,
-    path: '/admin/fees',
-    group: 'Data Center'
-  },
-  {
-    id: 'fee-ledger',
-    label: 'Fee Ledger',
-    icon: <FiCreditCard />,
-    path: '/admin/viewfeesdeatils',
-    group: 'Data Center'
-  },
+    // ✅ DATA CENTER
+    { id: 'exams-marks', label: 'Marks Ledger', icon: <FiClipboard />, path: '/admin/examsmarks', group: 'Data Center' },
+    { id: 'fee-management', label: 'Fee Management', icon: <IndianRupee size={16} />, path: '/admin/fees', group: 'Data Center' },
+    { id: 'fee-ledger', label: 'Fee Ledger', icon: <FiCreditCard />, path: '/admin/viewfeesdeatils', group: 'Data Center' },
+    {
+      id: 'fees-desk',
+      label: 'Fees Desk',
+      icon: <IndianRupee size={16} />,
+      group: 'Data Center',
+      subItems: [
+        { id: 'fees-ob', label: 'Fees OB', path: '/admin/fees-ob' },
+        { id: 'enter-fees', label: 'Enter Fees', path: '/admin/fees-entries' }
+      ]
+    },
 
-  // LOGISTICS
-  { id: 'transport', label: 'Transport', icon: <FiTruck />, path: '/admin/transport', group: 'Logistics' },
+    // LOGISTICS
+    { id: 'transport', label: 'Transport', icon: <FiTruck />, path: '/admin/transport', group: 'Logistics' },
 
-  // COMMUNICATION
-  { id: 'notices-circulars', label: 'Notices', icon: <FiFileText />, path: '/admin/notices', group: 'Communication' },
-  { id: 'calendar', label: 'Calendar', icon: <FiCalendar />, path: '/admin/calendar', group: 'Communication' },
-  { id: 'photo-gallery', label: 'Photo Gallery', icon: <FiImage />, path: '/admin/gallery', group: 'Communication' },
+    // COMMUNICATION
+    { id: 'notices-circulars', label: 'Notices', icon: <FiFileText />, path: '/admin/notices', group: 'Communication' },
+    { id: 'calendar', label: 'Calendar', icon: <FiCalendar />, path: '/admin/calendar', group: 'Communication' },
+    { id: 'photo-gallery', label: 'Photo Gallery', icon: <FiImage />, path: '/admin/gallery', group: 'Communication' },
 
-  // SYSTEM
-  { id: 'settings', label: 'Settings', icon: <FiSettings />, path: '/admin/settings', group: 'System' },
-  { id: 'data-manager', label: 'Data Manager', icon: <FiDatabase />, path: '/admin/data-manager', group: 'Data Clear' }
-]
+    // SYSTEM
+    { id: 'settings', label: 'Settings', icon: <FiSettings />, path: '/admin/settings', group: 'System' },
+    { id: 'data-manager', label: 'Data Manager', icon: <FiDatabase />, path: '/admin/data-manager', group: 'Data Clear' }
+  ]
 
- const visibleMenu = menuItems.filter(item => {
-  if (item.id === 'dashboard' || item.id === 'data-manager') return true
-  return permissions[item.id] === true
-})
+  const visibleMenu = menuItems.filter(item => {
+    if (item.id === 'dashboard' || item.id === 'data-manager' || item.id === 'fees-desk') return true
+    return permissions[item.id] === true
+  })
 
   const groups = ['Overview', 'Academics', 'Operations', 'Data Center', 'Logistics', 'Communication', 'System', 'Data Clear']
 
@@ -144,7 +144,6 @@ const menuItems = [
       {/* Main Sidebar Wrapper */}
       <aside className={`fixed left-0 top-0 h-screen w-64 flex flex-col shadow-2xl z-[70] transition-all duration-300 lg:translate-x-0 
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        /* Palette Mapping */
         bg-[#fffcfd] dark:bg-slate-950 border-r border-[#e9d1e4] dark:border-slate-800`}>
 
         {/* --- HEADER SECTION --- */}
@@ -179,22 +178,70 @@ const menuItems = [
                   {groupName}
                 </h3>
                 <div className="flex flex-col gap-1">
-                  {groupItems.map(({ id, label, icon, path }) => (
-                    <Link key={id} href={path}>
-                      <button
-                        onClick={() => { setActiveMenu(id); setIsOpen(false); }}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm w-full transition-all
-                        ${activeMenu === id
-                            ? 'bg-brand text-white font-bold shadow-lg shadow-brand/20'
-                            : 'text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900/50'}`}
-                      >
-                        <span className={activeMenu === id ? 'text-white' : 'text-brand dark:text-brand-soft'}>
-                          {icon}
-                        </span>
-                        <span>{label}</span>
-                      </button>
-                    </Link>
-                  ))}
+                  {groupItems.map((item) => {
+                    
+                    // handles sub menu logic rendering
+                    if (item.subItems) {
+                      const isSubActive = item.subItems.some(sub => pathname === sub.path)
+
+                      return (
+                        <div key={item.id} className="flex flex-col gap-1">
+                          <button
+                            onClick={() => setIsFeesDropdownOpen(!isFeesDropdownOpen)}
+                            className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm w-full transition-all
+                            ${isSubActive || activeMenu === item.id
+                                ? 'bg-brand/10 dark:bg-brand/20 text-brand dark:text-brand-soft font-bold'
+                                : 'text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900/50'}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className={isSubActive || activeMenu === item.id ? 'text-brand' : 'text-brand dark:text-brand-soft'}>
+                                {item.icon}
+                              </span>
+                              <span>{item.label}</span>
+                            </div>
+                            {isFeesDropdownOpen ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+                          </button>
+
+                          {/* Sub Items Layout Wrapper */}
+                          {isFeesDropdownOpen && (
+                            <div className="pl-4 flex flex-col gap-1 mt-0.5 ml-4 border-l border-[#e9d1e4] dark:border-slate-800">
+                              {item.subItems.map((sub) => (
+                                <Link key={sub.id} href={sub.path}>
+                                  <button
+                                    onClick={() => { setActiveMenu(item.id); setIsOpen(false); }}
+                                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs w-full text-left transition-all
+                                    ${pathname === sub.path
+                                        ? 'bg-brand text-white font-bold shadow-md shadow-brand/20'
+                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50'}`}
+                                  >
+                                    <span>{sub.label}</span>
+                                  </button>
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    // handles normal standard links rendering
+                    return (
+                      <Link key={item.id} href={item.path || '#'}>
+                        <button
+                          onClick={() => { setActiveMenu(item.id); setIsOpen(false); }}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm w-full transition-all
+                          ${activeMenu === item.id
+                              ? 'bg-brand text-white font-bold shadow-lg shadow-brand/20'
+                              : 'text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900/50'}`}
+                        >
+                          <span className={activeMenu === item.id ? 'text-white' : 'text-brand dark:text-brand-soft'}>
+                            {item.icon}
+                          </span>
+                          <span>{item.label}</span>
+                        </button>
+                      </Link>
+                    )
+                  })}
                 </div>
               </div>
             )
