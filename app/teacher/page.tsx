@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  FiUsers, FiLayers, FiBriefcase, 
+  FiUsers, FiLayers, FiBriefcase, FiClock, 
   FiArrowRight, FiChevronRight, FiBell, FiEdit3, FiCalendar, FiBookOpen 
 } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
@@ -137,53 +137,80 @@ export default function TeacherDashboard() {
 
      
 
-      {/* --- COMMAND CENTER --- */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8">
-        <div className="bg-white dark:bg-slate-900 rounded-[1.2rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 p-4 md:p-8 space-y-4 md:space-y-6 shadow-sm">
-          <div className="flex items-center gap-2 text-brand">
-            <FiEdit3 size={18} />
-            <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest text-slate-800 dark:text-slate-100">Academic</h3>
-          </div>
-          <div className="grid grid-cols-1 gap-2">
-            {[{ label: "Exam Marks", path: "/teacher/marks" }, { label: "Assignments", path: "/teacher/homework" }, { label: "Class Roster", path: "/teacher/students" }].map((item) => (
-              <Link href={item.path} key={item.label} className="w-full text-left p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 font-bold text-[9px] md:text-[11px] uppercase hover:bg-brand/10 transition-all flex justify-between items-center group">
-                {item.label} <FiChevronRight className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-              </Link>
-            ))}
-          </div>
-        </div>
+    {/* --- COMMAND CENTER --- */}
+<div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8">
+  
+  {/* SECTION 1: WORKSPACE & OPERATIONS */}
+  <div className="bg-white dark:bg-slate-900 rounded-[1.2rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 p-4 md:p-8 space-y-4 md:space-y-6 shadow-sm">
+    <div className="flex items-center gap-2 text-brand">
+      <FiClock size={18} />
+      <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest text-slate-800 dark:text-slate-100">Operations</h3>
+    </div>
+    <div className="grid grid-cols-1 gap-2">
+      {[
+        { label: "Timetable", path: "/teacher/timetable" },
+        { label: "Daily Attendance", path: "/teacher/attendance" },
+        { label: "Academic Calendar", path: "/teacher/calendar" }
+      ].map((item) => (
+        <Link 
+          href={item.path} 
+          key={item.label} 
+          className="w-full text-left p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 font-bold text-[9px] md:text-[11px] uppercase hover:bg-brand/10 transition-all flex justify-between items-center group"
+        >
+          {item.label} <FiChevronRight className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+        </Link>
+      ))}
+    </div>
+  </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-[1.2rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 p-4 md:p-8 space-y-4 md:space-y-6 shadow-sm">
-          <div className="flex items-center gap-2 text-brand">
-            <FiCalendar size={18} />
-            <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest text-slate-800 dark:text-slate-100">Operations</h3>
-          </div>
-          <div className="grid grid-cols-1 gap-2">
-            {[{ label: "Timetable", path: "/teacher/timetable" }, { label: "Daily Attendance", path: "/teacher/attendance" }, { label: "Syllabus Track", path: "/teacher/syllabus" }].map((item) => (
-              <Link href={item.path} key={item.label} className="w-full text-left p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 font-bold text-[9px] md:text-[11px] uppercase hover:bg-brand/10 transition-all flex justify-between items-center group">
-                {item.label} <FiChevronRight className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-              </Link>
-            ))}
-          </div>
-        </div>
+  {/* SECTION 2: CLASSROOM & EVALUATION */}
+  <div className="bg-white dark:bg-slate-900 rounded-[1.2rem] md:rounded-[2.5rem] border border-[#e9d1e4] dark:border-slate-800 p-4 md:p-8 space-y-4 md:space-y-6 shadow-sm">
+    <div className="flex items-center gap-2 text-brand">
+      <FiEdit3 size={18} />
+      <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest text-slate-800 dark:text-slate-100">Academic</h3>
+    </div>
+    <div className="grid grid-cols-1 gap-2">
+      {[
+        { label: "Homework", path: "/teacher/homework" },
+        { label: "Student Profiles", path: "/teacher/students" },
+        { label: "Exam Syllabus", path: "/teacher/syllabus" },
+        { label: "Exam Timetable", path: "/teacher/exam-timetable" },
+        { label: "Marks Entry", path: "/teacher/marks" }
+      ].map((item) => (
+        <Link 
+          href={item.path} 
+          key={item.label} 
+          className="w-full text-left p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 font-bold text-[9px] md:text-[11px] uppercase hover:bg-brand/10 transition-all flex justify-between items-center group"
+        >
+          {item.label} <FiChevronRight className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+        </Link>
+      ))}
+    </div>
+  </div>
 
-        <div className="col-span-2 md:col-span-1 bg-brand rounded-[1.2rem] md:rounded-[2.5rem] p-6 md:p-8 text-white space-y-4 shadow-xl shadow-brand/20">
-          <div className="flex items-center gap-2">
-            <FiBell size={18} />
-            <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest opacity-80">School Portal</h3>
-          </div>
-          <div className="space-y-3">
-            <Link href="/teacher/notices" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/5">
-              <p className="text-[10px] font-black uppercase tracking-wider mb-1">Notice Board</p>
-              <p className="text-[11px] opacity-80 font-medium">View official circulars and holiday updates.</p>
-            </Link>
-            <Link href="/teacher/profile" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/5">
-              <p className="text-[10px] font-black uppercase tracking-wider mb-1">Settings</p>
-              <p className="text-[11px] opacity-80 font-medium">Update profile and contact information.</p>
-            </Link>
-          </div>
-        </div>
-      </div>
+  {/* SECTION 3: PORTAL & INFO (The colored high-priority container) */}
+  <div className="col-span-2 md:col-span-1 bg-brand rounded-[1.2rem] md:rounded-[2.5rem] p-6 md:p-8 text-white space-y-4 shadow-xl shadow-brand/20">
+    <div className="flex items-center gap-2">
+      <FiBell size={18} />
+      <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest opacity-80">School Portal</h3>
+    </div>
+    <div className="space-y-3">
+      <Link href="/teacher/notices" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/5">
+        <p className="text-[10px] font-black uppercase tracking-wider mb-1">Notice Board</p>
+        <p className="text-[11px] opacity-80 font-medium">View official circulars and holiday updates.</p>
+      </Link>
+      <Link href="/teacher/gallery" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/5">
+        <p className="text-[10px] font-black uppercase tracking-wider mb-1">School Gallery</p>
+        <p className="text-[11px] opacity-80 font-medium">Explore campus updates and media files.</p>
+      </Link>
+      <Link href="/teacher/profile" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/5">
+        <p className="text-[10px] font-black uppercase tracking-wider mb-1">My Profile</p>
+        <p className="text-[11px] opacity-80 font-medium">View your details and contact school support.</p>
+      </Link>
+    </div>
+  </div>
+
+</div>
     </div>
   );
 }
