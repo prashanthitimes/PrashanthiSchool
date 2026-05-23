@@ -37,7 +37,7 @@ const TABLE_GROUPS = [
     description: "All transaction and fee configuration records.",
     tables: [
       { id: 'student_fees_entries', label: 'Student Fees Entries (New/Current)' },
-      { id: 'student_fees_ob', label: 'Student Opening Balances' },
+      { id: 'student_fees_ob', label: 'Student Old Balances' },
       { id: 'student_fees', label: 'Student Fee Records' },
       { id: 'student_payments', label: 'Payment Transactions' },
       { id: 'fee_submissions', label: 'Fee Submissions (UTR)' },

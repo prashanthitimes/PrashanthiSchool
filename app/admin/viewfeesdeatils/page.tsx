@@ -64,7 +64,7 @@ export default function PrincipalFeesPage() {
         const transport = transportAssignments.find(t => t.student_id === student.id);
         const transportAmount = transport ? Number(transport.monthly_fare) : 0;
 
-        // 3. Historical setup opening balance dues
+        // 3. Historical setup Old Balances Dues
         const openingBalanceRecord = feesOB.find(o => o.student_id === student.id);
         const openingBalancePayable = openingBalanceRecord ? Number(openingBalanceRecord.opening_balance) : 0;
 
@@ -389,7 +389,7 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
         const obCost = Number(obRes.data.opening_balance);
         const totalObPaid = getPaidAmountForType(["Opening Balance"]);
         mergedRecords.push({
-          type: "Opening Balance Due",
+          type: "Old Balances Due",
           standard: obCost,
           paid: totalObPaid,
           due: Math.max(obCost - totalObPaid, 0)

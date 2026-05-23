@@ -106,7 +106,7 @@ export default function FeesOpeningBalanceRegistry() {
     if (!formData.opening_balance.trim() || isNaN(Number(formData.opening_balance))) {
       newErrors.opening_balance = "Provide a valid numeric financial amount";
     } else if (Number(formData.opening_balance) < 0) {
-      newErrors.opening_balance = "Opening balance cannot register as negative currency values";
+      newErrors.opening_balance = "Old balance cannot register as negative currency values";
     }
 
     setErrors(newErrors);
@@ -175,7 +175,7 @@ export default function FeesOpeningBalanceRegistry() {
           toast.error("Database Refusal", { description: error.message, id: toastId });
         }
       } else {
-        toast.success(editRecord ? "Financial ledger metrics reconciled!" : "Opening balance generated safely!", { id: toastId });
+        toast.success(editRecord ? "Financial ledger metrics reconciled!" : "Old balance generated safely!", { id: toastId });
         setShowModal(false);
         fetchObRecords();
       }
@@ -226,7 +226,7 @@ export default function FeesOpeningBalanceRegistry() {
             <IndianRupee size={24} />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">Fees Opening Balances</h1>
+            <h1 className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">Fees Old Balances</h1>
             <p className="text-[10px] font-bold text-brand-light dark:text-brand-soft uppercase leading-none">Term: {systemAcademicYear} Active Arrears</p>
           </div>
         </div>
@@ -257,7 +257,7 @@ export default function FeesOpeningBalanceRegistry() {
             <tbody className="divide-y divide-brand-soft/40 dark:divide-slate-800">
               {obRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-10 text-center text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">No historical opening balance configurations live inside database system logs.</td>
+                  <td colSpan={5} className="p-10 text-center text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">No historical Old Balancesbalance configurations live inside database system logs.</td>
                 </tr>
               ) : obRecords.map((rec) => (
                 <tr key={rec.id} className="hover:bg-brand-soft/10 dark:hover:bg-slate-800/30 transition-colors group">

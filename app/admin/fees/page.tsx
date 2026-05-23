@@ -367,7 +367,7 @@ if (classFeesData) {
 
 combinedFees.push({
   id: obData.id,
-  label: "Opening Balance",
+  label: "Old Balance",
   fee_type: "Opening Balance",
   amount: Number(obData.opening_balance),
 });
