@@ -550,21 +550,22 @@ if (Number(studentForm.paying_now || 0) > remaining) {
       setIsClassModalOpen(true);
     } else {
       setStudentForm({
-        student_id: item.student_id || "",
-        student_name: item.student_name || "",
-        father_name: item.father_name || "",
-        roll_no: item.roll_no?.toString() || "",
-        class: item.class || "",
-        section: item.section || "",
-        fee_type_id: item.fee_type_id || "",   // ✅ ADD
-        fee_type: item.fee_type || "",
-        total_amount: item.total_amount?.toString() || "",
-        already_paid: "",
-        paying_now: "",
-        payment_method: item.payment_method || "",
-        utr_number: item.utr_number || "",
-        remarks: item.remarks || "",
-      });
+  student_id: item.student_id || "",
+  student_name: item.student_name || "",
+  father_name: item.father_name || "",
+  roll_no: item.roll_no?.toString() || "",
+  class: item.class || "",
+  section: item.section || "",
+  fee_type_id: item.fee_type_id || "",
+  fee_type: item.fee_type || "",
+  total_amount: item.total_amount?.toString() || "",
+  already_paid: "",
+  paying_now: "",
+  payment_method: item.payment_method || "",
+  fee_source: item.fee_source || "",   // ✅ ADD THIS LINE
+  utr_number: item.utr_number || "",
+  remarks: item.remarks || "",
+});
 
 
       setStudentSearch(item.student_name);
