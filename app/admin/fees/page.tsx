@@ -53,6 +53,8 @@ interface StudentFormType {
   payment_method: string;
   utr_number: string;
   remarks: string;
+   ob_amount: string;
+  entry_amount: string;
 }
 
 export default function FeesPage() {
@@ -581,25 +583,25 @@ if (Number(studentForm.paying_now || 0) > remaining) {
 
     setClassForm({ class: "", fee_type: "", amount: "" });
 
-    setStudentForm({
-      student_id: "",
-      student_name: "",
-      father_name: "",
-      roll_no: "",
-      class: "",
-      section: "",
-      fee_type_id: "",
-      fee_type: "", // ✅ ADD THIS LINE
-      total_amount: "",
-      already_paid: "",
-      paying_now: "",
-      payment_method: "",
-      utr_number: "",
-      remarks: "",
-      ob_amount: "",
-      entry_amount: "",
-    });
-
+   const [studentForm, setStudentForm] = useState({
+  student_id: "",
+  student_name: "",
+  father_name: "",
+  roll_no: "",
+  class: "",
+  section: "",
+  fee_type_id: "",
+  fee_type: "",
+  total_amount: "",
+  already_paid: "",
+  paying_now: "",
+  payment_method: "",
+  fee_source: "",
+  utr_number: "",
+  remarks: "",
+  ob_amount: "",
+  entry_amount: "",
+});
 
     setStudentSearch("");
     setStudentSuggestions([]);
@@ -1121,3 +1123,5 @@ setStudentForm({
     </div>
   );
 }
+
+
