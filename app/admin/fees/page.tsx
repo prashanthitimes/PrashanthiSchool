@@ -165,8 +165,8 @@ const liveRemaining =
 
 // ✅ DO NOT AUTO FETCH FOR MANUAL FEES
 if (
-  feeType === "Opening Balance" ||
-feeType === "Entries Fees"
+  feeType === "Old Balances" ||
+feeType === "Special Development Fee"
 ) {
   return;
 }
@@ -393,8 +393,8 @@ combinedFees.push({
 
    combinedFees.push({
   id: entry.id,
-  label: "Entries Fees",
-  fee_type: "Entries Fees",
+  label: "Special Development Fee",
+  fee_type: "Special Development Fee",
   amount: Number(entry.amount_fees),
 });
 
@@ -996,7 +996,7 @@ setStudentForm({
   // ✅ only save fee_type_id for real fee_types table entries
   fee_type_id:
     selected.fee_type === "Opening Balance" ||
-    selected.fee_type === "Entries Fees" ||
+    selected.fee_type === "Special Development Fee" ||
     selected.fee_type === "Transport Fee"
       ? null
       : selected.id,

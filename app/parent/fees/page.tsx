@@ -81,7 +81,7 @@ export default function ParentFees() {
                 customEntries.forEach((entry) => {
                     combinedFees.push({
                         id: entry.id,
-                        fee_type: "Entries Fee", // Explicitly labeled as requested
+                        fee_type: "Special Development Fee", // Explicitly labeled as requested
                         amount: entry.amount_fees,
                         description: entry.description || "Academic Entry Fee",
                         is_custom_entry: true

@@ -99,9 +99,9 @@ export default function FeesEntriesRegistry() {
     const newErrors: Record<string, string> = {};
     if (!formData.student_uuid) newErrors.student_uuid = "Please pinpoint a student profile";
     if (!formData.amount_fees.trim() || isNaN(Number(formData.amount_fees))) {
-      newErrors.amount_fees = "Provide a valid numeric financial entry fee amount";
+      newErrors.amount_fees = "Provide a valid numeric financial Special Development Fee amount";
     } else if (Number(formData.amount_fees) <= 0) {
-      newErrors.amount_fees = "Collected entry fees must be greater than zero";
+      newErrors.amount_fees = "Special Development Fee must be greater than zero";
     }
 
     setErrors(newErrors);
@@ -166,7 +166,7 @@ export default function FeesEntriesRegistry() {
       if (error) {
         toast.error("Database Refusal", { description: error.message, id: toastId });
       } else {
-        toast.success(editRecord ? "Entry fee updated smoothly!" : "Payment entry logged safely!", { id: toastId });
+        toast.success(editRecord ? "Special Development Fee updated smoothly!" : "Payment entry logged safely!", { id: toastId });
         setShowModal(false);
         fetchFeeRecords();
       }
@@ -217,12 +217,12 @@ export default function FeesEntriesRegistry() {
             <IndianRupee size={24} />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">Fees Collection Entries</h1>
+            <h1 className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">Special Development Fee</h1>
             <p className="text-[10px] font-bold text-brand-light dark:text-brand-soft uppercase leading-none">Term: {systemAcademicYear} Payments Registry</p>
           </div>
         </div>
         <button onClick={() => handleOpenModal()} className="w-full sm:w-auto bg-brand-light hover:bg-brand text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-brand-soft">
-          <Plus size={18} className="inline mr-2" /> Collect Entry Fee ({systemAcademicYear})
+          <Plus size={18} className="inline mr-2" /> Collect Special Development Fee ({systemAcademicYear})
         </button>
       </header>
 
@@ -240,14 +240,14 @@ export default function FeesEntriesRegistry() {
               <tr>
                 <th className="p-6 text-[10px] font-black text-brand-light uppercase tracking-widest">Student Details</th>
                 <th className="p-6 text-[10px] font-black text-brand-light uppercase tracking-widest">Target Year</th>
-                <th className="p-6 text-[10px] font-black text-brand-light uppercase tracking-widest">Entries Fees Amount</th>
+                <th className="p-6 text-[10px] font-black text-brand-light uppercase tracking-widest">Special Development FeeAmount</th>
                 <th className="p-6 text-[10px] font-black text-brand-light uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-soft/40 dark:divide-slate-800">
               {feeRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-10 text-center text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">No active entry fee allocations located inside system registers.</td>
+                  <td colSpan={4} className="p-10 text-center text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">No active Special Development Fee allocations located inside system registers.</td>
                 </tr>
               ) : feeRecords.map((rec) => (
                 <tr key={rec.id} className="hover:bg-brand-soft/10 dark:hover:bg-slate-800/30 transition-colors group">
@@ -301,7 +301,7 @@ export default function FeesEntriesRegistry() {
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800/60">
                 <div>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase leading-none">Entry Fee Cleared</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase leading-none">Special Development Fee Cleared</p>
                   <p className="text-sm font-black text-green-600 mt-1">₹{Number(rec.amount_fees).toLocaleString('en-IN')}</p>
                 </div>
                 <div className="flex gap-2">
@@ -378,7 +378,7 @@ export default function FeesEntriesRegistry() {
 
               {/* OUTSTANDING METRICS LAYOUT BLOCKS */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <InputGroup label="Entries Fees Amount (INR) *" icon={<IndianRupee size={16} />} error={errors.amount_fees}>
+                <InputGroup label="Special Development FeeAmount (INR) *" icon={<IndianRupee size={16} />} error={errors.amount_fees}>
                   <input
                     type="number"
                     step="0.01"
@@ -411,7 +411,7 @@ export default function FeesEntriesRegistry() {
             <div className="p-6 bg-brand-soft/20 dark:bg-slate-800 border-t border-brand-soft dark:border-slate-700 flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
               <button onClick={() => setShowModal(false)} className="order-2 sm:order-1 text-[11px] font-black text-slate-400 uppercase tracking-widest py-2">Cancel</button>
               <button onClick={handleSubmit} className="order-1 sm:order-2 bg-brand-light text-white w-full sm:w-auto px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px]">
-                {editRecord ? "Modify Entry" : "Log Entry Fee"}
+                {editRecord ? "Modify Entry" : "Log Special Development Fee"}
               </button>
             </div>
           </div>

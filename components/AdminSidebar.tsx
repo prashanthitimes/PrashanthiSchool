@@ -108,7 +108,7 @@ export default function AdminSidebar({ activeMenu, setActiveMenu, isOpen, setIsO
       group: 'Data Center',
       subItems: [
         { id: 'fees-ob', label: 'Fees OB', path: '/admin/fees-ob' },
-        { id: 'enter-fees', label: 'Enter Fees', path: '/admin/fees-entries' }
+        { id: 'enter-fees', label: 'Special Development Fee', path: '/admin/fees-entries' }
       ]
     },
 

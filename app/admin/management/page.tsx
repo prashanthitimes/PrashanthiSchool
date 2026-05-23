@@ -46,7 +46,7 @@ const PERMISSION_STRUCTURE = [
       // ✅ ADDED FEES DESK SUB-ITEMS INTO DATA MATRIX REGISTER
       { id: 'fees-desk', label: 'Fees Desk Parent', icon: <IndianRupee size={14} /> },
       { id: 'fees-ob', label: 'Fees OB', icon: <FileText size={14} /> },
-      { id: 'enter-fees', label: 'Enter Fees', icon: <Plus size={14} /> },
+      { id: 'enter-fees', label: 'Special Development Fee', icon: <Plus size={14} /> },
     ]
   },
   {
