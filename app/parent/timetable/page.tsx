@@ -1,18 +1,21 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { FiDownload, FiClock, FiChevronDown, FiCalendar, FiPrinter } from "react-icons/fi";
+import { FiClock, FiChevronDown, FiPrinter } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
 
-const PERIODS = [
-  { id: 1, time: "09:00 - 09:45" },
-  { id: 2, time: "09:45 - 10:30" },
-  { id: 3, time: "10:45 - 11:30" },
-  { id: 4, time: "11:30 - 12:15" },
-  { id: 5, time: "01:00 - 01:45" },
-  { id: 6, time: "01:45 - 02:30" },
-];
+const getPeriodTypeColor = (type: string = "period") => {
+  if (type === "break") {
+    return "bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950/30 dark:border-orange-800 dark:text-orange-300";
+  }
+
+  if (type === "lunch") {
+    return "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300";
+  }
+
+  return "";
+};
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -22,7 +25,7 @@ export default function StudentTimetable() {
   const [downloading, setDownloading] = useState(false);
   const [studentInfo, setStudentInfo] = useState<any>(null);
   const [expandedDay, setExpandedDay] = useState<string>("");
-  
+  const [periods, setPeriods] = useState<any[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,20 +37,56 @@ export default function StudentTimetable() {
   async function fetchData() {
     try {
       setLoading(true);
+
       const childId = localStorage.getItem("childId");
       if (!childId) return;
 
-      const { data: student } = await supabase.from("students").select("*").eq("id", childId).single();
+      const { data: student } = await supabase
+        .from("students")
+        .select("*")
+        .eq("id", childId)
+        .single();
+
       if (!student) return;
 
-      const classNum = parseInt(student.class_name.replace(/\D/g, ''));
-      const sectionStr = student.section.split('-').pop()?.trim() || student.section.trim();
+      const classNum = parseInt(
+        student.class_name.replace(/\D/g, '')
+      );
 
-      setStudentInfo({ class: classNum, section: sectionStr, name: student.full_name });
+      const sectionStr =
+        student.section.split('-').pop()?.trim() ||
+        student.section.trim();
 
-      const { data: ttData } = await supabase.from("timetable").select(`*, subjects(*)`).eq("class", classNum).ilike("section", sectionStr);
+      setStudentInfo({
+        class: classNum,
+        section: sectionStr,
+        name: student.full_name
+      });
+
+      // FETCH PERIODS
+      const { data: periodsData } = await supabase
+        .from("periods")
+        .select("*")
+        .eq("class", String(classNum))
+        .eq("section", sectionStr)
+        .order("id");
+
+      setPeriods(periodsData || []);
+
+      // FETCH TIMETABLE
+      const { data: ttData } = await supabase
+        .from("timetable")
+        .select(`*, subjects(*)`)
+        .eq("class", classNum)
+        .ilike("section", sectionStr);
+
       setTimetable(ttData || []);
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const downloadOfficialImage = async () => {
@@ -57,9 +96,9 @@ export default function StudentTimetable() {
       const element = printRef.current;
       element.style.display = "block";
 
-      const canvas = await html2canvas(element, { 
-        scale: 3, 
-        useCORS: true, 
+      const canvas = await html2canvas(element, {
+        scale: 3,
+        useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
       });
@@ -95,7 +134,7 @@ export default function StudentTimetable() {
 
   return (
     <div className="min-h-screen bg-slate-50 md:bg-white dark:bg-slate-950 pb-24 transition-colors duration-300">
-      
+
       {/* HEADER */}
       <div className="bg-brand p-6 md:p-10 text-white md:rounded-b-[3rem] shadow-xl relative overflow-hidden">
         <div className="max-w-7xl mx-auto flex justify-between items-center relative z-10">
@@ -105,7 +144,7 @@ export default function StudentTimetable() {
               {studentInfo?.name} • Class {studentInfo?.class}-{studentInfo?.section}
             </p>
           </div>
-          <button 
+          <button
             onClick={downloadOfficialImage}
             disabled={downloading}
             className="p-3 bg-white text-brand dark:bg-slate-900 dark:text-white rounded-2xl shadow-lg active:scale-90 transition-transform disabled:opacity-50 flex items-center gap-2 px-5"
@@ -123,19 +162,32 @@ export default function StudentTimetable() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 mt-6 md:mt-10">
-        
+
         {/* DESKTOP VIEW */}
         <div className="hidden md:grid grid-cols-6 gap-4">
           {DAYS.map((day) => (
             <div key={day} className="flex flex-col gap-3 bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
               <div className="py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-center text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">{day}</div>
-              {PERIODS.map((slot) => {
+              {periods.map((slot) => {
                 const entry = timetable.find(t => t.day.trim().toLowerCase() === day.toLowerCase() && t.period === slot.id);
+                
+                // Determine label name
+                let periodLabel = entry?.subjects?.name || "—";
+                if (slot.type === "break") periodLabel = "Short Break";
+                if (slot.type === "lunch") periodLabel = "Lunch Break";
+
                 return (
-                  <div key={slot.id} className={`p-3 rounded-2xl border flex flex-col gap-1 min-h-[95px] transition-all ${entry ? getSubColor(entry.subjects?.name) : 'bg-slate-50/30 border-dashed border-slate-200 dark:bg-slate-950/20 dark:border-slate-800 opacity-40'}`}>
-                    <span className="text-[8px] font-black opacity-40 uppercase tracking-tighter">P{slot.id}</span>
-                    <h4 className="text-[10px] font-black uppercase leading-tight line-clamp-2">{entry?.subjects?.name || "—"}</h4>
-                    <span className="text-[7px] font-bold mt-auto opacity-60 italic">{slot.time.split('-')[0]}</span>
+                  <div key={slot.id} className={`p-3 rounded-2xl border flex flex-col gap-1 min-h-[95px] transition-all ${slot.type === "break" || slot.type === "lunch"
+                      ? getPeriodTypeColor(slot.type)
+                      : entry
+                        ? getSubColor(entry.subjects?.name)
+                        : 'bg-slate-50/30 border-dashed border-slate-200 dark:bg-slate-950/20 dark:border-slate-800 opacity-40'
+                    }`}>
+                    <span className="text-[8px] font-black opacity-40 uppercase tracking-tighter">
+                      {slot.type === "break" || slot.type === "lunch" ? "Break" : `P${slot.id}`}
+                    </span>
+                    <h4 className="text-[10px] font-black uppercase leading-tight line-clamp-2">{periodLabel}</h4>
+                    <span className="text-[7px] font-bold mt-auto opacity-60 italic">{slot.start_time} - {slot.end_time}</span>
                   </div>
                 );
               })}
@@ -150,7 +202,7 @@ export default function StudentTimetable() {
             const isToday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()) === day;
             return (
               <div key={day} className={`rounded-3xl border overflow-hidden transition-all duration-300 ${isExpanded ? 'bg-white dark:bg-slate-900 border-brand shadow-xl' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm opacity-80'}`}>
-                <button 
+                <button
                   onClick={() => setExpandedDay(isExpanded ? "" : day)}
                   className={`w-full flex justify-between items-center p-5 text-left ${isToday && !isExpanded ? 'bg-brand/5 dark:bg-brand/10' : ''}`}
                 >
@@ -162,19 +214,29 @@ export default function StudentTimetable() {
                 </button>
                 {isExpanded && (
                   <div className="p-4 pt-0 space-y-3 animate-in fade-in slide-in-from-top-2">
-                    {PERIODS.map((slot) => {
+                    {periods.map((slot) => {
                       const entry = timetable.find(t => t.day.trim().toLowerCase() === day.toLowerCase() && t.period === slot.id);
                       return (
-                        <div key={slot.id} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${entry ? getSubColor(entry.subjects?.name) : 'bg-slate-50 border-slate-100 dark:bg-slate-800/30 dark:border-slate-800 opacity-50'}`}>
+                        <div key={slot.id} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${slot.type === "break" || slot.type === "lunch" ? getPeriodTypeColor(slot.type) : entry ? getSubColor(entry.subjects?.name) : 'bg-slate-50 border-slate-100 dark:bg-slate-800/30 dark:border-slate-800 opacity-50'}`}>
                           <div className="w-10 text-center border-r border-black/5 dark:border-white/5 pr-3">
-                            <p className="text-[10px] font-black leading-none dark:text-slate-300">P{slot.id}</p>
+                            <p className="text-[10px] font-black leading-none dark:text-slate-300">
+                              {slot.type === "break" || slot.type === "lunch" ? "BRK" : `P${slot.id}`}
+                            </p>
                             <p className="text-[7px] font-bold uppercase opacity-50 mt-1 dark:text-slate-500">Slot</p>
                           </div>
                           <div className="flex-1">
-                            <h4 className="text-[11px] font-black uppercase tracking-tight dark:text-slate-200">{entry?.subjects?.name || "Free Period"}</h4>
+                            <h4 className="text-[10px] font-black uppercase leading-tight line-clamp-2">
+                              {slot.type === "break"
+                                ? "Short Break"
+                                : slot.type === "lunch"
+                                  ? "Lunch Break"
+                                  : entry?.subjects?.name || "—"}
+                            </h4>
                             <div className="flex items-center gap-1 mt-1 opacity-60">
                               <FiClock size={8} className="dark:text-slate-400" />
-                              <span className="text-[8px] font-bold italic dark:text-slate-400">{slot.time}</span>
+                              <span className="text-[7px] font-bold mt-auto opacity-60 italic">
+                                {slot.start_time} - {slot.end_time}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -187,7 +249,7 @@ export default function StudentTimetable() {
           })}
         </div>
 
-        {/* PRINT TEMPLATE (Remains Light for Printing) */}
+        {/* PRINT TEMPLATE */}
         <div style={{ position: 'absolute', left: '-9999px', top: '0' }}>
           <div ref={printRef} style={{ width: '1120px', padding: '50px', backgroundColor: 'white', fontFamily: 'sans-serif' }}>
             <div style={{ border: '8px double #a63d93', padding: '40px' }}>
@@ -210,13 +272,39 @@ export default function StudentTimetable() {
                   <div key={day}>
                     <div style={{ backgroundColor: '#a63d93', color: 'white', padding: '10px', textAlign: 'center', borderRadius: '8px', fontSize: '12px', fontWeight: '900', marginBottom: '12px', textTransform: 'uppercase' }}>{day}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {PERIODS.map((slot) => {
+                      {periods.map((slot) => {
                         const entry = timetable.find(t => t.day.trim().toLowerCase() === day.toLowerCase() && t.period === slot.id);
+                        
+                        // Handle break typography for Print view
+                        let printLabel = entry?.subjects?.name || "—";
+                        let isBreakSlot = false;
+                        if (slot.type === "break") { printLabel = "Short Break"; isBreakSlot = true; }
+                        if (slot.type === "lunch") { printLabel = "Lunch Break"; isBreakSlot = true; }
+
                         return (
-                          <div key={slot.id} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', minHeight: '100px', backgroundColor: entry ? '#f8fafc' : '#ffffff', display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8' }}>PERIOD {slot.id}</span>
-                            <p style={{ fontSize: '13px', fontWeight: '800', margin: '6px 0', lineHeight: '1.2', color: '#1e293b' }}>{entry?.subjects?.name || "—"}</p>
-                            <span style={{ fontSize: '9px', color: '#64748b', marginTop: 'auto', fontWeight: '600' }}>{slot.time.split(' ')[0]}</span>
+                          <div key={slot.id} style={{ 
+                            padding: '12px', 
+                            borderRadius: '10px', 
+                            border: '1px solid #e2e8f0', 
+                            minHeight: '100px', 
+                            backgroundColor: isBreakSlot ? '#f8fafc' : entry ? '#f8fafc' : '#ffffff', 
+                            display: 'flex', 
+                            flexDirection: 'column' 
+                          }}>
+                            <span style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8' }}>
+                              {slot.type === "break" || slot.type === "lunch" ? "BREAK" : `PERIOD ${slot.id}`}
+                            </span>
+                            <p style={{ fontSize: '13px', fontWeight: '800', margin: '6px 0', lineHeight: '1.2', color: isBreakSlot ? '#ea580c' : '#1e293b' }}>{printLabel}</p>
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                color: '#64748b',
+                                marginTop: 'auto',
+                                fontWeight: '600'
+                              }}
+                            >
+                              {slot.start_time} - {slot.end_time}
+                            </span>
                           </div>
                         );
                       })}
@@ -225,9 +313,9 @@ export default function StudentTimetable() {
                 ))}
               </div>
               <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                 <div style={{ textAlign: 'center' }}><div style={{ borderTop: '2px solid #000', width: '200px', paddingTop: '10px', fontSize: '11px', fontWeight: '900' }}>ACADEMIC COORDINATOR</div></div>
-                 <div style={{ textAlign: 'center', opacity: 0.2 }}><p style={{ fontSize: '10px', fontWeight: 'bold' }}>SYSTEM GENERATED RECORD</p></div>
-                 <div style={{ textAlign: 'center' }}><div style={{ borderTop: '2px solid #000', width: '200px', paddingTop: '10px', fontSize: '11px', fontWeight: '900' }}>PRINCIPAL SEAL</div></div>
+                <div style={{ textAlign: 'center' }}><div style={{ borderTop: '2px solid #000', width: '200px', paddingTop: '10px', fontSize: '11px', fontWeight: '900' }}>ACADEMIC COORDINATOR</div></div>
+                <div style={{ textAlign: 'center', opacity: 0.2 }}><p style={{ fontSize: '10px', fontWeight: 'bold' }}>SYSTEM GENERATED RECORD</p></div>
+                <div style={{ textAlign: 'center' }}><div style={{ borderTop: '2px solid #000', width: '200px', paddingTop: '10px', fontSize: '11px', fontWeight: '900' }}>PRINCIPAL SEAL</div></div>
               </div>
             </div>
           </div>

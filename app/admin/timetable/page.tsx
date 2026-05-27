@@ -80,9 +80,27 @@ export default function TimeTablePage() {
 
   // Periods now include a 'time' property
   const [periods, setPeriods] = useState<
-    { id: number; start_time: string; end_time: string; type: string }[]
+    {
+      id: number
+      start_time: string
+      end_time: string
+      type: string
+    }[]
   >([])
-
+  const defaultPeriods = [
+    { id: 1, start_time: '09:40', end_time: '09:55', type: 'period' },
+    { id: 2, start_time: '09:55', end_time: '10:10', type: 'period' },
+    { id: 3, start_time: '10:10', end_time: '10:55', type: 'period' },
+    { id: 4, start_time: '10:55', end_time: '11:40', type: 'period' },
+    { id: 5, start_time: '11:40', end_time: '11:50', type: 'break' },
+    { id: 6, start_time: '11:50', end_time: '12:35', type: 'period' },
+    { id: 7, start_time: '12:35', end_time: '13:20', type: 'period' },
+    { id: 8, start_time: '13:20', end_time: '13:55', type: 'lunch' },
+    { id: 9, start_time: '13:55', end_time: '14:35', type: 'period' },
+    { id: 10, start_time: '14:35', end_time: '15:15', type: 'period' },
+    { id: 11, start_time: '15:15', end_time: '15:55', type: 'period' },
+    { id: 12, start_time: '15:55', end_time: '16:05', type: 'break' },
+  ]
   const [loading, setLoading] = useState(true)
   const [isEditMode, setIsEditMode] = useState(false)
   const [saveStatus, setSaveStatus] = useState(false)
@@ -127,37 +145,56 @@ export default function TimeTablePage() {
   }
 
   async function fetchPeriods() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('periods')
-      .select('id, start_time, end_time')
+      .select('*')
       .eq('class', active.class)
       .eq('section', active.section)
       .order('id')
 
-    if (data && data.length === 0) {
-      const defaults = [1, 2, 3, 4, 5, 6].map(id => ({
-        id,
-        class: active.class,
-        section: active.section,
-        start_time: '09:00',
-        end_time: '09:40'
-      }))
-
-      await supabase.from('periods').insert(defaults)
-      fetchPeriods()
+    if (error) {
+      console.error(error)
       return
     }
 
-    if (data) {
-      const formatted = data.map((p: any) => ({
+// AUTO RESET IF OLD PERIODS EXIST
+if (!data || data.length < 12) {
+
+  // delete old periods
+  await supabase
+    .from('periods')
+    .delete()
+    .eq('class', active.class)
+    .eq('section', active.section)
+
+  // insert new 12 periods
+  const insertData = defaultPeriods.map((p) => ({
+    ...p,
+    class: active.class,
+    section: active.section,
+  }))
+
+  const { error: insertError } = await supabase
+    .from('periods')
+    .insert(insertData)
+
+  if (insertError) {
+    console.error(insertError)
+    return
+  }
+
+  fetchPeriods()
+  return
+}
+
+    setPeriods(
+      data.map((p: any) => ({
         id: p.id,
         start_time: p.start_time,
         end_time: p.end_time,
-        type: p.type ?? "period", // default value
+        type: p.type || 'period',
       }))
-
-      setPeriods(formatted)
-    }
+    )
   }
 
   useEffect(() => {
@@ -173,15 +210,19 @@ export default function TimeTablePage() {
       id: nextId,
       class: active.class,
       section: active.section,
-      start_time: '09:00',
-      end_time: '09:40'
+     start_time: '08:00',
+end_time: '08:40',
+      type: 'period'
     })
 
     fetchPeriods()
   }
 
-  async function updatePeriodTime(id: number, field: 'start_time' | 'end_time', value: string) {
-
+  async function updatePeriodField(
+    id: number,
+    field: 'start_time' | 'end_time' | 'type',
+    value: string
+  ) {
     setPeriods(prev =>
       prev.map(p =>
         p.id === id ? { ...p, [field]: value } : p
@@ -195,9 +236,12 @@ export default function TimeTablePage() {
         section: active.section,
         [field]: value
       },
-      { onConflict: 'class,section,id' }
+      {
+        onConflict: 'class,section,id'
+      }
     )
   }
+
   const exportPDF = () => {
     const doc = new jsPDF('landscape')
     doc.setFontSize(18)
@@ -229,7 +273,7 @@ export default function TimeTablePage() {
     doc.save(`${active.label}_Timetable.pdf`)
   }
 
-async function handleInlineUpdate(day: string, period: number, subjectId: string) {
+  async function handleInlineUpdate(day: string, period: number, subjectId: string) {
     if (!subjectId) return;
 
     // Use a string version of the class to match the new DB type
@@ -265,7 +309,7 @@ async function handleInlineUpdate(day: string, period: number, subjectId: string
     }
     await fetchTimetable();
   }
-  
+
   return (
     <div className="max-w-7xl mx-auto mt-4 md:mt-10 px-3 py-2 space-y-4 md:space-y-6 bg-[#fffcfd] dark:bg-slate-950 transition-colors duration-300">
 
@@ -341,26 +385,51 @@ async function handleInlineUpdate(day: string, period: number, subjectId: string
                 <th className="p-6 text-left text-[10px] font-black text-brand-dark/50 dark:text-slate-500 uppercase tracking-[0.2em]">Timeline</th>
                 {periods.map(p => (
                   <th key={p.id} className="p-6 text-center border-l border-brand-soft/10 dark:border-slate-800">
-                    <span className="block text-[10px] font-black text-brand-dark/50 dark:text-slate-500 uppercase tracking-[0.2em]">Period {p.id}</span>
-                    {isEditMode ? (
-                      <div className="flex gap-2 justify-center mt-2">
+                    <span className="block text-[10px] font-black uppercase">
+                      {p.type === 'break'
+                        ? 'Break'
+                        : p.type === 'lunch'
+                          ? 'Lunch'
+                          : `Period ${p.id}`}
+                    </span>              
+                     {isEditMode ? (
+  <div className="flex flex-col gap-2 justify-center mt-2">
 
-                        <input
-                          type="time"
-                          value={p.start_time}
-                          onChange={(e) => updatePeriodTime(p.id, 'start_time', e.target.value)}
-                          className="bg-white border rounded px-2 py-1 text-xs"
-                        />
+    {/* TYPE SELECT */}
+    <select
+      value={p.type}
+      onChange={(e) =>
+        updatePeriodField(p.id, 'type', e.target.value)
+      }
+      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-bold"
+    >
+      <option value="period">Period</option>
+      <option value="break">Break</option>
+      <option value="lunch">Lunch</option>
+    </select>
 
-                        <input
-                          type="time"
-                          value={p.end_time}
-                          onChange={(e) => updatePeriodTime(p.id, 'end_time', e.target.value)}
-                          className="bg-white border rounded px-2 py-1 text-xs"
-                        />
+    {/* START TIME */}
+    <input
+      type="time"
+      value={p.start_time}
+      onChange={(e) =>
+        updatePeriodField(p.id, 'start_time', e.target.value)
+      }
+      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs"
+    />
 
-                      </div>
-                    ) : (
+    {/* END TIME */}
+    <input
+      type="time"
+      value={p.end_time}
+      onChange={(e) =>
+        updatePeriodField(p.id, 'end_time', e.target.value)
+      }
+      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs"
+    />
+
+  </div>
+) : (
                       <span className="flex items-center justify-center gap-1 mt-1 text-[11px] font-bold text-brand/70 dark:text-brand-light/60">
                         <FiClock size={10} /> {p.start_time} - {p.end_time}
                       </span>
