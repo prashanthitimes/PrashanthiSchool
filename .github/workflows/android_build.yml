@@ -47,13 +47,17 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | base64 -d > android/app/release.keystore
 
-      - name: Build and Sign AAB
+      - name: Build Signed AAB
         env:
-          KEYSTORE_PATH: app/release.keystore
+          KEYSTORE_PATH: release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
+          # 1. Create the keystore file from your Secret
+          echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | base64 -d > android/app/release.keystore
+          
+          # 2. Build the bundle (Gradle will automatically sign it using the config above)
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease
