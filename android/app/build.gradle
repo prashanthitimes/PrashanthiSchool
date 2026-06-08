@@ -7,8 +7,8 @@ android {
         applicationId "com.prashanthividyalaya.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2  // <--- Increase this by 1 (e.g., from 1 to 2)
-    versionName "1.0.1" // <--- Change this to your new display version
+        versionCode 3
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
