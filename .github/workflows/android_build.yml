@@ -28,6 +28,13 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
+      # Cache Gradle Wrapper so we don't hit the 504 network error
+      - name: Cache Gradle Wrapper
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle-wrapper.properties') }}
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
@@ -40,13 +47,10 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          # 1. Create the keystore file at the location expected by build.gradle
+          # 1. Create the keystore file
           echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | base64 -d > android/app/release.keystore
           
-          # 2. Verify existence
-          ls -l android/app/release.keystore
-          
-          # 3. Build the bundle
+          # 2. Build the bundle
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease
