@@ -34,34 +34,19 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Generate Assets (Icons)
-        run: npx @capacitor/assets generate --android --assetPath public --iconBackgroundColor "#FFFFFF"
-
-      - name: Build AAB
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew bundleRelease
-
-      - name: Create Keystore
-        run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | base64 -d > android/app/release.keystore
-
       - name: Build Signed AAB
         env:
-          # Explicitly point to the location where we will save the file
-          KEYSTORE_PATH: release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          # Create the directory just in case, and save the keystore
-          # Ensure it is placed exactly in the 'android/app/' directory
+          # 1. Create the keystore file at the location expected by build.gradle
           echo "${{ secrets.ANDROID_KEYSTORE_CONTENT }}" | base64 -d > android/app/release.keystore
           
-          # Verify the file exists before running Gradle
+          # 2. Verify existence
           ls -l android/app/release.keystore
           
+          # 3. Build the bundle
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease
