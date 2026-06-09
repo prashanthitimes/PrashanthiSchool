@@ -24,7 +24,7 @@ export default function PrivacyPolicy() {
           <Link href="/" className="text-brand hover:text-brand-dark transition-colors font-medium flex items-center mb-4">
             ← Back to Dashboard
           </Link>
-          <h1 className="text-5xl font-extrabold text-brand-dark mb-4 tracking-tight">Privacy & Terms</h1>
+          <h1 className="text-5xl font-extrabold text-brand-dark mb-4 tracking-tight">Privacy Policy</h1>
           <p className="text-gray-500 font-medium">Effective Date: June 9, 2026</p>
         </div>
 
