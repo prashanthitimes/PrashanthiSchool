@@ -308,6 +308,18 @@ export default function UnifiedLoginPage() {
         )}
 <footer className="mt-8 pt-6 border-t border-white/10">
   <div className="flex flex-col items-center justify-center space-y-3 text-center">
+    
+    {/* Links: Terms and Privacy */}
+    <div className="flex space-x-4 text-[10px] text-white/70 font-bold uppercase tracking-[0.15em]">
+      <a href="/terms" className="hover:text-white transition-colors underline underline-offset-4 decoration-white/30">
+        Terms of Service
+      </a>
+      <span className="text-white/30">•</span>
+      <a href="/policy" className="hover:text-white transition-colors underline underline-offset-4 decoration-white/30">
+        Privacy Policy
+      </a>
+    </div>
+
     {/* Copyright Line */}
     <p className="text-[10px] text-white/70 font-bold uppercase tracking-[0.15em]">
       © 2026 Prashanti Vidyalaya & High School

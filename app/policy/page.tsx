@@ -21,7 +21,7 @@ export default function PrivacyPolicy() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-10">
-          <Link href="/" className="text-brand hover:text-brand-dark transition-colors font-medium flex items-center mb-4">
+          <Link href="/login" className="text-brand hover:text-brand-dark transition-colors font-medium flex items-center mb-4">
             ← Back to Dashboard
           </Link>
           <h1 className="text-5xl font-extrabold text-brand-dark mb-4 tracking-tight">Privacy Policy</h1>
@@ -30,7 +30,7 @@ export default function PrivacyPolicy() {
 
         {/* Terms Card */}
         <section className="bg-white p-8 rounded-2xl shadow-sm border border-brand-soft mb-8">
-          <h2 className="text-2xl font-bold text-brand-dark mb-4">Terms & Conditions</h2>
+          <h2 className="text-2xl font-bold text-brand-dark mb-4">Privacy Policy</h2>
           <p className="text-gray-600 leading-relaxed">
             Welcome to the Prashanthi Vidyalaya School Web App. By accessing this platform, you agree to 
             adhere to our standards of digital conduct. This platform is provided to support our 
