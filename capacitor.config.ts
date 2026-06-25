@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'out',
   server: {
     // This is the magic part for auto-updates
-    url: 'https://prashanthi-school-6kow.vercel.app', 
+    url: 'https://www.prashanthitimes.com/', 
     cleartext: true
   }
 };
