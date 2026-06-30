@@ -1,8 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
-import { FiEye, FiEyeOff, FiLock, FiMail, FiUser, FiArrowLeft, FiChevronRight, FiCalendar } from 'react-icons/fi'
+import { useState, useEffect, useRef } from 'react'
+import { FiEye, FiEyeOff, FiLock, FiMail, FiUser, FiArrowLeft, FiChevronRight } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -14,7 +14,13 @@ export default function UnifiedLoginPage() {
 
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  
+  // Separate states for typed inputs
+  const [dobDay, setDobDay] = useState('')
+  const [dobMonth, setDobMonth] = useState('')
+  const [dobYear, setDobYear] = useState('')
   const [dob, setDob] = useState('')
+
   const [password, setPassword] = useState('')
   const [children, setChildren] = useState<any[]>([])
   const [showChildSelect, setShowChildSelect] = useState(false)
@@ -23,10 +29,47 @@ export default function UnifiedLoginPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const router = useRouter()
 
+  // References for automatic cursor shifting between input blocks
+  const monthRef = useRef<HTMLInputElement>(null)
+  const yearRef = useRef<HTMLInputElement>(null)
+
+  // Sync inputs into the query-ready YYYY-MM-DD template
+  useEffect(() => {
+    if (dobDay && dobMonth && dobYear) {
+      // Pad single digits seamlessly just in case parents type "5" instead of "05"
+      const cleanDay = dobDay.padStart(2, '0')
+      const cleanMonth = dobMonth.padStart(2, '0')
+      setDob(`${dobYear}-${cleanMonth}-${cleanDay}`)
+    } else {
+      setDob('')
+    }
+  }, [dobDay, dobMonth, dobYear])
+
   const handleRoleSelect = (selectedRole: Role) => {
     setRole(selectedRole)
     setErrorMsg('')
     setStep(2)
+  }
+
+  const handleDayChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 2)
+    setDobDay(clean)
+    if (clean.length === 2 && monthRef.current) {
+      monthRef.current.focus()
+    }
+  }
+
+  const handleMonthChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 2)
+    setDobMonth(clean)
+    if (clean.length === 2 && yearRef.current) {
+      yearRef.current.focus()
+    }
+  }
+
+  const handleYearChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 4)
+    setDobYear(clean)
   }
 
   const handleLogin = async () => {
@@ -34,7 +77,7 @@ export default function UnifiedLoginPage() {
 
     if (role === 'parent') {
       if (!phone) return alert('Please enter phone number')
-      if (!dob) return alert('Please enter date of birth')
+      if (!dobDay || !dobMonth || !dobYear) return alert('Please enter complete date of birth')
     } else {
       if (!email || !password) return alert('Please enter email and password')
     }
@@ -152,7 +195,6 @@ export default function UnifiedLoginPage() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-soft/30 blur-[100px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-accent/50 blur-[100px] rounded-full" />
 
-      {/* Increased container width to max-w-[26rem] and padding to p-6 md:p-8 */}
       <div className="w-full max-w-[27rem] bg-brand rounded-[2rem] shadow-2xl shadow-brand-soft/20 p-6 md:p-8 space-y-6 relative z-10 border border-brand-accent">
 
         {/* HEADER */}
@@ -228,14 +270,57 @@ export default function UnifiedLoginPage() {
                   onChange={setPhone}
                 />
 
-                <InputGroup
-                  label="Student Date of Birth"
-                  icon={<FiCalendar />}
-                  type="date"
-                  placeholder="Select date of birth"
-                  value={dob}
-                  onChange={setDob}
-                />
+                {/* TYPABLE SEPARATED DATE OF BIRTH BOXES */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">
+                    Student Date of Birth
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {/* Day Box */}
+                    <div className="flex flex-col space-y-1">
+                      <span className="text-[9px] font-bold text-slate-300 uppercase tracking-wider ml-1">Date</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="DD"
+                        value={dobDay}
+                        onChange={(e) => handleDayChange(e.target.value)}
+                        className="w-full border-2 border-brand-accent/30 rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-brand-dark bg-white text-slate-800 font-medium text-center"
+                      />
+                    </div>
+
+                    {/* Month Box */}
+                    <div className="flex flex-col space-y-1">
+                      <span className="text-[9px] font-bold text-slate-300 uppercase tracking-wider ml-1">Month</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="MM"
+                        ref={monthRef}
+                        value={dobMonth}
+                        onChange={(e) => handleMonthChange(e.target.value)}
+                        className="w-full border-2 border-brand-accent/30 rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-brand-dark bg-white text-slate-800 font-medium text-center"
+                      />
+                    </div>
+
+                    {/* Year Box */}
+                    <div className="flex flex-col space-y-1">
+                      <span className="text-[9px] font-bold text-slate-300 uppercase tracking-wider ml-1">Year</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="YYYY"
+                        ref={yearRef}
+                        value={dobYear}
+                        onChange={(e) => handleYearChange(e.target.value)}
+                        className="w-full border-2 border-brand-accent/30 rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-brand-dark bg-white text-slate-800 font-medium text-center"
+                      />
+                    </div>
+                  </div>
+                </div>
               </>
             )}
 
@@ -380,8 +465,6 @@ function RoleButton({ icon, title, desc, onClick }: any) {
 }
 
 function InputGroup({ label, icon, type, placeholder, value, onChange }: any) {
-  const isDate = type === 'date';
-  
   return (
     <div className="space-y-1.5">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">
@@ -394,11 +477,7 @@ function InputGroup({ label, icon, type, placeholder, value, onChange }: any) {
         <input
           type={type}
           placeholder={placeholder}
-          className={`w-full border-2 rounded-xl px-11 py-3 text-sm focus:outline-none transition-colors bg-white font-medium text-slate-800
-            ${isDate 
-              ? 'border-emerald-500/30 focus:border-emerald-600 appearance-none uppercase text-xs tracking-wider pr-4' 
-              : 'border-brand-accent/30 focus:border-brand-dark'
-            }`}
+          className="w-full border-2 rounded-xl px-11 py-3 text-sm focus:outline-none transition-colors bg-white font-medium text-slate-800 border-brand-accent/30 focus:border-brand-dark"
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
