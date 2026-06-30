@@ -17,27 +17,31 @@ interface ClassFee {
 
 interface StudentFee {
   id: string;
+  student_id: string;
   student_name: string;
   father_name?: string;
   roll_no: number;
   class: string;
+  section?: string;
   fee_type: string;
   total_amount: number;
   paid_amount: number;
+  concession_amount: number; // ✅ NEW
   payment_method: string;
   utr_number?: string;
-  remarks?: string; // ✅ ADD THIS
+  remarks?: string;
   created_at?: string;
 }
 
 interface DBStudent {
-  id: string; // ✅ real UUID PK
+  id: string;
   full_name: string;
   father_name: string;
   roll_number: number;
   class_name: string;
   section: string;
 }
+
 interface StudentFormType {
   student_id: string;
   student_name: string;
@@ -45,16 +49,15 @@ interface StudentFormType {
   roll_no: string;
   class: string;
   section: string;
-  fee_type_id: string;   // ✅ required
+  fee_type_id: string;
   fee_type: string;
   total_amount: string;
   already_paid: string;
   paying_now: string;
+  concession_amount: string; // ✅ NEW
   payment_method: string;
   utr_number: string;
   remarks: string;
-   ob_amount: string;
-  entry_amount: string;
 }
 
 export default function FeesPage() {
@@ -64,22 +67,23 @@ export default function FeesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [allFees, setAllFees] = useState<any[]>([]);
+
   // Modal States
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState<number>(-1);
   const [feeTypes, setFeeTypes] = useState<{ id: string; name: string }[]>([]);
+
   // Student Search State
-  const [feesEntries, setFeesEntries] = useState<any[]>([]);
-  const [feesOB, setFeesOB] = useState<any>(null);
-  const [hasTransport, setHasTransport] = useState(false);
   const [studentSearch, setStudentSearch] = useState("");
   const [studentSuggestions, setStudentSuggestions] = useState<DBStudent[]>([]);
   const [fetchingStudents, setFetchingStudents] = useState(false);
   const [isSelectingStudent, setIsSelectingStudent] = useState(false);
   const [showSidebarMobile, setShowSidebarMobile] = useState(false);
+
+  // Form States
   const [classForm, setClassForm] = useState({ class: "", fee_type: "", amount: "" });
-  const [studentForm, setStudentForm] = useState({
+  const [studentForm, setStudentForm] = useState<StudentFormType>({
     student_id: "",
     student_name: "",
     father_name: "",
@@ -89,14 +93,15 @@ export default function FeesPage() {
     fee_type_id: "",
     fee_type: "",
     total_amount: "",
-    already_paid: "",     // ✅ NEW
-    paying_now: "",       // ✅ NEW (installment)
+    already_paid: "",
+    paying_now: "",
+    concession_amount: "", // ✅ NEW
     payment_method: "",
-    fee_source: "",
-    utr_number: "", remarks: "",  // ✅ NEW
+    utr_number: "",
+    remarks: "",
   });
 
-
+  // ✅ FETCH FEE TYPES
   useEffect(() => {
     async function fetchFeeTypes() {
       const { data, error } = await supabase
@@ -107,10 +112,7 @@ export default function FeesPage() {
 
       if (!error && data) {
         setFeeTypes(data);
-
-        // ✅ Set default as Transport Fee
         const transport = data.find(f => f.name === "Transport Fee");
-
         if (transport) {
           setStudentForm(prev => ({
             ...prev,
@@ -120,69 +122,66 @@ export default function FeesPage() {
         }
       }
     }
-
     fetchFeeTypes();
   }, []);
 
-const liveRemaining =
-  Number(studentForm.total_amount || 0)
-  - Number(studentForm.already_paid || 0)
-  - Number(studentForm.paying_now || 0);
+  // ✅ CALCULATIONS
+  const liveRemaining =
+    Number(studentForm.total_amount || 0)
+    - Number(studentForm.already_paid || 0)
+    - Number(studentForm.paying_now || 0)
+    - Number(studentForm.concession_amount || 0); // ✅ Include concession
+
   const isFullyPaid =
     Number(studentForm.total_amount || 0) -
-    Number(studentForm.already_paid || 0) <= 0;
+    Number(studentForm.already_paid || 0) - Number(studentForm.concession_amount || 0) <= 0;
+
   const isFirstPayment =
     Number(studentForm.already_paid || 0) === 0;
 
   const remainingBalance =
     Number(studentForm.total_amount || 0)
-    -
-    Number(studentForm.already_paid || 0);
-  const totalEntryFees = feesEntries.reduce(
-    (sum, item) => sum + Number(item.amount_fees || 0),
-    0
-  );
+    - Number(studentForm.already_paid || 0)
+    - Number(studentForm.concession_amount || 0); // ✅ Include concession
 
-  const grandTotal = Number(studentForm.total_amount || 0);
   const ACADEMIC_CLASSES = [
     "Pre-KG", "LKG", "UKG",
     "1st", "2nd", "3rd", "4th", "5th",
     "6th", "7th", "8th", "9th", "10th"
   ];
 
+  // ✅ FETCH ALL DATA
   useEffect(() => {
     fetchAll();
   }, []);
 
-  // AUTO FETCH TOTAL AMOUNT FROM class_fees TABLE
+  // ✅ AUTO FETCH TOTAL AMOUNT FROM class_fees TABLE
   useEffect(() => {
     async function autoFetchFeeAmount() {
       const className = studentForm.class;
       const feeType = studentForm.fee_type;
       const studentId = studentForm.student_id;
 
-    if (!feeType || !studentId) return;
+      if (!feeType || !studentId) return;
 
-// ✅ DO NOT AUTO FETCH FOR MANUAL FEES
-if (
-  feeType === "Old Balances" ||
-feeType === "Special Development Fee"
-) {
-  return;
-}
+      // Don't auto fetch for manual fees
+      if (
+        feeType === "Old Balances" ||
+        feeType === "Special Development Fee" ||
+        feeType === "Concession Fee" // ✅ NEW
+      ) {
+        return;
+      }
+
       let standardAmount = 0;
 
-      // ✅ TRANSPORT LOGIC
+      // Transport Logic
       if (feeType === "Transport Fee") {
-        console.log("Fetching transport for:", studentId);
-
         const { data, error } = await supabase
           .from("transport_assignments")
           .select("*")
           .eq("student_id", studentId)
           .eq("status", "active");
-
-        console.log("Transport query result:", data, error);
 
         if (data && data.length > 0) {
           standardAmount = Number(data[0].monthly_fare);
@@ -191,7 +190,7 @@ feeType === "Special Development Fee"
           toast.error("No transport assigned for this student");
         }
       }
-      // ✅ OTHER FEES
+      // Other Fees
       else {
         const { data } = await supabase
           .from("class_fees")
@@ -205,33 +204,32 @@ feeType === "Special Development Fee"
         }
       }
 
-      // ✅ FETCH ALREADY PAID
+      // Fetch already paid
       const { data: payments } = await supabase
         .from("student_fees")
-        .select("paid_amount")
+        .select("paid_amount, concession_amount")
         .eq("student_id", studentId)
         .eq("fee_type", feeType);
 
       const alreadyPaid =
         payments?.reduce((sum, p) => sum + Number(p.paid_amount), 0) || 0;
 
-      // ✅ UPDATE FORM
+      // Update form
       setStudentForm((prev) => ({
         ...prev,
         total_amount: standardAmount.toString(),
         already_paid: alreadyPaid.toString(),
         paying_now: "",
+        concession_amount: "",
       }));
     }
 
     autoFetchFeeAmount();
   }, [studentForm.fee_type, studentForm.class, studentForm.student_id]);
 
-  // FETCH STUDENT SUGGESTIONS BASED ON SEARCH INPUT
+  // ✅ FETCH STUDENT SUGGESTIONS
   useEffect(() => {
     async function fetchStudentSuggestions() {
-
-      // 🚫 stop fetching if student just selected
       if (isSelectingStudent) {
         setIsSelectingStudent(false);
         return;
@@ -239,8 +237,6 @@ feeType === "Special Development Fee"
 
       if (!studentSearch || studentSearch.length < 2) {
         setStudentSuggestions([]);
-        setFeesEntries([]);
-        setFeesOB(null);
         return;
       }
 
@@ -265,6 +261,7 @@ feeType === "Special Development Fee"
     fetchStudentSuggestions();
   }, [studentSearch]);
 
+  // ✅ FETCH ALL DATA
   async function fetchAll() {
     const { data: cf } = await supabase
       .from("class_fees")
@@ -280,12 +277,10 @@ feeType === "Special Development Fee"
     setStudentFees(sf || []);
   }
 
-  // SELECT STUDENT FROM SEARCH DROPDOWN
+  // ✅ SELECT STUDENT FROM DROPDOWN
   const handleStudentPick = async (student: DBStudent) => {
-
     setIsSelectingStudent(true);
 
-    // student info
     setStudentForm((prev) => ({
       ...prev,
       student_id: student.id,
@@ -296,45 +291,27 @@ feeType === "Special Development Fee"
       section: student.section,
     }));
 
-
-    // ALL FEES ARRAY
     let combinedFees: any[] = [];
 
-
-    // =========================
     // 1. CLASS FEES
-    // =========================
+    const { data: classFeesData } = await supabase
+      .from("class_fees")
+      .select("*")
+      .eq("class", student.class_name);
 
-  // =========================
-// 1. CLASS FEES
-// =========================
+    if (classFeesData) {
+      classFeesData.forEach((fee) => {
+        combinedFees.push({
+          id: fee.id,
+          fee_type_id: fee.id,
+          label: fee.fee_type,
+          fee_type: fee.fee_type,
+          amount: Number(fee.amount),
+        });
+      });
+    }
 
-const { data: classFeesData } = await supabase
-  .from("class_fees")
-  .select("*")
-  .eq("class", student.class_name);
-
-if (classFeesData) {
-
-  classFeesData.forEach((fee) => {
-
-  combinedFees.push({
-  id: fee.id,
-  fee_type_id: fee.id,
-  label: fee.fee_type,
-  fee_type: fee.fee_type,
-  amount: Number(fee.amount),
-});
-
-  });
-
-}
-
-
-    // =========================
     // 2. TRANSPORT FEES
-    // =========================
-
     const { data: transportData } = await supabase
       .from("transport_assignments")
       .select("*")
@@ -343,22 +320,15 @@ if (classFeesData) {
       .maybeSingle();
 
     if (transportData) {
-
       combinedFees.push({
-  id: "transport",
-  label: "Transport Fee",
-  fee_type: "Transport Fee",
-  amount: Number(transportData.monthly_fare),
-});
-
+        id: "transport",
+        label: "Transport Fee",
+        fee_type: "Transport Fee",
+        amount: Number(transportData.monthly_fare),
+      });
     }
 
-
-
-    // =========================
     // 3. OPENING BALANCE
-    // =========================
-
     const { data: obData } = await supabase
       .from("student_fees_ob")
       .select("*")
@@ -366,52 +336,45 @@ if (classFeesData) {
       .maybeSingle();
 
     if (obData && Number(obData.opening_balance) > 0) {
-
-combinedFees.push({
-  id: obData.id,
-  label: "Old Balance",
-  fee_type: "Opening Balance",
-  amount: Number(obData.opening_balance),
-});
-
+      combinedFees.push({
+        id: obData.id,
+        label: "Old Balance",
+        fee_type: "Opening Balance",
+        amount: Number(obData.opening_balance),
+      });
     }
 
-
-
-    // =========================
     // 4. EXTRA FEES
-    // =========================
-
     const { data: entryData } = await supabase
       .from("student_fees_entries")
       .select("*")
       .eq("student_id", student.id);
 
-   if (entryData) {
+    if (entryData) {
+      entryData.forEach((entry) => {
+        combinedFees.push({
+          id: entry.id,
+          label: "Special Development Fee",
+          fee_type: "Special Development Fee",
+          amount: Number(entry.amount_fees),
+        });
+      });
+    }
 
-  entryData.forEach((entry) => {
+    // ✅ Add Concession Fee option
+    combinedFees.push({
+      id: "concession",
+      label: "Concession Fee",
+      fee_type: "Concession Fee",
+      amount: 0, // Concession doesn't have a fixed amount
+    });
 
-   combinedFees.push({
-  id: entry.id,
-  label: "Special Development Fee",
-  fee_type: "Special Development Fee",
-  amount: Number(entry.amount_fees),
-});
-
-  });
-
-}
-
-
-    // SAVE ALL FEES
     setAllFees(combinedFees);
-
     setStudentSearch(student.full_name);
-
     setStudentSuggestions([]);
   };
 
-
+  // ✅ SAVE CLASS FEE
   const handleSaveClassFee = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -439,6 +402,8 @@ combinedFees.push({
     setLoading(false);
   };
 
+  // ✅ SAVE STUDENT FEE WITH CONCESSION
+  // ✅ SAVE STUDENT FEE WITH CONCESSION
   const handleSaveStudentFee = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -450,88 +415,69 @@ combinedFees.push({
     }
 
     const remaining =
-      grandTotal - Number(studentForm.already_paid || 0);
-if (Number(studentForm.paying_now || 0) > remaining) {
-  toast.error("Payment exceeds remaining balance.");
-  setLoading(false);
-  return;
-}
+      Number(studentForm.total_amount || 0) -
+      Number(studentForm.already_paid || 0) -
+      Number(studentForm.concession_amount || 0);
+
+    if (Number(studentForm.paying_now || 0) > remaining) {
+      toast.error("Payment exceeds remaining balance.");
+      setLoading(false);
+      return;
+    }
 
     const payAmount = Number(studentForm.paying_now || 0);
+    const concessionAmount = Number(studentForm.concession_amount || 0);
 
-    // 🔍 Check if record already exists
+    // 🔍 FIX: Find the authentic fee_type_id from the fee_types master list
+    const matchedMasterFee = feeTypes.find(f => f.name === studentForm.fee_type);
+    const correctFeeTypeId = matchedMasterFee ? matchedMasterFee.id : null;
+
+    // Check if record already exists
     const { data: existingRecords } = await supabase
       .from("student_fees")
       .select("*")
       .eq("student_id", studentForm.student_id)
       .eq("fee_type", studentForm.fee_type);
 
-    if (existingRecords && existingRecords.length > 0) {
-      const totalPaid = existingRecords.reduce(
-        (sum, r) => sum + Number(r.paid_amount),
-        0
-      );
-
-      const newTotalPaid = totalPaid + payAmount;
-
-      const { error } = await supabase
-        .from("student_fees")
-        .insert([
-          {
-            student_id: studentForm.student_id,
-            student_name: studentForm.student_name,
-            roll_no: Number(studentForm.roll_no),
-            class: studentForm.class,
-            fee_type_id: studentForm.fee_type_id || null,
-            fee_type: studentForm.fee_type,
-            total_amount: Number(studentForm.total_amount),
-            paid_amount: payAmount,
-            payment_method: studentForm.payment_method,
-            utr_number: studentForm.utr_number || null,
-            remarks: studentForm.remarks || "",
-          },
-        ]);
-
-      if (error) {
-        toast.error(error.message);
-        setLoading(false);
-        return;
-      }
-
-      toast.success("Installment added successfully!");
-    } else {
-      const { error } = await supabase.from("student_fees").insert([
+    const { error } = await supabase
+      .from("student_fees")
+      .insert([
         {
           student_id: studentForm.student_id,
           student_name: studentForm.student_name,
+          father_name: studentForm.father_name || null,
           roll_no: Number(studentForm.roll_no),
           class: studentForm.class,
-          fee_type_id: studentForm.fee_type_id || null, // ✅ save fee type ID
-          fee_type: studentForm.fee_type,       // optional for display
+          section: studentForm.section || null,
+          fee_type_id: correctFeeTypeId, // ✅ Passed the verified master ID here
+          fee_type: studentForm.fee_type,
           total_amount: Number(studentForm.total_amount),
           paid_amount: payAmount,
+          concession_amount: concessionAmount,
           payment_method: studentForm.payment_method,
-          utr_number: studentForm.utr_number || null, // ✅ save UTR
+          utr_number: studentForm.utr_number || null,
           remarks: studentForm.remarks || "",
         },
       ]);
 
-      if (error) {
-        toast.error(error.message);
-        setLoading(false);
-        return;
-      }
-
-      toast.success("Fee added successfully!");
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
     }
+
+    toast.success(
+      existingRecords && existingRecords.length > 0
+        ? "Installment added successfully!"
+        : "Fee added successfully!"
+    );
 
     closeModals();
     fetchAll();
     setLoading(false);
   };
 
-
-
+  // ✅ DELETE RECORD
   const deleteRecord = async (table: string, id: string) => {
     if (confirm("Are you sure you want to delete this?")) {
       await supabase.from(table).delete().eq("id", id);
@@ -540,7 +486,8 @@ if (Number(studentForm.paying_now || 0) > remaining) {
     }
   };
 
-  const openEdit = (type: "class" | "student", item: any) => {
+  // ✅ OPEN EDIT (FIXED)
+  const openEdit = async (type: "class" | "student", item: any) => {
     setEditingId(item.id);
 
     if (type === "class") {
@@ -551,31 +498,86 @@ if (Number(studentForm.paying_now || 0) > remaining) {
       });
       setIsClassModalOpen(true);
     } else {
-      setStudentForm({
-  student_id: item.student_id || "",
-  student_name: item.student_name || "",
-  father_name: item.father_name || "",
-  roll_no: item.roll_no?.toString() || "",
-  class: item.class || "",
-  section: item.section || "",
-  fee_type_id: item.fee_type_id || "",
-  fee_type: item.fee_type || "",
-  total_amount: item.total_amount?.toString() || "",
-  already_paid: "",
-  paying_now: "",
-  payment_method: item.payment_method || "",
-  fee_source: item.fee_source || "",   // ✅ ADD THIS LINE
-  utr_number: item.utr_number || "",
-  remarks: item.remarks || "",
-});
+      // ✅ FETCH STUDENT DATA
+      const student = await supabase
+        .from("students")
+        .select("*")
+        .eq("id", item.student_id)
+        .single();
 
+      if (student.data) {
+        const s = student.data;
+
+        // Fetch all fees for this student
+        let combinedFees: any[] = [];
+
+        const { data: classFeesData } = await supabase
+          .from("class_fees")
+          .select("*")
+          .eq("class", s.class_name);
+
+        if (classFeesData) {
+          classFeesData.forEach((fee) => {
+            combinedFees.push({
+              id: fee.id,
+              fee_type_id: fee.id,
+              label: fee.fee_type,
+              fee_type: fee.fee_type,
+              amount: Number(fee.amount),
+            });
+          });
+        }
+
+        const { data: transportData } = await supabase
+          .from("transport_assignments")
+          .select("*")
+          .eq("student_id", s.id)
+          .eq("status", "active")
+          .maybeSingle();
+
+        if (transportData) {
+          combinedFees.push({
+            id: "transport",
+            label: "Transport Fee",
+            fee_type: "Transport Fee",
+            amount: Number(transportData.monthly_fare),
+          });
+        }
+
+        combinedFees.push({
+          id: "concession",
+          label: "Concession Fee",
+          fee_type: "Concession Fee",
+          amount: 0,
+        });
+
+        setAllFees(combinedFees);
+      }
+
+      setStudentForm({
+        student_id: item.student_id || "",
+        student_name: item.student_name || "",
+        father_name: item.father_name || "",
+        roll_no: item.roll_no?.toString() || "",
+        class: item.class || "",
+        section: item.section || "",
+        fee_type_id: item.fee_type_id || "",
+        fee_type: item.fee_type || "",
+        total_amount: item.total_amount?.toString() || "",
+        already_paid: item.paid_amount?.toString() || "0",
+        paying_now: "",
+        concession_amount: item.concession_amount?.toString() || "", // ✅ NEW
+        payment_method: item.payment_method || "",
+        utr_number: item.utr_number || "",
+        remarks: item.remarks || "",
+      });
 
       setStudentSearch(item.student_name);
       setIsStudentModalOpen(true);
     }
-
   };
 
+  // ✅ CLOSE MODALS (FIXED)
   const closeModals = () => {
     setIsClassModalOpen(false);
     setIsStudentModalOpen(false);
@@ -583,25 +585,23 @@ if (Number(studentForm.paying_now || 0) > remaining) {
 
     setClassForm({ class: "", fee_type: "", amount: "" });
 
-   const [studentForm, setStudentForm] = useState({
-  student_id: "",
-  student_name: "",
-  father_name: "",
-  roll_no: "",
-  class: "",
-  section: "",
-  fee_type_id: "",
-  fee_type: "",
-  total_amount: "",
-  already_paid: "",
-  paying_now: "",
-  payment_method: "",
-  fee_source: "",
-  utr_number: "",
-  remarks: "",
-  ob_amount: "",
-  entry_amount: "",
-});
+    setStudentForm({
+      student_id: "",
+      student_name: "",
+      father_name: "",
+      roll_no: "",
+      class: "",
+      section: "",
+      fee_type_id: "",
+      fee_type: "",
+      total_amount: "",
+      already_paid: "",
+      paying_now: "",
+      concession_amount: "",
+      payment_method: "",
+      utr_number: "",
+      remarks: "",
+    });
 
     setStudentSearch("");
     setStudentSuggestions([]);
@@ -613,6 +613,7 @@ if (Number(studentForm.paying_now || 0) > remaining) {
       s.class.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // ✅ EXPORT TO EXCEL
   const exportToExcel = () => {
     if (studentFees.length === 0) {
       toast.error("No data available to export");
@@ -626,9 +627,10 @@ if (Number(studentForm.paying_now || 0) > remaining) {
       "Fee Type": fee.fee_type,
       "Total Amount (₹)": fee.total_amount,
       "Paid Amount (₹)": fee.paid_amount,
-      "Remaining Balance (₹)": fee.total_amount - fee.paid_amount,
+      "Concession (₹)": fee.concession_amount || 0, // ✅ NEW
+      "Remaining Balance (₹)": fee.total_amount - fee.paid_amount - (fee.concession_amount || 0),
       "Payment Method": fee.payment_method,
-      Status: fee.total_amount - fee.paid_amount <= 0 ? "Fully Paid" : "Pending",
+      Status: fee.total_amount - fee.paid_amount - (fee.concession_amount || 0) <= 0 ? "Fully Paid" : "Pending",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -640,32 +642,6 @@ if (Number(studentForm.paying_now || 0) > remaining) {
 
     toast.success("Excel file downloaded successfully!");
   };
-
-  useEffect(() => {
-    if (!studentForm.student_id) return;
-
-    // ✅ If student has transport → auto select
-    if (hasTransport) {
-      const transport = feeTypes.find(f => f.name === "Transport Fee");
-
-      if (transport) {
-        setStudentForm(prev => ({
-          ...prev,
-          fee_type_id: transport.id,
-          fee_type: transport.name,
-        }));
-      }
-    } else {
-      // ❌ remove transport if not available
-      if (studentForm.fee_type === "Transport Fee") {
-        setStudentForm(prev => ({
-          ...prev,
-          fee_type_id: "",
-          fee_type: "",
-        }));
-      }
-    }
-  }, [hasTransport, feeTypes]);
 
   return (
     <div className="bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
@@ -689,16 +665,12 @@ if (Number(studentForm.paying_now || 0) > remaining) {
               </div>
             </div>
 
-            {/* Mobile Export Button */}
             <button onClick={exportToExcel} className="md:hidden p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
               <BookOpen size={20} />
             </button>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex flex-wrap md:flex-row items-center gap-2 md:gap-3">
-
-
             <button
               onClick={() => setIsStudentModalOpen(true)}
               className="flex-[1.5] md:flex-none bg-brand text-white px-4 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/20"
@@ -716,9 +688,6 @@ if (Number(studentForm.paying_now || 0) > remaining) {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
-
-
-
           {/* Main Table Area */}
           <div className="lg:col-span-4 space-y-6">
             {/* Search Bar */}
@@ -739,10 +708,11 @@ if (Number(studentForm.paying_now || 0) > remaining) {
                   <thead>
                     <tr className="bg-brand-accent/30 dark:bg-brand/10 text-brand-dark dark:text-brand-soft text-xs uppercase tracking-widest">
                       <th className="p-5 font-bold">Student Details</th>
-                      <th className="p-5 font-bold">Type / Class</th>
-                      <th className="p-5 font-bold">Status</th>
-                      <th className="p-5 font-bold">Remarks</th>
-                      <th className="p-5 font-bold text-right">Outstanding</th>
+                      <th className="p-5 font-bold">Fee Type</th>
+                      <th className="p-5 font-bold text-center">Total</th>
+                      <th className="p-5 font-bold text-center">Paid</th>
+                      <th className="p-5 font-bold text-center">Concession</th>
+                      <th className="p-5 font-bold text-right">Balance</th>
                       <th className="p-5 font-bold text-center">Action</th>
                     </tr>
                   </thead>
@@ -750,11 +720,11 @@ if (Number(studentForm.paying_now || 0) > remaining) {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {filteredStudents.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="p-10 text-center text-slate-400">No records found.</td>
+                        <td colSpan={7} className="p-10 text-center text-slate-400">No records found.</td>
                       </tr>
                     ) : (
                       filteredStudents.map((s) => {
-                        const balance = s.total_amount - s.paid_amount;
+                        const balance = s.total_amount - s.paid_amount - (s.concession_amount || 0);
                         return (
                           <tr key={s.id} className="hover:bg-brand-soft/10 dark:hover:bg-brand/5 transition-colors">
                             <td className="p-5">
@@ -772,16 +742,14 @@ if (Number(studentForm.paying_now || 0) > remaining) {
                               <p className="text-slate-700 dark:text-slate-300 font-medium">{s.fee_type}</p>
                               <p className="text-[10px] text-slate-400 uppercase font-bold">Class {s.class}</p>
                             </td>
-                            <td className="p-5">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${balance <= 0 ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-brand-soft dark:bg-brand/20 text-brand-dark dark:text-brand-soft"
-                                }`}>
-                                {balance <= 0 ? "Fully Paid" : "Balance Due"}
-                              </span>
+                            <td className="p-5 text-center font-mono font-bold text-slate-700 dark:text-slate-300">
+                              ₹{s.total_amount.toLocaleString()}
                             </td>
-                            <td className="p-5">
-                              <p className="text-xs text-slate-600 dark:text-slate-300 max-w-[200px] truncate">
-                                {s.remarks || "--"}
-                              </p>
+                            <td className="p-5 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              ₹{s.paid_amount.toLocaleString()}
+                            </td>
+                            <td className="p-5 text-center font-mono font-bold text-orange-600 dark:text-orange-400">
+                              ₹{(s.concession_amount || 0).toLocaleString()}
                             </td>
                             <td className="p-5 text-right font-mono font-bold text-lg text-brand">
                               ₹{balance.toLocaleString()}
@@ -808,7 +776,7 @@ if (Number(studentForm.paying_now || 0) > remaining) {
             {/* Mobile Card View */}
             <div className="md:hidden bg-white dark:bg-slate-900 rounded-3xl border border-brand/10 dark:border-brand/20 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
               {filteredStudents.map((s) => {
-                const balance = s.total_amount - s.paid_amount;
+                const balance = s.total_amount - s.paid_amount - (s.concession_amount || 0);
                 return (
                   <div key={s.id} className="p-5 space-y-4 active:bg-slate-50 dark:active:bg-slate-800 transition-colors">
                     <div className="flex justify-between items-start">
@@ -823,14 +791,22 @@ if (Number(studentForm.paying_now || 0) > remaining) {
                         {balance <= 0 ? "Paid" : "Due"}
                       </span>
                     </div>
-                    <div className="flex items-end justify-between bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl">
+                    <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl">
                       <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Fee Category</p>
-                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{s.fee_type}</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Total</p>
+                        <p className="text-sm font-black text-slate-700 dark:text-slate-300">₹{s.total_amount.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Paid</p>
+                        <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{s.paid_amount.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Concession</p>
+                        <p className="text-sm font-black text-orange-600 dark:text-orange-400">₹{(s.concession_amount || 0).toLocaleString()}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Outstanding</p>
-                        <p className="text-lg font-black text-brand leading-none">₹{balance.toLocaleString()}</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Balance</p>
+                        <p className="text-sm font-black text-brand leading-none">₹{balance.toLocaleString()}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -850,47 +826,49 @@ if (Number(studentForm.paying_now || 0) > remaining) {
 
         {/* MODAL */}
         {(isClassModalOpen || isStudentModalOpen) && (
-          <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in duration-300 border border-white/20 dark:border-slate-800 flex flex-col md:flex-row min-h-[500px]">
+          <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-6">
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-5xl h-full max-h-[85vh] md:h-auto overflow-hidden animate-in zoom-in duration-300 border border-slate-100 dark:border-slate-800/80 flex flex-col md:flex-row">
 
               {/* Left Sidebar */}
-              <div className="md:w-[35%] p-10 bg-brand text-white flex flex-col justify-between relative overflow-hidden">
+              <div className="w-full md:w-[32%] p-6 md:p-8 bg-brand text-white flex flex-col justify-between relative overflow-hidden shrink-0">
                 <div className="absolute top-[-10%] right-[-10%] w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+
                 <div className="relative z-10">
                   <div className="w-12 h-12 bg-white/15 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-xl border border-white/20 shadow-inner">
                     <Shield size={22} className="text-white" />
                   </div>
-                  <h3 className="text-3xl font-black leading-tight tracking-tighter">
+                  <h3 className="text-2xl md:text-3xl font-black leading-tight tracking-tighter">
                     {editingId ? "Update" : "New"} <br />
-                    <span className="text-white/80 italic font-medium text-2xl">Entry</span>
+                    <span className="text-white/80 italic font-medium text-xl md:text-2xl">Entry</span>
                   </h3>
                   <div className="h-1 w-12 bg-white/40 rounded-full mt-4"></div>
                 </div>
 
                 {!isClassModalOpen && (
-                  <div className="relative z-10 bg-white/10 p-5 rounded-[2rem] border border-white/20 backdrop-blur-2xl shadow-2xl">
-                    <p className="text-[10px] uppercase font-black tracking-widest opacity-70 mb-3 flex items-center gap-2">
+                  <div className="relative z-10 my-6 md:my-0 bg-white/10 p-4 rounded-2xl border border-white/20 backdrop-blur-2xl shadow-xl">
+                    <p className="text-[10px] uppercase font-black tracking-widest opacity-70 mb-2 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Live Balance
                     </p>
-                    <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800 p-3 rounded-xl">
-  <p className="text-xs font-bold text-slate-500 uppercase">
-    Remaining After Payment
-  </p>
-
-  <p className={`text-lg font-black ${
-    liveRemaining < 0 ? "text-red-500" : "text-emerald-500"
-  }`}>
-    ₹{liveRemaining.toLocaleString()}
-  </p>
-</div>
+                    <div className="flex justify-between items-center bg-slate-900/20 backdrop-blur-md p-3 rounded-xl">
+                      <p className="text-[10px] font-bold text-white/70 uppercase max-w-[60%] leading-tight">
+                        Remaining After Payment
+                      </p>
+                      <p className={`text-base md:text-lg font-black ${liveRemaining < 0 ? "text-red-300" : "text-emerald-300"
+                        }`}>
+                        ₹{liveRemaining.toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 )}
-                <p className="relative z-10 text-[9px] font-bold opacity-50 uppercase tracking-[0.3em]">Finance Ledger v2.0</p>
+
+                <p className="relative z-10 text-[9px] font-bold opacity-50 uppercase tracking-[0.3em] mt-auto">Finance Ledger v2.1</p>
               </div>
 
-              {/* Right Side Form */}
-              <div className="flex-1 p-8 bg-slate-50/50 dark:bg-slate-900/50 relative flex flex-col">
-                <div className="flex justify-between items-center mb-6">
+              {/* Right Side Form Content */}
+              <div className="flex-1 bg-slate-50/50 dark:bg-slate-900/50 relative flex flex-col overflow-hidden max-h-[65vh] md:max-h-[85vh]">
+
+                {/* Header Fixed Area */}
+                <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
                   <div className="flex items-center gap-2">
                     <div className="w-1 h-5 bg-brand rounded-full"></div>
                     <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase text-[11px] tracking-widest">
@@ -902,190 +880,146 @@ if (Number(studentForm.paying_now || 0) > remaining) {
                   </button>
                 </div>
 
-                <form onSubmit={isClassModalOpen ? handleSaveClassFee : handleSaveStudentFee} className="space-y-5 flex-1">
-                  {isClassModalOpen ? (
-                    <div className="grid grid-cols-1 gap-5">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Class</label>
-                          <select className="modal-input dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200" value={classForm.class} onChange={(e) => setClassForm({ ...classForm, class: e.target.value })} required>
-                            <option value="">Select Class</option>
-                            {ACADEMIC_CLASSES.map((cls) => (<option key={cls} value={cls}>{cls}</option>))}
-                          </select>
+                {/* Scrollable Form Body Container */}
+                <form onSubmit={isClassModalOpen ? handleSaveClassFee : handleSaveStudentFee} className="flex flex-col flex-1 overflow-hidden">
+
+                  <div className="p-6 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
+                    {isClassModalOpen ? (
+                      <div className="space-y-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Class</label>
+                            <select className="modal-input dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200" value={classForm.class} onChange={(e) => setClassForm({ ...classForm, class: e.target.value })} required>
+                              <option value="">Select Class</option>
+                              {ACADEMIC_CLASSES.map((cls) => (<option key={cls} value={cls}>{cls}</option>))}
+                            </select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Category</label>
+                            <select className="modal-input dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200" value={classForm.fee_type} onChange={(e) => setClassForm({ ...classForm, fee_type: e.target.value })} required>
+                              <option value="">Select Type</option>
+                              {["Tuition Fee", "Exam Fee", "Certificate fee", "Application fee", "Evening Class fee", "Special Development fee"].map(fee => (<option key={fee}>{fee}</option>))}
+                            </select>
+                          </div>
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Category</label>
-                          <select className="modal-input dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200" value={classForm.fee_type} onChange={(e) => setClassForm({ ...classForm, fee_type: e.target.value })} required>
-                            <option value="">Select Type</option>
-                            {["Tuition Fee", "Exam Fee", "Certificate fee", "Application fee", "Evening Class fee", "Special Development fee"].map(fee => (<option key={fee}>{fee}</option>))}
-                          </select>
+                          <label className="text-[10px] font-black text-brand uppercase ml-1">Standard Amount (₹)</label>
+                          <input className="modal-input text-xl font-black text-slate-800 dark:text-slate-100 dark:bg-slate-800 dark:border-brand/20 focus:border-brand" type="number" placeholder="0.00" value={classForm.amount} onChange={(e) => setClassForm({ ...classForm, amount: e.target.value })} required />
                         </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-brand uppercase ml-1">Standard Amount (₹)</label>
-                        <input className="modal-input text-xl font-black text-slate-800 dark:text-slate-100 dark:bg-slate-800 dark:border-brand/20 focus:border-brand" type="number" placeholder="0.00" value={classForm.amount} onChange={(e) => setClassForm({ ...classForm, amount: e.target.value })} required />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-5">
-                      {/* Student Search */}
-                      <div className="relative group">
-                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                          <Search size={16} className="text-slate-400 group-focus-within:text-brand transition-colors" />
+                    ) : (
+                      <div className="space-y-5">
+                        {/* Student Search */}
+                        <div className="relative group">
+                          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                            <Search size={16} className="text-slate-400 group-focus-within:text-brand transition-colors" />
+                          </div>
+                          <input type="text" value={studentSearch} onChange={(e) => { setIsSelectingStudent(false); setStudentSearch(e.target.value); setHighlightIndex(-1); }}
+                            placeholder="Search student name..." className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl focus:border-brand outline-none font-bold text-slate-700 dark:text-slate-200 transition-all shadow-sm text-sm" />
+
+                          {studentSuggestions.length > 0 && (
+                            <div className="absolute top-[110%] left-0 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto p-2 space-y-1">
+                              {studentSuggestions.map((s, index) => (
+                                <button key={s.id} type="button" onClick={() => handleStudentPick(s)} className={`w-full text-left px-4 py-2.5 rounded-lg transition flex justify-between items-center ${highlightIndex === index ? "bg-brand text-white" : "hover:bg-brand/5 dark:hover:bg-brand/10 dark:text-slate-300"}`}>
+                                  <div><p className="font-bold text-xs">{s.full_name}</p><p className="text-[10px] opacity-70">Parent: {s.father_name}</p></div>
+                                  <span className="text-[9px] font-black px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">{s.class_name}-{s.section}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <input type="text" value={studentSearch} onChange={(e) => { setIsSelectingStudent(false); setStudentSearch(e.target.value); setHighlightIndex(-1); }}
-                          placeholder="Search student name..." className="w-full pl-11 pr-4 py-4 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand outline-none font-bold text-slate-700 dark:text-slate-200 transition-all shadow-sm" />
-                        {studentSuggestions.length > 0 && (
-                          <div className="absolute top-[110%] left-0 w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-2xl z-50 max-h-48 overflow-y-auto p-2 space-y-1">
-                            {studentSuggestions.map((s, index) => (
-                              <button key={s.id} type="button" onClick={() => handleStudentPick(s)} className={`w-full text-left px-4 py-3 rounded-xl transition flex justify-between items-center ${highlightIndex === index ? "bg-brand text-white" : "hover:bg-brand/5 dark:hover:bg-brand/10 dark:text-slate-300"}`}>
-                                <div><p className="font-bold text-sm">{s.full_name}</p><p className="text-[10px] opacity-70">Parent: {s.father_name}</p></div>
-                                <span className="text-[9px] font-black px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700">{s.class_name}-{s.section}</span>
-                              </button>
-                            ))}
+
+                        {/* Info Grid split cleanly into 4 columns */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                          {[{ label: 'Father', val: studentForm.father_name }, { label: 'Roll', val: studentForm.roll_no }, { label: 'Class', val: studentForm.class }, { label: 'Sec', val: studentForm.section }].map((item, idx) => (
+                            <div key={idx} className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                              <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">{item.label}</p>
+                              <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{item.val || '--'}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Main Form Fields Layout Matrix */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Left Column Fields */}
+                          <div className="space-y-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Select Fee Configuration</label>
+                              <select className="modal-input text-sm" value={studentForm.fee_type} onChange={async (e) => {
+                                const selected = allFees.find((f) => f.label === e.target.value);
+                                if (!selected) return;
+                                const { data: payments } = await supabase.from("student_fees").select("paid_amount, concession_amount").eq("student_id", studentForm.student_id).eq("fee_type", selected.fee_type);
+                                const alreadyPaid = payments?.reduce((sum, item) => sum + Number(item.paid_amount), 0) || 0;
+                                setStudentForm({
+                                  ...studentForm,
+                                  fee_type_id: ["Opening Balance", "Special Development Fee", "Concession Fee", "Transport Fee"].includes(selected.fee_type) ? null : selected.id,
+                                  fee_type: selected.fee_type,
+                                  total_amount: selected.amount.toString(),
+                                  already_paid: alreadyPaid.toString(),
+                                  paying_now: "",
+                                  concession_amount: "",
+                                });
+                              }}>
+                                <option value="">Select Fee</option>
+                                {allFees.map((fee) => (
+                                  <option key={fee.id} value={fee.label}>{fee.label} - ₹{fee.amount}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase ml-1">Amount Paid (₹)</label>
+                              <input className="modal-input text-base font-black border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/30 dark:bg-emerald-500/5 text-emerald-700 dark:text-emerald-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" type="number" placeholder="Enter paid amount" value={studentForm.paying_now} onChange={(e) => setStudentForm({ ...studentForm, paying_now: e.target.value })} required />
+                            </div>
+                          </div>
+
+                          {/* Right Column Fields */}
+                          <div className="space-y-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase ml-1">Concession Amount (₹)</label>
+                              <input className="modal-input text-base font-black border-orange-100 dark:border-orange-900/30 bg-orange-50/30 dark:bg-orange-500/5 text-orange-700 dark:text-orange-400 focus:border-orange-500 focus:ring-1 focus:ring-orange-500" type="number" placeholder="Enter concession amount" value={studentForm.concession_amount} onChange={(e) => setStudentForm({ ...studentForm, concession_amount: e.target.value })} />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Payment Method</label>
+                              <div className="flex gap-2">
+                                {["Cash", "UPI", "Bank"].map((method) => (
+                                  <button key={method} type="button" onClick={() => setStudentForm({ ...studentForm, payment_method: method })}
+                                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${studentForm.payment_method === method ? "bg-slate-900 dark:bg-brand text-white border-slate-900 dark:border-brand shadow-md" : "bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}>
+                                    {method}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Conditional Transaction Metadata Block */}
+                        {studentForm.payment_method && (
+                          <div className="animate-in fade-in slide-in-from-top-3 duration-200 space-y-3 bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                            {(studentForm.payment_method === "UPI" || studentForm.payment_method === "Bank") && (
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Transaction Ref / UTR Number</label>
+                                <input className="modal-input border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono text-xs" placeholder="ENTER UTR / TRANSACTION ID" value={studentForm.utr_number} onChange={(e) => setStudentForm({ ...studentForm, utr_number: e.target.value })} required />
+                              </div>
+                            )}
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Internal Ledger Notes</label>
+                              <input className="modal-input border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs" placeholder="Enter remarks / notes (optional)" value={studentForm.remarks} onChange={(e) => setStudentForm({ ...studentForm, remarks: e.target.value })} />
+                            </div>
                           </div>
                         )}
                       </div>
+                    )}
+                  </div>
 
-                      {/* Info Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {[{ label: 'Father', val: studentForm.father_name }, { label: 'Roll', val: studentForm.roll_no }, { label: 'Class', val: studentForm.class }, { label: 'Sec', val: studentForm.section }].map((item, idx) => (
-                          <div key={idx} className="bg-slate-100/50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                            <p className="text-[8px] font-black text-slate-400 uppercase mb-1">{item.label}</p>
-                            <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate">{item.val || '--'}</p>
-                          </div>
-                        ))}
-                      </div>
+                  {/* Action Footer Button Sticky Block */}
+                  <div className="p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 shrink-0">
+                    <button disabled={loading} className="w-full bg-slate-900 dark:bg-brand text-white py-3.5 rounded-xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-brand dark:hover:bg-brand-dark transition-all disabled:opacity-50 shadow-lg">
+                      {loading ? "Syncing..." : editingId ? "Save Changes" : "Confirm Transaction"}
+                    </button>
+                  </div>
 
-                      {/* Payment Inputs */}
-                      <div className="space-y-4">
-
-                        {/* PAYMENT FOR */}
-                        <select
-                          className="modal-input"
-                          value={studentForm.fee_type}
-                          onChange={async (e) => {
-
-                            const selected = allFees.find(
-                              (f) => f.label === e.target.value
-                            );
-
-                            if (!selected) return;
-
-
-                            // CHECK ALREADY PAID
-
-                            const { data: payments } = await supabase
-                              .from("student_fees")
-                              .select("paid_amount")
-                              .eq("student_id", studentForm.student_id)
-                              .eq("fee_type", selected.fee_type);
-
-
-                            const alreadyPaid =
-                              payments?.reduce(
-                                (sum, item) =>
-                                  sum + Number(item.paid_amount),
-                                0
-                              ) || 0;
-
-
-setStudentForm({
-  ...studentForm,
-
-  // ✅ only save fee_type_id for real fee_types table entries
-  fee_type_id:
-    selected.fee_type === "Opening Balance" ||
-    selected.fee_type === "Special Development Fee" ||
-    selected.fee_type === "Transport Fee"
-      ? null
-      : selected.id,
-
-  fee_type: selected.fee_type,
-  total_amount: selected.amount.toString(),
-  already_paid: alreadyPaid.toString(),
-  paying_now: "",
-});
-
-                          }}
-                        >
-
-                          <option value="">Select Fee</option>
-
-                          {allFees.map((fee) => (
-
-                            <option
-                              key={fee.id}
-                              value={fee.label}
-                            >
-                              {fee.label} - ₹{fee.amount}
-                            </option>
-
-                          ))}
-
-                        </select>
-
-
-
-                                         {/* PAY NOW */}
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-black text-orange-600 uppercase ml-1">
-                            Enter Fee Amount
-                          </label>
-
-                          <input
-                            className="modal-input border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 font-black text-xl"
-                            type="number"
-                            placeholder="Enter amount"
-                            value={studentForm.paying_now}
-                            onChange={(e) =>
-                              setStudentForm({
-                                ...studentForm,
-                                paying_now: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
- <div className="flex gap-2">
-                          {["Cash", "UPI", "Bank"].map((method) => (
-                            <button key={method} type="button" onClick={() => setStudentForm({ ...studentForm, payment_method: method })}
-                              className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${studentForm.payment_method === method ? "bg-slate-900 dark:bg-brand text-white border-slate-900 shadow-lg" : "bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700"}`}>
-                              {method}
-                            </button>
-                          ))}
-                        </div>
-
-                 {studentForm.payment_method && (
-  <div className="animate-in slide-in-from-top-2 space-y-2">
-    
-    {(studentForm.payment_method === "UPI" || studentForm.payment_method === "Bank") && (
-      <input
-        className="modal-input border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-sm"
-        placeholder="ENTER UTR / TRANSACTION ID"
-        value={studentForm.utr_number}
-        onChange={(e) => setStudentForm({ ...studentForm, utr_number: e.target.value })}
-        required
-      />
-    )}
-
-    {/* ✅ ALWAYS SHOW REMARKS */}
-    <input
-      className="modal-input border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono text-sm"
-      placeholder="Enter remarks / notes"
-      value={studentForm.remarks}
-      onChange={(e) => setStudentForm({ ...studentForm, remarks: e.target.value })}
-    />
-  </div>
-)}
-                    
-                      </div>
-                    </div>
-                  )}
-
-                  <button disabled={loading} className="w-full bg-slate-900 dark:bg-brand text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-brand dark:hover:bg-brand-dark transition-all disabled:opacity-50 shadow-xl mt-auto">
-                    {loading ? "Syncing..." : editingId ? "Save Changes" : "Confirm Transaction"}
-                  </button>
                 </form>
               </div>
             </div>
@@ -1123,5 +1057,3 @@ setStudentForm({
     </div>
   );
 }
-
-

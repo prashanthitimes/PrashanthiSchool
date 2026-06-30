@@ -91,13 +91,23 @@ export default function FeesOpeningBalanceRegistry() {
       });
     }
   };
-
-  const fetchActiveStudents = async () => {
-    const { data, error } = await supabase
+const fetchActiveStudents = async () => {
+    // Fetch Pre-KG, LKG, UKG, 9th from any year
+    const { data: earlyClassData, error: earlyError } = await supabase
       .from("students")
       .select("id, student_id, full_name, class_name, section, academic_year")
+      .in('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
       .eq("status", "active");
-    if (!error && data) setStudents(data);
+
+    // Fetch other classes (active status)
+    const { data: otherClassData, error: otherError } = await supabase
+      .from("students")
+      .select("id, student_id, full_name, class_name, section, academic_year")
+      .notIn('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
+      .eq("status", "active");
+
+    const studentsData = [...(earlyClassData || []), ...(otherClassData || [])];
+    if (!earlyError && !otherError) setStudents(studentsData);
   };
 
   const validateForm = () => {
@@ -201,7 +211,8 @@ export default function FeesOpeningBalanceRegistry() {
     }
   };
 
-  const matchedStudentFilteringList = studentSearchTerm.trim() === "" 
+// This filters the students array populated by fetchActiveStudents
+const matchedStudentFilteringList = studentSearchTerm.trim() === "" 
     ? [] 
     : students.filter(st => 
         st.full_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||

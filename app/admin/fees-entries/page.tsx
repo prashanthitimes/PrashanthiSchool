@@ -15,7 +15,7 @@ export default function FeesEntriesRegistry() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  
+
   // Search & Target Filtering States
   const [studentSearchTerm, setStudentSearchTerm] = useState("");
   const [targetRecord, setTargetRecord] = useState<any>(null);
@@ -42,7 +42,7 @@ export default function FeesEntriesRegistry() {
     try {
       await Promise.all([
         fetchSchoolSettingsYear(),
-        fetchFeeRecords(), 
+        fetchFeeRecords(),
         fetchActiveStudents()
       ]);
     } catch (err) {
@@ -88,11 +88,22 @@ export default function FeesEntriesRegistry() {
   };
 
   const fetchActiveStudents = async () => {
-    const { data, error } = await supabase
+    // Fetch Pre-KG, LKG, UKG, 9th from any year
+    const { data: earlyClassData, error: earlyError } = await supabase
       .from("students")
       .select("id, student_id, full_name, class_name, section, academic_year")
+      .in('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
       .eq("status", "active");
-    if (!error && data) setStudents(data);
+
+    // Fetch other classes (active status)
+    const { data: otherClassData, error: otherError } = await supabase
+      .from("students")
+      .select("id, student_id, full_name, class_name, section, academic_year")
+      .notIn('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
+      .eq("status", "active");
+
+    const studentsData = [...(earlyClassData || []), ...(otherClassData || [])];
+    if (!earlyError && !otherError) setStudents(studentsData);
   };
 
   const validateForm = () => {
@@ -141,7 +152,7 @@ export default function FeesEntriesRegistry() {
 
     const payload = {
       student_id: formData.student_uuid,
-      academic_year: systemAcademicYear, 
+      academic_year: systemAcademicYear,
       amount_fees: parseFloat(formData.amount_fees),
       description: formData.description
     };
@@ -192,13 +203,14 @@ export default function FeesEntriesRegistry() {
     }
   };
 
-  const matchedStudentFilteringList = studentSearchTerm.trim() === "" 
-    ? [] 
-    : students.filter(st => 
-        st.full_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-        st.student_id.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-        `${st.class_name} ${st.section}`.toLowerCase().includes(studentSearchTerm.toLowerCase())
-      ).slice(0, 5);
+  // This filters the students array populated by fetchActiveStudents
+  const matchedStudentFilteringList = studentSearchTerm.trim() === ""
+    ? []
+    : students.filter(st =>
+      st.full_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+      st.student_id.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+      `${st.class_name} ${st.section}`.toLowerCase().includes(studentSearchTerm.toLowerCase())
+    ).slice(0, 5);
 
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-brand-soft/20 dark:bg-slate-950">
@@ -319,7 +331,7 @@ export default function FeesEntriesRegistry() {
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-md" onClick={() => setShowModal(false)} />
           <div className="relative bg-white dark:bg-slate-900 rounded-t-[2.5rem] sm:rounded-[3rem] w-full max-w-4xl shadow-2xl overflow-hidden border border-brand-soft dark:border-slate-800 flex flex-col h-[85vh] sm:h-auto sm:max-h-[90vh]">
-            
+
             <div className="p-6 sm:p-8 border-b border-brand-soft dark:border-slate-800 flex justify-between items-center bg-brand-soft/20 dark:bg-slate-800/50">
               <div>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">{editRecord ? "Adjust Collection Details" : "Log Fee Allocation Entry"}</h2>
