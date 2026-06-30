@@ -452,7 +452,7 @@ if (excelMap.has(key)) {
     const payload = {
       ...formData,
       dob: finalDob, // Use the sanitized date
-      roll_number: formData.roll_number === "" ? null : parseInt(formData.roll_number.toString()),
+      roll_number: formData.roll_number ? parseInt(formData.roll_number.toString()) : null,
       email: formData.email || null,
     };
 

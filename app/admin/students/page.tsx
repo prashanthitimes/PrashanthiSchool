@@ -59,12 +59,26 @@ export default function StudentAdminPage() {
         ? `${schoolData.academic_start_year}-${schoolData.academic_end_year}`
         : '2026-2027';
 
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-.eq('academic_year', yearFilter)
-        .order('class_name', { ascending: true })
-        .order('roll_number', { ascending: true });
+// Query Pre-KG, LKG, UKG from any year
+// Query Pre-KG, LKG, UKG, 9th from any year
+const { data: earlyClassData, error: earlyError } = await supabase
+  .from('students')
+  .select('*')
+  .in('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
+  .order('class_name', { ascending: true })
+  .order('roll_number', { ascending: true });
+
+// Query other classes from current year
+const { data: mainClassData, error: mainError } = await supabase
+  .from('students')
+  .select('*')
+  .notIn('class_name', ['Pre-KG', 'LKG', 'UKG'])
+  .eq('academic_year', yearFilter)
+  .order('class_name', { ascending: true })
+  .order('roll_number', { ascending: true });
+
+const error = earlyError || mainError;
+const data = [...(earlyClassData || []), ...(mainClassData || [])];
 
       if (error) throw error;
       setStudents(data || []);
@@ -113,15 +127,20 @@ export default function StudentAdminPage() {
 
     setLoading(true);
     try {
-      const promotedRecords = students.map(({ id, ...rest }) => {
-        const currentClass = parseInt(rest.class_name) || 0;
-        return {
-          ...rest,
-          academic_year: nextYear,
-          class_name: (currentClass + 1).toString(),
-          status: currentClass >= 10 ? 'graduated' : 'active'
-        };
-      });
+      const classOrder = ['Pre-KG', 'LKG', 'UKG', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
+
+const promotedRecords = students.map(({ id, ...rest }) => {
+  const currentIndex = classOrder.indexOf(rest.class_name);
+  const nextIndex = currentIndex + 1;
+  const nextClassName = nextIndex < classOrder.length ? classOrder[nextIndex] : '10th';
+  
+  return {
+    ...rest,
+    academic_year: nextYear,
+    class_name: nextClassName,
+    status: nextIndex >= 10 ? 'graduated' : 'active'
+  };
+});
 
       const { error: insertErr } = await supabase.from('students').insert(promotedRecords);
       if (insertErr) throw insertErr;
@@ -152,7 +171,9 @@ export default function StudentAdminPage() {
     return matchesSearch && matchesClass;
   });
 
-  const uniqueClasses = Array.from(new Set(students.map(s => s.class_name))).sort((a,b) => parseInt(a) - parseInt(b));
+  const classOrder = ['Pre-KG', 'LKG', 'UKG', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
+const uniqueClasses = Array.from(new Set(students.map(s => s.class_name)))
+  .sort((a, b) => classOrder.indexOf(a) - classOrder.indexOf(b));
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 p-6 pt-16">

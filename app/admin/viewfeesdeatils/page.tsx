@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 const CLASSES = [
-  "Pre-Nursery", "Nursery", "LKG", "UKG",
+  "Pre-KG", "LKG", "UKG",
   "1st", "2nd", "3rd", "4th", "5th",
   "6th", "7th", "8th", "9th", "10th"
 ];
@@ -29,18 +29,34 @@ export default function PrincipalFeesPage() {
     fetchInitialData();
   }, []);
 
-  async function fetchInitialData() {
+async function fetchInitialData() {
     setLoading(true);
     try {
-      const [studentsRes, paymentsRes, obRes, standardsRes, transportRes] = await Promise.all([
-        supabase.from("students").select("*").eq("status", "active"),
-        supabase.from("student_fees").select("*"), // Fetching from our new single transactional table
+      // Fetch Pre-KG, LKG, UKG, 9th from any year
+      const { data: earlyClassData, error: earlyError } = await supabase
+        .from("students")
+        .select("*")
+        .in('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
+        .eq("status", "active");
+
+      // Fetch other classes (active status)
+      const { data: otherClassData, error: otherError } = await supabase
+        .from("students")
+        .select("*")
+        .notIn('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
+        .eq("status", "active");
+
+      const studentsData = [...(earlyClassData || []), ...(otherClassData || [])];
+      const error = earlyError || otherError;
+
+      const [paymentsRes, obRes, standardsRes, transportRes] = await Promise.all([
+        supabase.from("student_fees").select("*"),
         supabase.from("student_fees_ob").select("*"),
         supabase.from("class_fees").select("*"),
         supabase.from("transport_assignments").select("*").eq("status", "active")
       ]);
 
-      setStudents(studentsRes.data || []);
+      setStudents(studentsData || []);
       setFeesPayments(paymentsRes.data || []);
       setFeesOB(obRes.data || []);
       setClassStandards(standardsRes.data || []);
