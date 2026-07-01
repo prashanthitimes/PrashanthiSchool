@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Plus, Edit, Trash2, Search, X, Shield, CheckCircle, Info, Filter, BookOpen } from "lucide-react";
+import { Plus, Edit, Trash2, Search, X, Shield, Calendar, BookOpen } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import * as XLSX from "xlsx";
 import React from 'react';
@@ -26,8 +26,9 @@ interface StudentFee {
   fee_type: string;
   total_amount: number;
   paid_amount: number;
-  concession_amount: number; // ✅ NEW
+  concession_amount: number;
   payment_method: string;
+  payment_date?: string; // ✅ NEW
   utr_number?: string;
   remarks?: string;
   created_at?: string;
@@ -54,7 +55,8 @@ interface StudentFormType {
   total_amount: string;
   already_paid: string;
   paying_now: string;
-  concession_amount: string; // ✅ NEW
+  concession_amount: string;
+  payment_date: string; // ✅ NEW
   payment_method: string;
   utr_number: string;
   remarks: string;
@@ -65,6 +67,7 @@ export default function FeesPage() {
   const [studentFees, setStudentFees] = useState<StudentFee[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState(""); // ✅ NEW
   const [editingId, setEditingId] = useState<string | null>(null);
   const [allFees, setAllFees] = useState<any[]>([]);
 
@@ -79,7 +82,6 @@ export default function FeesPage() {
   const [studentSuggestions, setStudentSuggestions] = useState<DBStudent[]>([]);
   const [fetchingStudents, setFetchingStudents] = useState(false);
   const [isSelectingStudent, setIsSelectingStudent] = useState(false);
-  const [showSidebarMobile, setShowSidebarMobile] = useState(false);
 
   // Form States
   const [classForm, setClassForm] = useState({ class: "", fee_type: "", amount: "" });
@@ -95,7 +97,8 @@ export default function FeesPage() {
     total_amount: "",
     already_paid: "",
     paying_now: "",
-    concession_amount: "", // ✅ NEW
+    concession_amount: "",
+    payment_date: new Date().toISOString().split('T')[0], // ✅ NEW - Default to today
     payment_method: "",
     utr_number: "",
     remarks: "",
@@ -130,19 +133,16 @@ export default function FeesPage() {
     Number(studentForm.total_amount || 0)
     - Number(studentForm.already_paid || 0)
     - Number(studentForm.paying_now || 0)
-    - Number(studentForm.concession_amount || 0); // ✅ Include concession
+    - Number(studentForm.concession_amount || 0);
 
   const isFullyPaid =
     Number(studentForm.total_amount || 0) -
     Number(studentForm.already_paid || 0) - Number(studentForm.concession_amount || 0) <= 0;
 
-  const isFirstPayment =
-    Number(studentForm.already_paid || 0) === 0;
-
   const remainingBalance =
     Number(studentForm.total_amount || 0)
     - Number(studentForm.already_paid || 0)
-    - Number(studentForm.concession_amount || 0); // ✅ Include concession
+    - Number(studentForm.concession_amount || 0);
 
   const ACADEMIC_CLASSES = [
     "Pre-KG", "LKG", "UKG",
@@ -164,18 +164,16 @@ export default function FeesPage() {
 
       if (!feeType || !studentId) return;
 
-      // Don't auto fetch for manual fees
       if (
         feeType === "Old Balances" ||
         feeType === "Special Development Fee" ||
-        feeType === "Concession Fee" // ✅ NEW
+        feeType === "Concession Fee"
       ) {
         return;
       }
 
       let standardAmount = 0;
 
-      // Transport Logic
       if (feeType === "Transport Fee") {
         const { data, error } = await supabase
           .from("transport_assignments")
@@ -189,9 +187,7 @@ export default function FeesPage() {
           standardAmount = 0;
           toast.error("No transport assigned for this student");
         }
-      }
-      // Other Fees
-      else {
+      } else {
         const { data } = await supabase
           .from("class_fees")
           .select("amount")
@@ -204,7 +200,6 @@ export default function FeesPage() {
         }
       }
 
-      // Fetch already paid
       const { data: payments } = await supabase
         .from("student_fees")
         .select("paid_amount, concession_amount")
@@ -214,7 +209,6 @@ export default function FeesPage() {
       const alreadyPaid =
         payments?.reduce((sum, p) => sum + Number(p.paid_amount), 0) || 0;
 
-      // Update form
       setStudentForm((prev) => ({
         ...prev,
         total_amount: standardAmount.toString(),
@@ -227,7 +221,7 @@ export default function FeesPage() {
     autoFetchFeeAmount();
   }, [studentForm.fee_type, studentForm.class, studentForm.student_id]);
 
-  // ✅ FETCH STUDENT SUGGESTIONS
+  // ✅ FETCH STUDENT SUGGESTIONS WITH PRE-KG, LKG, UKG, 9TH FIX
   useEffect(() => {
     async function fetchStudentSuggestions() {
       if (isSelectingStudent) {
@@ -242,12 +236,26 @@ export default function FeesPage() {
 
       setFetchingStudents(true);
 
-      const { data, error } = await supabase
+      // Fetch Pre-KG, LKG, UKG, 9th from any year
+      const { data: earlyClassData, error: earlyError } = await supabase
         .from("students")
         .select("id, full_name, father_name, roll_number, class_name, section")
+        .in('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
         .ilike("full_name", `%${studentSearch}%`)
         .eq("status", "active")
-        .limit(10);
+        .limit(5);
+
+      // Fetch other classes
+      const { data: otherClassData, error: otherError } = await supabase
+        .from("students")
+        .select("id, full_name, father_name, roll_number, class_name, section")
+        .notIn('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
+        .ilike("full_name", `%${studentSearch}%`)
+        .eq("status", "active")
+        .limit(5);
+
+      const error = earlyError || otherError;
+      const data = [...(earlyClassData || []), ...(otherClassData || [])];
 
       if (!error) {
         setStudentSuggestions(data || []);
@@ -271,7 +279,7 @@ export default function FeesPage() {
     const { data: sf } = await supabase
       .from("student_fees")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("payment_date", { ascending: false }); // ✅ Sort by date
 
     setClassFees(cf || []);
     setStudentFees(sf || []);
@@ -289,11 +297,11 @@ export default function FeesPage() {
       roll_no: student.roll_number?.toString() || "",
       class: student.class_name,
       section: student.section,
+      payment_date: new Date().toISOString().split('T')[0], // ✅ Reset to today
     }));
 
     let combinedFees: any[] = [];
 
-    // 1. CLASS FEES
     const { data: classFeesData } = await supabase
       .from("class_fees")
       .select("*")
@@ -311,7 +319,6 @@ export default function FeesPage() {
       });
     }
 
-    // 2. TRANSPORT FEES
     const { data: transportData } = await supabase
       .from("transport_assignments")
       .select("*")
@@ -328,7 +335,6 @@ export default function FeesPage() {
       });
     }
 
-    // 3. OPENING BALANCE
     const { data: obData } = await supabase
       .from("student_fees_ob")
       .select("*")
@@ -344,7 +350,6 @@ export default function FeesPage() {
       });
     }
 
-    // 4. EXTRA FEES
     const { data: entryData } = await supabase
       .from("student_fees_entries")
       .select("*")
@@ -361,12 +366,11 @@ export default function FeesPage() {
       });
     }
 
-    // ✅ Add Concession Fee option
     combinedFees.push({
       id: "concession",
       label: "Concession Fee",
       fee_type: "Concession Fee",
-      amount: 0, // Concession doesn't have a fixed amount
+      amount: 0,
     });
 
     setAllFees(combinedFees);
@@ -402,8 +406,7 @@ export default function FeesPage() {
     setLoading(false);
   };
 
-  // ✅ SAVE STUDENT FEE WITH CONCESSION
-  // ✅ SAVE STUDENT FEE WITH CONCESSION
+  // ✅ SAVE STUDENT FEE WITH DATE AND CONCESSION
   const handleSaveStudentFee = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -428,11 +431,9 @@ export default function FeesPage() {
     const payAmount = Number(studentForm.paying_now || 0);
     const concessionAmount = Number(studentForm.concession_amount || 0);
 
-    // 🔍 FIX: Find the authentic fee_type_id from the fee_types master list
     const matchedMasterFee = feeTypes.find(f => f.name === studentForm.fee_type);
     const correctFeeTypeId = matchedMasterFee ? matchedMasterFee.id : null;
 
-    // Check if record already exists
     const { data: existingRecords } = await supabase
       .from("student_fees")
       .select("*")
@@ -449,11 +450,12 @@ export default function FeesPage() {
           roll_no: Number(studentForm.roll_no),
           class: studentForm.class,
           section: studentForm.section || null,
-          fee_type_id: correctFeeTypeId, // ✅ Passed the verified master ID here
+          fee_type_id: correctFeeTypeId,
           fee_type: studentForm.fee_type,
           total_amount: Number(studentForm.total_amount),
           paid_amount: payAmount,
           concession_amount: concessionAmount,
+          payment_date: studentForm.payment_date, // ✅ Save date
           payment_method: studentForm.payment_method,
           utr_number: studentForm.utr_number || null,
           remarks: studentForm.remarks || "",
@@ -486,7 +488,7 @@ export default function FeesPage() {
     }
   };
 
-  // ✅ OPEN EDIT (FIXED)
+  // ✅ OPEN EDIT
   const openEdit = async (type: "class" | "student", item: any) => {
     setEditingId(item.id);
 
@@ -498,7 +500,6 @@ export default function FeesPage() {
       });
       setIsClassModalOpen(true);
     } else {
-      // ✅ FETCH STUDENT DATA
       const student = await supabase
         .from("students")
         .select("*")
@@ -508,7 +509,6 @@ export default function FeesPage() {
       if (student.data) {
         const s = student.data;
 
-        // Fetch all fees for this student
         let combinedFees: any[] = [];
 
         const { data: classFeesData } = await supabase
@@ -554,30 +554,31 @@ export default function FeesPage() {
         setAllFees(combinedFees);
       }
 
-      setStudentForm({
-        student_id: item.student_id || "",
-        student_name: item.student_name || "",
-        father_name: item.father_name || "",
-        roll_no: item.roll_no?.toString() || "",
-        class: item.class || "",
-        section: item.section || "",
-        fee_type_id: item.fee_type_id || "",
-        fee_type: item.fee_type || "",
-        total_amount: item.total_amount?.toString() || "",
-        already_paid: item.paid_amount?.toString() || "0",
-        paying_now: "",
-        concession_amount: item.concession_amount?.toString() || "", // ✅ NEW
-        payment_method: item.payment_method || "",
-        utr_number: item.utr_number || "",
-        remarks: item.remarks || "",
-      });
+     setStudentForm({
+  student_id: item.student_id || "",
+  student_name: item.student_name || "",
+  father_name: item.father_name || "",
+  roll_no: item.roll_no?.toString() || "",
+  class: item.class || "",
+  section: item.section || "",
+  fee_type_id: item.fee_type_id || "",
+  fee_type: item.fee_type || "",
+  total_amount: item.total_amount?.toString() || "0",
+  already_paid: (item.total_amount - item.paid_amount - (item.concession_amount || 0)).toString() || "0", // ✅ SHOW REMAINING
+  paying_now: item.paid_amount?.toString() || "0", // ✅ SHOW PAID AMOUNT
+  concession_amount: (item.concession_amount || 0).toString() || "0", // ✅ SHOW CONCESSION
+  payment_date: item.payment_date ? item.payment_date : new Date().toISOString().split('T')[0], // ✅ SHOW DATE
+  payment_method: item.payment_method || "Cash",
+  utr_number: item.utr_number || "",
+  remarks: item.remarks || "",
+});
 
       setStudentSearch(item.student_name);
       setIsStudentModalOpen(true);
     }
   };
 
-  // ✅ CLOSE MODALS (FIXED)
+  // ✅ CLOSE MODALS
   const closeModals = () => {
     setIsClassModalOpen(false);
     setIsStudentModalOpen(false);
@@ -598,6 +599,7 @@ export default function FeesPage() {
       already_paid: "",
       paying_now: "",
       concession_amount: "",
+      payment_date: new Date().toISOString().split('T')[0],
       payment_method: "",
       utr_number: "",
       remarks: "",
@@ -607,11 +609,18 @@ export default function FeesPage() {
     setStudentSuggestions([]);
   };
 
-  const filteredStudents = studentFees.filter(
-    (s) =>
+  // ✅ FILTER BY DATE AND SEARCH
+  const filteredStudents = studentFees.filter((s) => {
+    const matchSearch =
       s.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.class.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      s.class.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchDate = dateFilter
+      ? new Date(s.payment_date || s.created_at || "").toISOString().split("T")[0] === dateFilter
+      : true;
+
+    return matchSearch && matchDate;
+  });
 
   // ✅ EXPORT TO EXCEL
   const exportToExcel = () => {
@@ -627,8 +636,9 @@ export default function FeesPage() {
       "Fee Type": fee.fee_type,
       "Total Amount (₹)": fee.total_amount,
       "Paid Amount (₹)": fee.paid_amount,
-      "Concession (₹)": fee.concession_amount || 0, // ✅ NEW
+      "Concession (₹)": fee.concession_amount || 0,
       "Remaining Balance (₹)": fee.total_amount - fee.paid_amount - (fee.concession_amount || 0),
+      "Payment Date": fee.payment_date || fee.created_at?.split("T")[0] || "",
       "Payment Method": fee.payment_method,
       Status: fee.total_amount - fee.paid_amount - (fee.concession_amount || 0) <= 0 ? "Fully Paid" : "Pending",
     }));
@@ -644,7 +654,7 @@ export default function FeesPage() {
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+    <div className="bg-slate-50 dark:bg-slate-950 transition-colors duration-300 min-h-screen">
       <div className="max-w-8xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 py-4 space-y-8 animate-in fade-in duration-500">
         <Toaster position="top-right" />
 
@@ -673,14 +683,14 @@ export default function FeesPage() {
           <div className="flex flex-wrap md:flex-row items-center gap-2 md:gap-3">
             <button
               onClick={() => setIsStudentModalOpen(true)}
-              className="flex-[1.5] md:flex-none bg-brand text-white px-4 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/20"
+              className="flex-[1.5] md:flex-none bg-brand text-white px-4 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/20 hover:shadow-brand/40"
             >
               <Plus size={16} className="inline mr-1" /> New Entry
             </button>
 
             <button
               onClick={exportToExcel}
-              className="hidden md:block bg-emerald-600 dark:bg-emerald-700 text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all hover:bg-emerald-700 dark:hover:bg-emerald-600 shadow-lg shadow-emerald/20"
+              className="hidden md:block bg-emerald-600 dark:bg-emerald-700 text-white px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all hover:bg-emerald-700 dark:hover:bg-emerald-600 shadow-lg shadow-emerald-600/20"
             >
               <BookOpen size={16} className="inline mr-2" /> Export Excel
             </button>
@@ -690,15 +700,40 @@ export default function FeesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
           {/* Main Table Area */}
           <div className="lg:col-span-4 space-y-6">
-            {/* Search Bar */}
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" size={20} />
-              <input
-                type="text"
-                placeholder="Search by student name or class..."
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-transparent dark:border-slate-800 shadow-sm focus:border-brand-soft dark:focus:border-brand/40 outline-none transition-all text-lg dark:text-slate-200"
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            {/* Search & Filter Bar */}
+            <div className="flex flex-col md:flex-row gap-3">
+              {/* Search by Name/Class */}
+              <div className="relative group flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search by student name or class..."
+                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-transparent dark:border-slate-800 shadow-sm focus:border-brand-soft dark:focus:border-brand/40 outline-none transition-all text-base dark:text-slate-200"
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchTerm}
+                />
+              </div>
+
+              {/* Date Filter */}
+              <div className="relative group md:w-48">
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" size={20} />
+                <input
+                  type="date"
+                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-transparent dark:border-slate-800 shadow-sm focus:border-brand-soft dark:focus:border-brand/40 outline-none transition-all dark:text-slate-200"
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  value={dateFilter}
+                />
+              </div>
+
+              {/* Clear Date Filter */}
+              {dateFilter && (
+                <button
+                  onClick={() => setDateFilter("")}
+                  className="px-4 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl font-black text-[10px] uppercase hover:bg-red-100 dark:hover:bg-red-500/20 transition-all"
+                >
+                  ✕ Clear Date
+                </button>
+              )}
             </div>
 
             {/* Desktop Table View */}
@@ -712,6 +747,7 @@ export default function FeesPage() {
                       <th className="p-5 font-bold text-center">Total</th>
                       <th className="p-5 font-bold text-center">Paid</th>
                       <th className="p-5 font-bold text-center">Concession</th>
+                      <th className="p-5 font-bold text-center">Payment Date</th>
                       <th className="p-5 font-bold text-right">Balance</th>
                       <th className="p-5 font-bold text-center">Action</th>
                     </tr>
@@ -720,7 +756,7 @@ export default function FeesPage() {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {filteredStudents.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-10 text-center text-slate-400">No records found.</td>
+                        <td colSpan={8} className="p-10 text-center text-slate-400">No records found.</td>
                       </tr>
                     ) : (
                       filteredStudents.map((s) => {
@@ -750,6 +786,9 @@ export default function FeesPage() {
                             </td>
                             <td className="p-5 text-center font-mono font-bold text-orange-600 dark:text-orange-400">
                               ₹{(s.concession_amount || 0).toLocaleString()}
+                            </td>
+                            <td className="p-5 text-center text-sm font-bold text-slate-600 dark:text-slate-400">
+                              {s.payment_date ? new Date(s.payment_date).toLocaleDateString('en-IN') : new Date(s.created_at || "").toLocaleDateString('en-IN')}
                             </td>
                             <td className="p-5 text-right font-mono font-bold text-lg text-brand">
                               ₹{balance.toLocaleString()}
@@ -809,6 +848,9 @@ export default function FeesPage() {
                         <p className="text-sm font-black text-brand leading-none">₹{balance.toLocaleString()}</p>
                       </div>
                     </div>
+                    <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400">
+                      📅 {s.payment_date ? new Date(s.payment_date).toLocaleDateString('en-IN') : new Date(s.created_at || "").toLocaleDateString('en-IN')}
+                    </div>
                     <div className="flex gap-2">
                       <button onClick={() => openEdit("student", s)} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400 font-bold text-xs hover:bg-brand hover:text-white transition-all">
                         <Edit size={14} /> Edit
@@ -861,7 +903,7 @@ export default function FeesPage() {
                   </div>
                 )}
 
-                <p className="relative z-10 text-[9px] font-bold opacity-50 uppercase tracking-[0.3em] mt-auto">Finance Ledger v2.1</p>
+                <p className="relative z-10 text-[9px] font-bold opacity-50 uppercase tracking-[0.3em] mt-auto">Finance Ledger v2.2</p>
               </div>
 
               {/* Right Side Form Content */}
@@ -883,7 +925,7 @@ export default function FeesPage() {
                 {/* Scrollable Form Body Container */}
                 <form onSubmit={isClassModalOpen ? handleSaveClassFee : handleSaveStudentFee} className="flex flex-col flex-1 overflow-hidden">
 
-                  <div className="p-6 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
+                  <div className="p-6 overflow-y-auto space-y-6 flex-1">
                     {isClassModalOpen ? (
                       <div className="space-y-5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -929,7 +971,7 @@ export default function FeesPage() {
                           )}
                         </div>
 
-                        {/* Info Grid split cleanly into 4 columns */}
+                        {/* Info Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                           {[{ label: 'Father', val: studentForm.father_name }, { label: 'Roll', val: studentForm.roll_no }, { label: 'Class', val: studentForm.class }, { label: 'Sec', val: studentForm.section }].map((item, idx) => (
                             <div key={idx} className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
@@ -939,9 +981,9 @@ export default function FeesPage() {
                           ))}
                         </div>
 
-                        {/* Main Form Fields Layout Matrix */}
+                        {/* Main Form Fields Layout */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Left Column Fields */}
+                          {/* Left Column */}
                           <div className="space-y-4">
                             <div className="space-y-1.5">
                               <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Select Fee Configuration</label>
@@ -973,28 +1015,41 @@ export default function FeesPage() {
                             </div>
                           </div>
 
-                          {/* Right Column Fields */}
+                          {/* Right Column */}
                           <div className="space-y-4">
                             <div className="space-y-1.5">
                               <label className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase ml-1">Concession Amount (₹)</label>
                               <input className="modal-input text-base font-black border-orange-100 dark:border-orange-900/30 bg-orange-50/30 dark:bg-orange-500/5 text-orange-700 dark:text-orange-400 focus:border-orange-500 focus:ring-1 focus:ring-orange-500" type="number" placeholder="Enter concession amount" value={studentForm.concession_amount} onChange={(e) => setStudentForm({ ...studentForm, concession_amount: e.target.value })} />
                             </div>
 
+                            {/* ✅ Payment Date Field - Shows Today by Default */}
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Payment Method</label>
-                              <div className="flex gap-2">
-                                {["Cash", "UPI", "Bank"].map((method) => (
-                                  <button key={method} type="button" onClick={() => setStudentForm({ ...studentForm, payment_method: method })}
-                                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${studentForm.payment_method === method ? "bg-slate-900 dark:bg-brand text-white border-slate-900 dark:border-brand shadow-md" : "bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}>
-                                    {method}
-                                  </button>
-                                ))}
-                              </div>
+                              <label className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase ml-1">Payment Date (Today)</label>
+                              <input 
+                                type="date" 
+                                className="modal-input text-sm border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-blue-500/5 text-blue-700 dark:text-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-bold" 
+                                value={studentForm.payment_date}
+                                onChange={(e) => setStudentForm({ ...studentForm, payment_date: e.target.value })}
+                                required
+                              />
                             </div>
                           </div>
                         </div>
 
-                        {/* Conditional Transaction Metadata Block */}
+                        {/* Payment Method */}
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Payment Method</label>
+                          <div className="flex gap-2">
+                            {["Cash", "UPI", "Bank"].map((method) => (
+                              <button key={method} type="button" onClick={() => setStudentForm({ ...studentForm, payment_method: method })}
+                                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${studentForm.payment_method === method ? "bg-slate-900 dark:bg-brand text-white border-slate-900 dark:border-brand shadow-md" : "bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}>
+                                {method}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Transaction Metadata */}
                         {studentForm.payment_method && (
                           <div className="animate-in fade-in slide-in-from-top-3 duration-200 space-y-3 bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
                             {(studentForm.payment_method === "UPI" || studentForm.payment_method === "Bank") && (
@@ -1013,7 +1068,7 @@ export default function FeesPage() {
                     )}
                   </div>
 
-                  {/* Action Footer Button Sticky Block */}
+                  {/* Action Footer Button */}
                   <div className="p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 shrink-0">
                     <button disabled={loading} className="w-full bg-slate-900 dark:bg-brand text-white py-3.5 rounded-xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-brand dark:hover:bg-brand-dark transition-all disabled:opacity-50 shadow-lg">
                       {loading ? "Syncing..." : editingId ? "Save Changes" : "Confirm Transaction"}

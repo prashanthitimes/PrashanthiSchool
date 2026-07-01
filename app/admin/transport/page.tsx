@@ -32,13 +32,16 @@ export default function TransportPage() {
     driver_name: "", driver_contact: "", bus_capacity: 50, stops: "",
   });
 
-  const fetchData = async () => {
+const fetchData = async () => {
     setLoading(true);
     try {
-      // Parallel fetching for speed
       const [routeRes, studentRes, assignRes] = await Promise.all([
         supabase.from("transport_routes").select("*").order("route_number"),
-        supabase.from("students").select("*").eq('status', 'active'),
+        supabase.from("students")
+          .select("*")
+          .eq('status', 'active')
+          .order('full_name', { ascending: true })
+          .range(0, 4999), // pull well beyond the 1000-row default cap
         supabase.from("transport_assignments").select("*")
       ]);
 
@@ -50,18 +53,33 @@ export default function TransportPage() {
     } finally {
       setLoading(false);
     }
-  };
+};
 
   useEffect(() => { fetchData(); }, []);
 
-  const filteredSearchStudents = useMemo(() => {
-    if (studentSearchTerm.length < 2 || selectedStudent) return [];
-    return students.filter(s =>
-      s.full_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-      (s.father_name && s.father_name.toLowerCase().includes(studentSearchTerm.toLowerCase()))
-    ).slice(0, 6);
-  }, [studentSearchTerm, students, selectedStudent]);
+const EARLY_CLASSES = ['Pre-KG', 'LKG', 'UKG', '9th'];
 
+const filteredSearchStudents = useMemo(() => {
+    if (studentSearchTerm.length < 2 || selectedStudent) return [];
+
+    const term = studentSearchTerm.toLowerCase();
+
+    const allMatches = students.filter(s =>
+      s.full_name.toLowerCase().includes(term) ||
+      (s.father_name && s.father_name.toLowerCase().includes(term))
+    );
+
+    // Guarantee Pre-KG, LKG, UKG, 9th always appear, even if other-class matches crowd them out
+    const earlyMatches = allMatches
+      .filter(s => EARLY_CLASSES.includes(s.class_name))
+      .slice(0, 5);
+
+    const otherMatches = allMatches
+      .filter(s => !EARLY_CLASSES.includes(s.class_name))
+      .slice(0, 5);
+
+    return [...earlyMatches, ...otherMatches];
+}, [studentSearchTerm, students, selectedStudent]);
   // --- Handlers ---
 
   const handleSaveRoute = async () => {

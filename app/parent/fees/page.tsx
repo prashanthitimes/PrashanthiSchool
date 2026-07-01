@@ -48,11 +48,11 @@ export default function ParentFees() {
                 .select("monthly_fare, status").eq("student_id", childId).eq("status", "active").maybeSingle();
 
             if (transport) {
-                combinedFees.push({ 
-                    id: 'trans-id', 
-                    fee_type: "Transport Fee", 
-                    amount: transport.monthly_fare, 
-                    is_transport: true 
+                combinedFees.push({
+                    id: 'trans-id',
+                    fee_type: "Transport Fee",
+                    amount: transport.monthly_fare,
+                    is_transport: true
                 });
             }
 
@@ -94,7 +94,7 @@ export default function ParentFees() {
             // Fetch Records from student_fees
             const { data: verified } = await supabase.from("student_fees").select("*").eq("student_id", childId);
             setVerifiedFees(verified || []);
-            
+
             // Fetch Pending Submissions
             const { data: pending } = await supabase.from("fee_submissions").select("*").eq("student_id", childId).eq("status", "pending");
             setPendingSubmissions(pending || []);
@@ -110,17 +110,25 @@ export default function ParentFees() {
     // --- LOGIC FOR REMAINING BALANCES ---
     const feeCalculation = useMemo(() => {
         return classFees.map(cf => {
-            const record = verifiedFees.find(vf => vf.fee_type.toLowerCase() === cf.fee_type.toLowerCase());
-            const paid = record ? Number(record.paid_amount) : 0;
+            // Get ALL rows for this fee type (handles multiple installments)
+            const records = verifiedFees.filter(
+                vf => vf.fee_type.toLowerCase() === cf.fee_type.toLowerCase()
+            );
+
+            const paid = records.reduce((sum, r) => sum + Number(r.paid_amount), 0);
+            const concession = records.reduce((sum, r) => sum + Number(r.concession_amount || 0), 0);
             const total = Number(cf.amount);
-            const remaining = total - paid;
-            
-            const isPending = pendingSubmissions.some(ps => ps.fee_types?.toLowerCase().includes(cf.fee_type.toLowerCase()));
+            const remaining = total - paid - concession;
+
+            const isPending = pendingSubmissions.some(ps =>
+                ps.fee_types?.toLowerCase().includes(cf.fee_type.toLowerCase())
+            );
 
             return {
                 ...cf,
                 total_assigned: total,
                 already_paid: paid,
+                concession_amount: concession,
                 remaining_balance: remaining,
                 status: remaining <= 0 ? "verified" : (isPending ? "pending" : "available")
             };
@@ -130,8 +138,10 @@ export default function ParentFees() {
     const stats = useMemo(() => {
         const total = feeCalculation.reduce((sum, f) => sum + f.total_assigned, 0);
         const paid = feeCalculation.reduce((sum, f) => sum + f.already_paid, 0);
-        return { total, paid, balance: total - paid };
+        const concession = feeCalculation.reduce((sum, f) => sum + f.concession_amount, 0);
+        return { total, paid, concession, balance: total - paid - concession };
     }, [feeCalculation]);
+
 
     const calculatedTotalSelection = feeCalculation
         .filter(f => selectedFeeTypes.includes(f.fee_type))
@@ -221,8 +231,8 @@ export default function ParentFees() {
                                         disabled={isDisabled}
                                         onClick={() => setSelectedFeeTypes(prev => prev.includes(f.fee_type) ? prev.filter(t => t !== f.fee_type) : [...prev, f.fee_type])}
                                         className={`w-full p-4 rounded-2xl border transition-all flex items-center justify-between text-left
-                                        ${isDisabled ? "opacity-40 grayscale bg-white/5 border-transparent" : 
-                                          selectedFeeTypes.includes(f.fee_type) ? "bg-brand-light/20 border-brand-light" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+                                        ${isDisabled ? "opacity-40 grayscale bg-white/5 border-transparent" :
+                                                selectedFeeTypes.includes(f.fee_type) ? "bg-brand-light/20 border-brand-light" : "bg-white/5 border-white/10 hover:border-white/30"}`}
                                     >
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
@@ -233,7 +243,8 @@ export default function ParentFees() {
                                             </div>
                                             {/* Subtitle displays custom context if it is a custom entry */}
                                             <span className="text-[10px] opacity-60 font-bold">
-                                                {f.is_custom_entry ? `${f.description} | ` : ""}Total: ₹{f.total_assigned.toLocaleString()} | Paid: ₹{f.already_paid.toLocaleString()}
+                                                {f.is_custom_entry ? `${f.description} | ` : ""}
+                                                Total: ₹{f.total_assigned.toLocaleString()} | Paid: ₹{(f.already_paid + f.concession_amount).toLocaleString()}
                                             </span>
                                         </div>
                                         <div className="text-right">
@@ -314,11 +325,11 @@ function InputField({ label, onChange, value, ...props }: any) {
     return (
         <div className="space-y-2">
             <label className="text-[10px] font-black opacity-40 uppercase">{label}</label>
-            <input 
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-brand-light text-white" 
+            <input
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-brand-light text-white"
                 value={value}
                 onChange={onChange}
-                {...props} 
+                {...props}
             />
         </div>
     );
@@ -339,9 +350,9 @@ function TabButton({ active, onClick, label }: { active: boolean; onClick: () =>
             type="button"
             onClick={onClick}
             className={`px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all
-            ${active 
-                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" 
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
+            ${active
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
         >
             {label}
         </button>
@@ -357,8 +368,8 @@ function HistorySection({ title, items, status }: { title: string; items: any[];
             ) : (
                 <div className="space-y-3">
                     {items.map((item) => (
-                        <div 
-                            key={item.id} 
+                        <div
+                            key={item.id}
                             className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl gap-3"
                         >
                             <div className="space-y-1">
@@ -375,8 +386,8 @@ function HistorySection({ title, items, status }: { title: string; items: any[];
                                     ₹{(status === "pending" ? item.amount_paid : item.paid_amount)?.toLocaleString()}
                                 </span>
                                 <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5
-                                    ${status === "verified" 
-                                        ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-400" 
+                                    ${status === "verified"
+                                        ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-400"
                                         : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400"}`}
                                 >
                                     {status === "verified" ? <CheckCircle size={10} /> : <Clock size={10} />}
