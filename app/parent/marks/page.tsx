@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FiAward, FiDownload, FiUser, FiBookOpen, FiChevronRight, FiPrinter } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import html2canvas from "html2canvas";
 import {
   BarChart,
@@ -21,7 +24,7 @@ export default function ParentMarks() {
   const [availableExams, setAvailableExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
-  
+
   const reportRef = useRef<HTMLDivElement>(null);
   const printTemplateRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -29,7 +32,7 @@ export default function ParentMarks() {
   useEffect(() => {
     setIsMobile(window.innerWidth < 640);
     initFetch();
-    
+
     // Theme Sync
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme) {
@@ -91,27 +94,55 @@ export default function ParentMarks() {
   };
 
   const downloadOfficialCard = async () => {
-    if (printTemplateRef.current) {
-      setIsDownloading(true);
-      const element = printTemplateRef.current;
-      
-      // Make the hidden template visible for capture
-      element.style.display = "block";
+    if (!printTemplateRef.current) return;
+    setIsDownloading(true);
 
-      const canvas = await html2canvas(element, {
-        scale: 3, // High resolution
-        useCORS: true,
-        backgroundColor: "#ffffff",
-      });
+    const element = printTemplateRef.current;
+    element.style.display = "block";
 
-      element.style.display = "none";
+    const canvas = await html2canvas(element, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+    });
 
+    element.style.display = "none";
+
+    const dataUrl = canvas.toDataURL("image/png");
+    const fileName = `Official_Marks_Card_${student?.full_name || "student"}.png`;
+
+    if (Capacitor.isNativePlatform()) {
+      // Running inside the APK -> use native filesystem + share sheet
+      try {
+        const base64Data = dataUrl.split(",")[1];
+
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache, // writable without special permission
+        });
+
+        // Opens Android's native "Save to / Share" sheet
+        // user can pick "Save to Downloads", WhatsApp, Drive, etc.
+        await Share.share({
+          title: "Marks Card",
+          text: "Official Marks Card",
+          url: savedFile.uri,
+          dialogTitle: "Save or Share Marks Card",
+        });
+      } catch (err) {
+        console.error("Native save failed:", err);
+        alert("Could not save file: " + err);
+      }
+    } else {
+      // Running in a normal browser -> old behavior works fine
       const link = document.createElement("a");
-      link.download = `Official_Marks_Card_${student?.full_name}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.download = fileName;
+      link.href = dataUrl;
       link.click();
-      setIsDownloading(false);
     }
+
+    setIsDownloading(false);
   };
 
   if (loading) return (
@@ -125,9 +156,9 @@ export default function ParentMarks() {
 
   return (
     <div className="min-h-screen pb-24 font-sans bg-slate-50 dark:bg-slate-950 transition-colors">
-      
+
       {/* --- HIDDEN PRINT TEMPLATE (This is what downloads) --- */}
-      <div 
+      <div
         ref={printTemplateRef}
         style={{ display: 'none', width: '800px', padding: '60px', backgroundColor: 'white' }}
       >
@@ -136,7 +167,7 @@ export default function ParentMarks() {
             <h1 style={{ fontSize: '32px', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>Prashanti Vidyalaya</h1>
             <p style={{ fontSize: '10px', fontWeight: 'bold', letterSpacing: '2px', color: '#64748b' }}>OFFICIAL ACADEMIC PROGRESS REPORT</p>
           </div>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
             <div style={{ fontSize: '12px' }}><strong>STUDENT:</strong> {student?.full_name?.toUpperCase()}</div>
             <div style={{ fontSize: '12px' }}><strong>CLASS:</strong> {student?.class_name}-{student?.section}</div>
@@ -279,7 +310,7 @@ export default function ParentMarks() {
         {/* PERFORMANCE CHART */}
         <div className="p-6 md:p-10 border-t border-slate-100 dark:border-slate-800">
           <h2 className="text-lg md:text-xl font-black mb-8 text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-3">
-             <div className="w-2 h-6 bg-brand rounded-full"></div> Progress Summary
+            <div className="w-2 h-6 bg-brand rounded-full"></div> Progress Summary
           </h2>
           <div className="w-full h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
