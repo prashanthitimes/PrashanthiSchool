@@ -825,24 +825,24 @@ const fetchStudents = useCallback(async () => {
                       disabled={mode === 'view'}
                     />
                <div className="grid grid-cols-2 gap-4">
-                      {mode === 'view' ? (
-                        <div className="space-y-1">
-                          <label className="block text-[11px] font-black text-slate-500 uppercase ml-1">
-                            Date of Birth (DD/MM/YYYY)
-                          </label>
-                          <div className="w-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 opacity-70">
-                            {formatDateDDMMYYYY(formData.dob)}
-                          </div>
-                        </div>
-                      ) : (
-                        <Input
-                          label="Date of Birth"
-                          type="date"
-                          value={formatDateForInput(formData.dob)}
-                          onChange={(val: string) => handleInputChange('dob', val)}
-                          disabled={mode === 'view'}
-                        />
-                      )}
+                     {mode === 'view' ? (
+  <div className="space-y-1">
+    <label className="block text-[11px] font-black text-slate-500 uppercase ml-1">
+      Date of Birth (DD/MM/YYYY)
+    </label>
+    <div className="w-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 opacity-70">
+      {formatDateDDMMYYYY(formData.dob)}
+    </div>
+  </div>
+) : (
+  <Input
+    label="Date of Birth"
+    type="date"
+    value={formatDateForInput(formData.dob)}
+    onChange={(val: string) => handleInputChange('dob', val)}
+    disabled={isReadOnly}   {/* <-- changed from mode === 'view' */}
+  />
+)}
                       <Input
                         label="Roll No"
                         type="number"
