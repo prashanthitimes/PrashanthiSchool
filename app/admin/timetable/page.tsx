@@ -1,10 +1,11 @@
 'use client'
 
-import { FiDownload, FiEdit, FiCheckCircle, FiCalendar, FiPlus, FiClock, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { FiDownload, FiEdit, FiCheckCircle, FiCalendar, FiPlus, FiClock, FiChevronLeft, FiChevronRight, FiPrinter } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
-import { useEffect, useState, useRef } from 'react' // Add useRef here
+import { useEffect, useState, useRef } from 'react'
+import html2canvas from 'html2canvas'
+import { saveImageFromDataUrl } from '@/lib/nativeDownload'
+
 const classOptions = [
   'Pre-KG', 'LKG', 'UKG',
   ...Array.from({ length: 10 }, (_, i) => `${i + 1}`)
@@ -18,75 +19,52 @@ const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 
 // Subject color mapping
 const subjectColors: Record<string, string> = {
-  // 🧮 Maths
   Maths: "bg-blue-50 text-blue-700 border-blue-100",
   Mathematics: "bg-blue-50 text-blue-700 border-blue-100",
-
-  // 🔬 Science (individual)
   Physics: "bg-amber-50 text-amber-700 border-amber-100",
   Chemistry: "bg-emerald-50 text-emerald-700 border-emerald-100",
   Biology: "bg-green-50 text-green-700 border-green-100",
-
-  // 🧪 Science (combined)
   Science: "bg-lime-50 text-lime-700 border-lime-100",
-
-  // 🌍 Social Science
   History: 'bg-rose-50 text-rose-700 border-rose-100',
   Civics: 'bg-orange-50 text-orange-700 border-orange-100',
   Geography: 'bg-teal-50 text-teal-700 border-teal-100',
   Social: 'bg-pink-50 text-pink-700 border-pink-100',
   'Social Science': 'bg-pink-50 text-pink-700 border-pink-100',
-
-  // 🧠 Computer
   Computer: 'bg-cyan-50 text-cyan-700 border-cyan-100',
   'Computer Science': 'bg-cyan-50 text-cyan-700 border-cyan-100',
   CS: 'bg-cyan-50 text-cyan-700 border-cyan-100',
-
-  // 🗣 Languages
   English: "bg-purple-50 text-purple-700 border-purple-100",
   Kannada: "bg-indigo-50 text-indigo-700 border-indigo-100",
   Hindi: "bg-yellow-50 text-yellow-700 border-yellow-100",
-
-  // 🏃 Physical / Activity
   PT: "bg-gray-50 text-gray-700 border-gray-200",
   GKVK: "bg-stone-50 text-stone-700 border-stone-200",
-
-  // 🎨 Extras
   Drawing: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100",
   Music: "bg-violet-50 text-violet-700 border-violet-100",
-
-  // Fallback
   Default: "bg-brand-soft/30 text-brand-dark border-brand-soft/40",
 }
 
-
 const getSubjectColor = (subject: string) => {
   const key = subject.toLowerCase()
-
   if (key.includes('computer') || key === 'cs')
     return subjectColors['Computer Science']
-
   if (key.includes('social') || key.includes('history') || key.includes('civic') || key.includes('geo'))
     return subjectColors['Social Science']
-
   return subjectColors[subject] || subjectColors.Default
 }
-
 
 export default function TimeTablePage() {
   const [active, setActive] = useState(classOptions[0])
   const [timetable, setTimetable] = useState<Record<string, Record<number, string>>>({})
   const [subjectsList, setSubjectsList] = useState<{ id: string; name: string }[]>([])
 
-  // Periods now include a 'time' property
-  const [periods, setPeriods] = useState<
-    {
-      id: number
-      start_time: string
-      end_time: string
-      type: string
-    }[]
-  >([])
+const [periods, setPeriods] = useState< // <-- Added '<' here
+  {
+    id: number
+    start_time: string
+    end_time: string
+    type: string
+  }[]
+>([])
   const defaultPeriods = [
     { id: 1, start_time: '09:40', end_time: '09:55', type: 'period' },
     { id: 2, start_time: '09:55', end_time: '10:10', type: 'period' },
@@ -104,6 +82,9 @@ export default function TimeTablePage() {
   const [loading, setLoading] = useState(true)
   const [isEditMode, setIsEditMode] = useState(false)
   const [saveStatus, setSaveStatus] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+
+  const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function getSubjects() {
@@ -123,7 +104,6 @@ export default function TimeTablePage() {
       scrollRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
     }
   };
-
 
   async function fetchTimetable() {
     setLoading(true)
@@ -157,35 +137,31 @@ export default function TimeTablePage() {
       return
     }
 
-// AUTO RESET IF OLD PERIODS EXIST
-if (!data || data.length < 12) {
+    if (!data || data.length < 12) {
+      await supabase
+        .from('periods')
+        .delete()
+        .eq('class', active.class)
+        .eq('section', active.section)
 
-  // delete old periods
-  await supabase
-    .from('periods')
-    .delete()
-    .eq('class', active.class)
-    .eq('section', active.section)
+      const insertData = defaultPeriods.map((p) => ({
+        ...p,
+        class: active.class,
+        section: active.section,
+      }))
 
-  // insert new 12 periods
-  const insertData = defaultPeriods.map((p) => ({
-    ...p,
-    class: active.class,
-    section: active.section,
-  }))
+      const { error: insertError } = await supabase
+        .from('periods')
+        .insert(insertData)
 
-  const { error: insertError } = await supabase
-    .from('periods')
-    .insert(insertData)
+      if (insertError) {
+        console.error(insertError)
+        return
+      }
 
-  if (insertError) {
-    console.error(insertError)
-    return
-  }
-
-  fetchPeriods()
-  return
-}
+      fetchPeriods()
+      return
+    }
 
     setPeriods(
       data.map((p: any) => ({
@@ -202,7 +178,6 @@ if (!data || data.length < 12) {
     fetchPeriods()
   }, [active])
 
-
   async function addPeriod() {
     const nextId = periods.length + 1
 
@@ -210,8 +185,8 @@ if (!data || data.length < 12) {
       id: nextId,
       class: active.class,
       section: active.section,
-     start_time: '08:00',
-end_time: '08:40',
+      start_time: '08:00',
+      end_time: '08:40',
       type: 'period'
     })
 
@@ -242,41 +217,36 @@ end_time: '08:40',
     )
   }
 
-  const exportPDF = () => {
-    const doc = new jsPDF('landscape')
-    doc.setFontSize(18)
-    doc.setTextColor(143, 30, 122)
-    doc.text(`${active.label} Schedule Registry`, 14, 20)
+  // --- NEW: PNG export using the same branded template + native-safe save pattern ---
+  const exportOfficialImage = async () => {
+    if (!printRef.current) return;
+    setIsExporting(true);
+    try {
+      const element = printRef.current;
+      element.style.display = "block";
 
-    // Headers include the time
-    const headers = [
-      'Day',
-      ...periods.map(p => `P${p.id} (${p.start_time}-${p.end_time})`)
-    ]
-    const tableRows = days.map(day => [
-      day,
-      ...periods.map(p => {
-        const id = timetable[day]?.[p.id] || "";
-        const subject = subjectsList.find(s => s.id === id)?.name || "—";
-        return subject;
-      })
-    ])
+      const canvas = await html2canvas(element, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
 
-    autoTable(doc, {
-      startY: 30,
-      head: [headers],
-      body: tableRows,
-      headStyles: { fillColor: [143, 30, 122] },
-      theme: 'grid'
-    })
+      element.style.display = "none";
 
-    doc.save(`${active.label}_Timetable.pdf`)
-  }
+      const dataUrl = canvas.toDataURL("image/png");
+      const fileName = `Official_Timetable_${active.label.replace(/\s+/g, '_')}.png`;
+      await saveImageFromDataUrl(dataUrl, fileName);
+    } catch (err) {
+      console.error("Export failed", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   async function handleInlineUpdate(day: string, period: number, subjectId: string) {
     if (!subjectId) return;
 
-    // Use a string version of the class to match the new DB type
     const currentClass = String(active.class);
 
     if (subjectId === "delete") {
@@ -304,7 +274,7 @@ end_time: '08:40',
 
       if (error) {
         console.error("Timetable Save Error:", error.message, error.details);
-        alert("Error saving: " + error.message); // Added alert for visibility
+        alert("Error saving: " + error.message);
       }
     }
     await fetchTimetable();
@@ -312,6 +282,75 @@ end_time: '08:40',
 
   return (
     <div className="max-w-7xl mx-auto mt-4 md:mt-10 px-3 py-2 space-y-4 md:space-y-6 bg-[#fffcfd] dark:bg-slate-950 transition-colors duration-300">
+
+      {/* --- HIDDEN OFFICIAL PRINT TEMPLATE (this is what gets exported as PNG) --- */}
+      <div
+        ref={printRef}
+        style={{ display: 'none', width: '1120px', padding: '50px', backgroundColor: 'white', fontFamily: 'sans-serif' }}
+      >
+        <div style={{ border: '8px double #a63d93', padding: '40px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '3px solid #a63d93', paddingBottom: '20px' }}>
+            <h1 style={{ fontSize: '42px', fontWeight: '900', color: '#a63d93', margin: 0, textTransform: 'uppercase' }}>Prashanthi Vidyalaya</h1>
+            <p style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '5px', color: '#64748b', margin: '5px 0' }}>OFFICIAL CLASS SCHEDULE REGISTRY</p>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#fdf2f8', padding: '20px', borderRadius: '15px', marginBottom: '40px', border: '1px solid #fbcfe8' }}>
+            <div>
+              <p style={{ fontSize: '10px', fontWeight: '900', color: '#a63d93', textTransform: 'uppercase', margin: 0 }}>Class & Section</p>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', margin: 0, color: '#000' }}>{active.label}</h2>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '10px', fontWeight: '900', color: '#a63d93', textTransform: 'uppercase', margin: 0 }}>Generated On</p>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', margin: 0, color: '#000' }}>{new Date().toLocaleDateString()}</h2>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '15px' }}>
+            {days.map((day) => (
+              <div key={day}>
+                <div style={{ backgroundColor: '#a63d93', color: 'white', padding: '10px', textAlign: 'center', borderRadius: '8px', fontSize: '12px', fontWeight: '900', marginBottom: '12px', textTransform: 'uppercase' }}>{day}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {periods.map((slot) => {
+                    const currentId = timetable[day]?.[slot.id] || "";
+                    const subjectName = subjectsList.find(s => s.id === currentId)?.name;
+
+                    let printLabel = subjectName || "—";
+                    let isBreakSlot = false;
+                    if (slot.type === "break") { printLabel = "Short Break"; isBreakSlot = true; }
+                    if (slot.type === "lunch") { printLabel = "Lunch Break"; isBreakSlot = true; }
+
+                    return (
+                      <div key={slot.id} style={{
+                        padding: '12px',
+                        borderRadius: '10px',
+                        border: '1px solid #e2e8f0',
+                        minHeight: '90px',
+                        backgroundColor: '#f8fafc',
+                        display: 'flex',
+                        flexDirection: 'column'
+                      }}>
+                        <span style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8' }}>
+                          {slot.type === "break" || slot.type === "lunch" ? "BREAK" : `PERIOD ${slot.id}`}
+                        </span>
+                        <p style={{ fontSize: '13px', fontWeight: '800', margin: '6px 0', lineHeight: '1.2', color: isBreakSlot ? '#ea580c' : '#1e293b' }}>{printLabel}</p>
+                        <span style={{ fontSize: '9px', color: '#64748b', marginTop: 'auto', fontWeight: '600' }}>
+                          {slot.start_time} - {slot.end_time}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <div style={{ textAlign: 'center' }}><div style={{ borderTop: '2px solid #000', width: '200px', paddingTop: '10px', fontSize: '11px', fontWeight: '900' }}>ACADEMIC COORDINATOR</div></div>
+            <div style={{ textAlign: 'center', opacity: 0.2 }}><p style={{ fontSize: '10px', fontWeight: 'bold' }}>SYSTEM GENERATED RECORD</p></div>
+            <div style={{ textAlign: 'center' }}><div style={{ borderTop: '2px solid #000', width: '200px', paddingTop: '10px', fontSize: '11px', fontWeight: '900' }}>PRINCIPAL SEAL</div></div>
+          </div>
+        </div>
+      </div>
 
       {/* HEADER */}
       <header className="flex flex-col lg:flex-row items-start lg:items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-6 py-5 md:px-8 md:py-6 rounded-[1.5rem] md:rounded-[2.5rem] border border-brand-accent dark:border-slate-800 shadow-sm gap-4">
@@ -327,15 +366,19 @@ end_time: '08:40',
 
         <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           {isEditMode && (
-
             <button onClick={addPeriod} className="flex-1 lg:flex-none bg-brand-accent dark:bg-brand/20 text-brand-dark dark:text-brand-light px-4 py-3.5 md:px-6 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all border border-brand-soft dark:border-brand/30 hover:bg-brand-soft dark:hover:bg-brand/40">
               <FiPlus size={14} className="inline mr-1 md:mr-2" /> Add Period
             </button>
           )}
 
-          <button onClick={exportPDF} className="flex-1 lg:flex-none bg-white dark:bg-slate-800 border-2 border-brand-soft dark:border-slate-700 text-brand-dark dark:text-slate-300 px-4 py-3.5 md:px-6 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all hover:bg-brand-accent dark:hover:bg-slate-700">
-            <FiDownload size={14} className="inline mr-1 md:mr-2" /> Export
+          <button
+            onClick={exportOfficialImage}
+            disabled={isExporting}
+            className="flex-1 lg:flex-none bg-white dark:bg-slate-800 border-2 border-brand-soft dark:border-slate-700 text-brand-dark dark:text-slate-300 px-4 py-3.5 md:px-6 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all hover:bg-brand-accent dark:hover:bg-slate-700 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isExporting ? "Generating..." : <><FiPrinter size={14} /> Export Official</>}
           </button>
+
           <button onClick={() => setIsEditMode(!isEditMode)} className={`w-full lg:w-auto px-6 py-3.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all shadow-lg ${isEditMode ? 'bg-slate-800 dark:bg-slate-100 dark:text-slate-900 text-white' : 'bg-brand text-white'}`}>
             {isEditMode ? 'Finish Edit' : 'Modify Grid'}
           </button>
@@ -391,45 +434,40 @@ end_time: '08:40',
                         : p.type === 'lunch'
                           ? 'Lunch'
                           : `Period ${p.id}`}
-                    </span>              
-                     {isEditMode ? (
-  <div className="flex flex-col gap-2 justify-center mt-2">
+                    </span>
+                    {isEditMode ? (
+                      <div className="flex flex-col gap-2 justify-center mt-2">
+                        <select
+                          value={p.type}
+                          onChange={(e) =>
+                            updatePeriodField(p.id, 'type', e.target.value)
+                          }
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-bold"
+                        >
+                          <option value="period">Period</option>
+                          <option value="break">Break</option>
+                          <option value="lunch">Lunch</option>
+                        </select>
 
-    {/* TYPE SELECT */}
-    <select
-      value={p.type}
-      onChange={(e) =>
-        updatePeriodField(p.id, 'type', e.target.value)
-      }
-      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-bold"
-    >
-      <option value="period">Period</option>
-      <option value="break">Break</option>
-      <option value="lunch">Lunch</option>
-    </select>
+                        <input
+                          type="time"
+                          value={p.start_time}
+                          onChange={(e) =>
+                            updatePeriodField(p.id, 'start_time', e.target.value)
+                          }
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs"
+                        />
 
-    {/* START TIME */}
-    <input
-      type="time"
-      value={p.start_time}
-      onChange={(e) =>
-        updatePeriodField(p.id, 'start_time', e.target.value)
-      }
-      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs"
-    />
-
-    {/* END TIME */}
-    <input
-      type="time"
-      value={p.end_time}
-      onChange={(e) =>
-        updatePeriodField(p.id, 'end_time', e.target.value)
-      }
-      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs"
-    />
-
-  </div>
-) : (
+                        <input
+                          type="time"
+                          value={p.end_time}
+                          onChange={(e) =>
+                            updatePeriodField(p.id, 'end_time', e.target.value)
+                          }
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs"
+                        />
+                      </div>
+                    ) : (
                       <span className="flex items-center justify-center gap-1 mt-1 text-[11px] font-bold text-brand/70 dark:text-brand-light/60">
                         <FiClock size={10} /> {p.start_time} - {p.end_time}
                       </span>

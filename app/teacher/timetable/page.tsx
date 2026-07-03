@@ -208,7 +208,7 @@ export default function TeacherTimetable() {
             
             {/* Header */}
             <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '4px solid #a63d93', paddingBottom: '20px' }}>
-              <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#a63d93', margin: 0, textTransform: 'uppercase' }}>Prashanti Vidyalaya</h1>
+              <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#a63d93', margin: 0, textTransform: 'uppercase' }}>Prashanthi Vidyalaya</h1>
               <p style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '6px', color: '#64748b', margin: '8px 0' }}>OFFICIAL FACULTY TIME-TABLE • 2026-27</p>
             </div>
 

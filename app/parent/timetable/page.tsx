@@ -5,6 +5,8 @@ import { FiClock, FiChevronDown, FiPrinter } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
 
+import { saveImageFromDataUrl } from "@/lib/nativeDownload";
+
 const getPeriodTypeColor = (type: string = "period") => {
   if (type === "break") {
     return "bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950/30 dark:border-orange-800 dark:text-orange-300";
@@ -89,31 +91,31 @@ export default function StudentTimetable() {
     }
   }
 
-  const downloadOfficialImage = async () => {
-    if (!printRef.current) return;
-    try {
-      setDownloading(true);
-      const element = printRef.current;
-      element.style.display = "block";
+const downloadOfficialImage = async () => {
+  if (!printRef.current) return;
+  try {
+    setDownloading(true);
+    const element = printRef.current;
+    element.style.display = "block";
 
-      const canvas = await html2canvas(element, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
+    const canvas = await html2canvas(element, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+    });
 
-      element.style.display = "none";
-      const link = document.createElement("a");
-      link.download = `Official_Timetable_${studentInfo?.name.replace(/\s+/g, '_')}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    } catch (err) {
-      console.error("Download failed", err);
-    } finally {
-      setDownloading(false);
-    }
-  };
+    element.style.display = "none";
+
+    const dataUrl = canvas.toDataURL("image/png");
+    const fileName = `Official_Timetable_${studentInfo?.name.replace(/\s+/g, '_')}.png`;
+    await saveImageFromDataUrl(dataUrl, fileName);
+  } catch (err) {
+    console.error("Download failed", err);
+  } finally {
+    setDownloading(false);
+  }
+};
 
   const getSubColor = (name: string = "") => {
     const n = name.toLowerCase();
@@ -254,7 +256,7 @@ export default function StudentTimetable() {
           <div ref={printRef} style={{ width: '1120px', padding: '50px', backgroundColor: 'white', fontFamily: 'sans-serif' }}>
             <div style={{ border: '8px double #a63d93', padding: '40px' }}>
               <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '3px solid #a63d93', paddingBottom: '20px' }}>
-                <h1 style={{ fontSize: '42px', fontWeight: '900', color: '#a63d93', margin: 0, textTransform: 'uppercase' }}>Prashanti Vidyalaya</h1>
+                <h1 style={{ fontSize: '42px', fontWeight: '900', color: '#a63d93', margin: 0, textTransform: 'uppercase' }}>Prashanthi Vidyalaya</h1>
                 <p style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '5px', color: '#64748b', margin: '5px 0' }}>OFFICIAL ACADEMIC SCHEDULE • 2026-27</p>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#fdf2f8', padding: '20px', borderRadius: '15px', marginBottom: '40px', border: '1px solid #fbcfe8' }}>

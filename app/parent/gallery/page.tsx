@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { 
-    FiImage, FiCalendar, FiMaximize2, 
+import {
+    FiImage, FiCalendar, FiMaximize2,
     FiX, FiDownload, FiChevronLeft, FiChevronRight
 } from 'react-icons/fi'
+import { saveImageFromUrl } from "@/lib/nativeDownload";
 
 interface GalleryItem {
     id: string
@@ -27,11 +28,11 @@ export default function StudentGalleryPage() {
     const [schoolInfo, setSchoolInfo] = useState<SchoolSettings | null>(null)
     const [loading, setLoading] = useState(true)
     const [selectedCategory, setSelectedCategory] = useState('All')
-    
+
     // Lightbox State
     const [activeAlbum, setActiveAlbum] = useState<GalleryItem | null>(null)
     const [photoIndex, setPhotoIndex] = useState(0)
-    
+
     const touchStartX = useRef<number | null>(null)
     const categories = ['All', 'Events', 'Sports', 'Academic', 'Campus']
 
@@ -75,21 +76,16 @@ export default function StudentGalleryPage() {
     }
 
     const handleDownload = async (url: string) => {
-        const response = await fetch(url)
-        const blob = await response.blob()
-        const link = document.createElement('a')
-        link.href = window.URL.createObjectURL(blob)
-        link.download = `school-memory-${Date.now()}.jpg`
-        link.click()
-    }
-
-    const filteredAlbums = selectedCategory === 'All' 
-        ? albums 
+        const fileName = `school-memory-${Date.now()}.jpg`;
+        await saveImageFromUrl(url, fileName);
+    };
+    const filteredAlbums = selectedCategory === 'All'
+        ? albums
         : albums.filter(a => a.category === selectedCategory)
 
     return (
         <div className="w-full min-h-screen transition-colors duration-300">
-            
+
             {/* --- TOP BANNER/HEADER --- */}
             <div className="mb-6">
                 <div className="flex flex-col gap-4">
@@ -105,21 +101,21 @@ export default function StudentGalleryPage() {
                         </h1>
                     </div>
 
-                     {/* Category Tabs: Centered on mobile, Right on Desktop */}
-                 <div className="flex flex-wrap gap-2 justify-center md:justify-center">
-    {categories.map(cat => (
-        <button 
-            key={cat} 
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-all
-            ${selectedCategory === cat 
-                ? 'bg-brand text-white shadow-lg shadow-brand/20' 
-                : 'bg-white dark:bg-slate-900 text-slate-400 border border-slate-100 dark:border-slate-800'}`}
-        >
-            {cat}
-        </button>
-    ))}
-</div>
+                    {/* Category Tabs: Centered on mobile, Right on Desktop */}
+                    <div className="flex flex-wrap gap-2 justify-center md:justify-center">
+                        {categories.map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setSelectedCategory(cat)}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-all
+            ${selectedCategory === cat
+                                        ? 'bg-brand text-white shadow-lg shadow-brand/20'
+                                        : 'bg-white dark:bg-slate-900 text-slate-400 border border-slate-100 dark:border-slate-800'}`}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -133,20 +129,20 @@ export default function StudentGalleryPage() {
             ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                     {filteredAlbums.map((album) => (
-                        <div 
-                            key={album.id} 
+                        <div
+                            key={album.id}
                             onClick={() => { setActiveAlbum(album); setPhotoIndex(0); }}
                             className="group relative aspect-[4/5] bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer"
                         >
-                            <img 
-                                src={album.image_urls[0]} 
-                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                            <img
+                                src={album.image_urls[0]}
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                 alt={album.album_title}
                             />
-                            
+
                             {/* Overlay Gradient */}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                            
+
                             {/* Info */}
                             <div className="absolute bottom-0 left-0 right-0 p-4">
                                 <span className="text-[8px] font-black text-brand-soft uppercase tracking-widest bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-full">
@@ -172,7 +168,7 @@ export default function StudentGalleryPage() {
 
             {/* --- NATIVE LIGHTBOX --- */}
             {activeAlbum && (
-                <div 
+                <div
                     className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col select-none animate-in fade-in duration-300"
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
@@ -180,7 +176,7 @@ export default function StudentGalleryPage() {
                     {/* Header */}
                     <div className="flex justify-between items-center p-4 md:p-8">
                         <div className="flex items-center gap-4">
-                            <button 
+                            <button
                                 onClick={() => setActiveAlbum(null)}
                                 className="p-3 bg-white/10 rounded-2xl text-white hover:bg-white/20 transition-all"
                             >
@@ -193,7 +189,7 @@ export default function StudentGalleryPage() {
                                 </p>
                             </div>
                         </div>
-                        <button 
+                        <button
                             onClick={() => handleDownload(activeAlbum.image_urls[photoIndex])}
                             className="p-3 bg-brand rounded-2xl text-white shadow-lg shadow-brand/30 active:scale-90 transition-all"
                         >
@@ -208,9 +204,9 @@ export default function StudentGalleryPage() {
                             <FiChevronLeft size={32} />
                         </button>
 
-                        <img 
+                        <img
                             key={photoIndex}
-                            src={activeAlbum.image_urls[photoIndex]} 
+                            src={activeAlbum.image_urls[photoIndex]}
                             className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300"
                             alt="Viewing"
                         />
@@ -224,8 +220,8 @@ export default function StudentGalleryPage() {
                     <div className="p-6 bg-black/50 backdrop-blur-md">
                         <div className="flex gap-3 overflow-x-auto no-scrollbar justify-start md:justify-center">
                             {activeAlbum.image_urls.map((url, i) => (
-                                <button 
-                                    key={i} 
+                                <button
+                                    key={i}
                                     onClick={() => setPhotoIndex(i)}
                                     className={`relative w-14 h-14 md:w-20 md:h-20 rounded-xl overflow-hidden shrink-0 transition-all duration-300 border-2
                                     ${photoIndex === i ? 'border-brand scale-110 shadow-lg shadow-brand/20' : 'border-transparent opacity-40'}`}

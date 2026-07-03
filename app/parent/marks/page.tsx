@@ -16,7 +16,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-
+import { saveImageFromDataUrl } from "@/lib/nativeDownload";
 export default function ParentMarks() {
   const [marks, setMarks] = useState<any[]>([]);
   const [student, setStudent] = useState<any>(null);
@@ -93,57 +93,27 @@ export default function ParentMarks() {
     });
   };
 
-  const downloadOfficialCard = async () => {
-    if (!printTemplateRef.current) return;
-    setIsDownloading(true);
+const downloadOfficialCard = async () => {
+  if (!printTemplateRef.current) return;
+  setIsDownloading(true);
 
-    const element = printTemplateRef.current;
-    element.style.display = "block";
+  const element = printTemplateRef.current;
+  element.style.display = "block";
 
-    const canvas = await html2canvas(element, {
-      scale: 3,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-    });
+  const canvas = await html2canvas(element, {
+    scale: 3,
+    useCORS: true,
+    backgroundColor: "#ffffff",
+  });
 
-    element.style.display = "none";
+  element.style.display = "none";
 
-    const dataUrl = canvas.toDataURL("image/png");
-    const fileName = `Official_Marks_Card_${student?.full_name || "student"}.png`;
+  const dataUrl = canvas.toDataURL("image/png");
+  const fileName = `Official_Marks_Card_${student?.full_name || "student"}.png`;
+  await saveImageFromDataUrl(dataUrl, fileName);
 
-    if (Capacitor.isNativePlatform()) {
-      // Running inside the APK -> use native filesystem + share sheet
-      try {
-        const base64Data = dataUrl.split(",")[1];
-
-        const savedFile = await Filesystem.writeFile({
-          path: fileName,
-          data: base64Data,
-          directory: Directory.Cache, // writable without special permission
-        });
-
-        // Opens Android's native "Save to / Share" sheet
-        // user can pick "Save to Downloads", WhatsApp, Drive, etc.
-        await Share.share({
-          title: "Marks Card",
-          text: "Official Marks Card",
-          url: savedFile.uri,
-          dialogTitle: "Save or Share Marks Card",
-        });
-      } catch (err) {
-        console.error("Native save failed:", err);
-        alert("Could not save file: " + err);
-      }
-    } else {
-      // Running in a normal browser -> old behavior works fine
-      const link = document.createElement("a");
-      link.download = fileName;
-      link.href = dataUrl;
-      link.click();
-    }
-
-    setIsDownloading(false);
-  };
+  setIsDownloading(false);
+};
 
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -164,7 +134,7 @@ export default function ParentMarks() {
       >
         <div style={{ border: '12px double #1e293b', padding: '40px', position: 'relative' }}>
           <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
-            <h1 style={{ fontSize: '32px', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>Prashanti Vidyalaya</h1>
+            <h1 style={{ fontSize: '32px', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>Prashanthi Vidyalaya</h1>
             <p style={{ fontSize: '10px', fontWeight: 'bold', letterSpacing: '2px', color: '#64748b' }}>OFFICIAL ACADEMIC PROGRESS REPORT</p>
           </div>
 

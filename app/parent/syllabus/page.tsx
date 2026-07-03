@@ -89,7 +89,7 @@ export default function ExamTimetable() {
       <div ref={printRef} style={{ display: 'none', width: '800px', padding: '40px', background: 'white' }}>
         <div style={{ border: '10px double #a63d93', padding: '30px', position: 'relative' }}>
           <div style={{ textAlign: 'center', borderBottom: '2px solid #a63d93', paddingBottom: '20px', marginBottom: '30px' }}>
-            <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#a63d93', textTransform: 'uppercase', margin: 0 }}>Prashanti Vidyalaya</h1>
+            <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#a63d93', textTransform: 'uppercase', margin: 0 }}>Prashanthi Vidyalaya</h1>
             <p style={{ fontSize: '10px', fontWeight: 'bold', letterSpacing: '3px', color: '#64748b', marginTop: '5px' }}>OFFICIAL EXAMINATION TIMETABLE & SYLLABUS</p>
           </div>
 
@@ -234,7 +234,7 @@ export default function ExamTimetable() {
         </div>
         
         <footer className="p-8 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 text-center">
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">Academic Management System • PRASHANTI VIDYALAYA</p>
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">Academic Management System • Prashanthi VIDYALAYA</p>
         </footer>
       </div>
     </div>

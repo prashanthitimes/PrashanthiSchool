@@ -162,7 +162,7 @@ export default function AdminSidebar({ activeMenu, setActiveMenu, isOpen, setIsO
           </div>
 
           <h2 className="text-md font-black text-center text-slate-800 dark:text-slate-100">
-            Prashanti Vidyalaya & High School.
+            Prashanthi Vidyalaya & High School.
           </h2>
         </div>
 

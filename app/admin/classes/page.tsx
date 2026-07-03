@@ -88,15 +88,17 @@ export default function StudentManagement() {
   }, []);
 
   // This filters the students list in real-time as you type
-  const filteredStudents = students.filter((s) => {
-    const searchTerm = search.toLowerCase();
-    return (
-      s.full_name?.toLowerCase().includes(searchTerm) ||
-      s.student_id?.toLowerCase().includes(searchTerm) ||
-      s.mobile_no?.includes(searchTerm) ||
-      s.father_name?.toLowerCase().includes(searchTerm)
-    );
-  });
+const filteredStudents = students
+    .filter((s) => {
+      const searchTerm = search.toLowerCase();
+      return (
+        s.full_name?.toLowerCase().includes(searchTerm) ||
+        s.student_id?.toLowerCase().includes(searchTerm) ||
+        s.mobile_no?.includes(searchTerm) ||
+        s.father_name?.toLowerCase().includes(searchTerm)
+      );
+    })
+    .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
   const [formData, setFormData] = useState({
     student_id: "", // ✅ ADD THIS
     full_name: "",
@@ -118,9 +120,7 @@ export default function StudentManagement() {
     academic_year: academicYear, // dynamic
   });
 
-
-
-  const fetchStudents = useCallback(async () => {
+const fetchStudents = useCallback(async () => {
     setLoading(true);
 
     let query = supabase.from("students").select("*");
@@ -133,7 +133,7 @@ export default function StudentManagement() {
       query = query.eq("section", selectedSection);
     }
 
-    const { data, error } = await query.order("roll_number", { ascending: true });
+    const { data, error } = await query.order("full_name", { ascending: true }); // ✅ changed from roll_number
 
     if (!error) setStudents(data || []);
     setLoading(false);
@@ -282,123 +282,123 @@ export default function StudentManagement() {
         });
 
         // 4. SUPABASE INSERT
-    // 4. SUPABASE INSERT
-if (validRecords.length > 0) {
-  const duplicateErrors: string[] = [];
+        // 4. SUPABASE INSERT
+        if (validRecords.length > 0) {
+          const duplicateErrors: string[] = [];
 
-  try {
-    // ============================================
-    // FETCH EXISTING STUDENTS ONLY ONCE
-    // ============================================
-    const { data: existingStudents, error: fetchError } = await supabase
-      .from("students")
-      .select("class_name, section, roll_number, full_name");
+          try {
+            // ============================================
+            // FETCH EXISTING STUDENTS ONLY ONCE
+            // ============================================
+            const { data: existingStudents, error: fetchError } = await supabase
+              .from("students")
+              .select("class_name, section, roll_number, full_name");
 
-    if (fetchError) {
-      console.error(fetchError);
-      toast.error("Failed to validate duplicate roll numbers");
-      setIsImporting(false);
-      return;
-    }
+            if (fetchError) {
+              console.error(fetchError);
+              toast.error("Failed to validate duplicate roll numbers");
+              setIsImporting(false);
+              return;
+            }
 
-    // ============================================
-    // CREATE LOOKUP MAP FOR EXISTING DATABASE DATA
-    // ============================================
-    const existingMap = new Map<string, string>();
+            // ============================================
+            // CREATE LOOKUP MAP FOR EXISTING DATABASE DATA
+            // ============================================
+            const existingMap = new Map<string, string>();
 
-    existingStudents?.forEach((student) => {
-      const key = `${student.class_name}-${student.section}-${student.roll_number}`;
+            existingStudents?.forEach((student) => {
+              const key = `${student.class_name}-${student.section}-${student.roll_number}`;
 
-      existingMap.set(key, student.full_name);
-    });
+              existingMap.set(key, student.full_name);
+            });
 
-    // ============================================
-    // CHECK DUPLICATES INSIDE EXCEL ITSELF
-    // ============================================
-    const excelMap = new Set<string>();
+            // ============================================
+            // CHECK DUPLICATES INSIDE EXCEL ITSELF
+            // ============================================
+            const excelMap = new Set<string>();
 
-    validRecords.forEach((student, index) => {
-      if (!student.roll_number) return;
+            validRecords.forEach((student, index) => {
+              if (!student.roll_number) return;
 
-      const key = `${student.class_name}-${student.section}-${student.roll_number}`;
+              const key = `${student.class_name}-${student.section}-${student.roll_number}`;
 
-      // Duplicate in database
-      if (existingMap.has(key)) {
-  duplicateErrors.push(
-    `Roll No ${student.roll_number} already exists in Class ${student.class_name}-${student.section}`
-  );
-}
+              // Duplicate in database
+              if (existingMap.has(key)) {
+                duplicateErrors.push(
+                  `Roll No ${student.roll_number} already exists in Class ${student.class_name}-${student.section}`
+                );
+              }
 
-if (excelMap.has(key)) {
-  duplicateErrors.push(
-    `Duplicate Roll No ${student.roll_number} found in Excel file`
-  );
-}
-      excelMap.add(key);
-    });
+              if (excelMap.has(key)) {
+                duplicateErrors.push(
+                  `Duplicate Roll No ${student.roll_number} found in Excel file`
+                );
+              }
+              excelMap.add(key);
+            });
 
-    // ============================================
-    // STOP IMPORT IF DUPLICATES FOUND
-    // ============================================
-    if (duplicateErrors.length > 0) {
-      console.error("Duplicate Errors:", duplicateErrors);
+            // ============================================
+            // STOP IMPORT IF DUPLICATES FOUND
+            // ============================================
+            if (duplicateErrors.length > 0) {
+              console.error("Duplicate Errors:", duplicateErrors);
 
-      duplicateErrors.slice(0, 5).forEach((err) => {
-        toast.error(err);
-      });
+              duplicateErrors.slice(0, 5).forEach((err) => {
+                toast.error(err);
+              });
 
-      if (duplicateErrors.length > 5) {
-        toast.error(
- `Import failed: ${duplicateErrors.length} duplicate roll numbers found`
-        );
-      }
+              if (duplicateErrors.length > 5) {
+                toast.error(
+                  `Import failed: ${duplicateErrors.length} duplicate roll numbers found`
+                );
+              }
 
-      setIsImporting(false);
-      return;
-    }
+              setIsImporting(false);
+              return;
+            }
 
-    // ============================================
-    // BULK INSERT
-    // ============================================
-    const { error: insertError } = await supabase
-      .from("students")
-      .insert(validRecords);
+            // ============================================
+            // BULK INSERT
+            // ============================================
+            const { error: insertError } = await supabase
+              .from("students")
+              .insert(validRecords);
 
-    if (insertError) {
-      console.error("Insert Error:", insertError);
+            if (insertError) {
+              console.error("Insert Error:", insertError);
 
-      toast.error(`Database Error: ${insertError.message}`);
-      setIsImporting(false);
-      return;
-    }
+              toast.error(`Database Error: ${insertError.message}`);
+              setIsImporting(false);
+              return;
+            }
 
-    // ============================================
-    // SUCCESS
-    // ============================================
-    toast.success(
-      `Successfully imported ${validRecords.length} students`
-    );
+            // ============================================
+            // SUCCESS
+            // ============================================
+            toast.success(
+              `Successfully imported ${validRecords.length} students`
+            );
 
-    lastAction.current = {
-      type: "import",
-      data: validRecords,
-    };
+            lastAction.current = {
+              type: "import",
+              data: validRecords,
+            };
 
-    setCanUndo(true);
+            setCanUndo(true);
 
-    await fetchStudents();
-  } catch (err: any) {
-    console.error("Import Crash:", err);
+            await fetchStudents();
+          } catch (err: any) {
+            console.error("Import Crash:", err);
 
-    toast.error("Import failed unexpectedly");
-  } finally {
-    setIsImporting(false);
+            toast.error("Import failed unexpectedly");
+          } finally {
+            setIsImporting(false);
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }
-}
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
+          }
+        }
 
         if (parsingErrors.length > 0) {
           toast.warning(`${parsingErrors.length} rows were skipped due to errors.`);
@@ -520,6 +520,15 @@ if (excelMap.has(key)) {
     });
 
   };
+  // ✅ Explicit DD/MM/YYYY formatter — avoids relying on browser/locale date format
+  const formatDateDDMMYYYY = (dateString?: string | null) => {
+    if (!dateString) return "--";
+    const datePart = String(dateString).split("T")[0]; // handles "2015-01-01" or full timestamps
+    const [year, month, day] = datePart.split("-");
+    if (!year || !month || !day) return "--";
+    return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+  };
+
   // ✅ PLACE THIS OUTSIDE YOUR MAIN COMPONENT FUNCTION
   const formatDateForInput = (dateString: string) => {
     if (!dateString) return "";
@@ -815,14 +824,25 @@ if (excelMap.has(key)) {
                       onChange={(val: string) => handleInputChange('full_name', val)}
                       disabled={mode === 'view'}
                     />
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input
-                        label="Date of Birth(MM/DD/YYYY"
-                        type="date" // This ensures the browser returns YYYY-MM-DD
-                        value={formatDateForInput(formData.dob)}
-                        onChange={(val: string) => handleInputChange('dob', val)}
-                        disabled={mode === 'view'}
-                      />
+               <div className="grid grid-cols-2 gap-4">
+                      {mode === 'view' ? (
+                        <div className="space-y-1">
+                          <label className="block text-[11px] font-black text-slate-500 uppercase ml-1">
+                            Date of Birth (DD/MM/YYYY)
+                          </label>
+                          <div className="w-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 opacity-70">
+                            {formatDateDDMMYYYY(formData.dob)}
+                          </div>
+                        </div>
+                      ) : (
+                        <Input
+                          label="Date of Birth"
+                          type="date"
+                          value={formatDateForInput(formData.dob)}
+                          onChange={(val: string) => handleInputChange('dob', val)}
+                          disabled={mode === 'view'}
+                        />
+                      )}
                       <Input
                         label="Roll No"
                         type="number"

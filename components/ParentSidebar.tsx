@@ -48,7 +48,7 @@ export default function ParentSidebar() {
       {/* --- SIDEBAR HEADER --- */}
       <div className="p-6 flex flex-col items-center border-b border-white/10 dark:bg-slate-900 ">
         <img src="/Schoollogo.jpg" className="w-14 mb-2 rounded-full border-2 border-white/20 dark:border-slate-700 p-1 bg-white" alt="School Logo" />
-        <h2 className="font-bold text-center text-sm dark:text-slate-100 uppercase tracking-tight">  Prashanti Vidyalaya & High School.</h2>
+        <h2 className="font-bold text-center text-sm dark:text-slate-100 uppercase tracking-tight">  Prashanthi Vidyalaya & High School.</h2>
         <span className={`text-[9px] tracking-[0.2em] uppercase mt-1 font-bold
             ${isDarkMode ? 'text-slate-500' : 'text-white/60'}`}>
           Parent Portal

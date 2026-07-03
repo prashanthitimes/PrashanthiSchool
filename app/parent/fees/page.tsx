@@ -108,9 +108,8 @@ export default function ParentFees() {
     }
 
     // --- LOGIC FOR REMAINING BALANCES ---
-    const feeCalculation = useMemo(() => {
+ const feeCalculation = useMemo(() => {
         return classFees.map(cf => {
-            // Get ALL rows for this fee type (handles multiple installments)
             const records = verifiedFees.filter(
                 vf => vf.fee_type.toLowerCase() === cf.fee_type.toLowerCase()
             );
@@ -118,7 +117,8 @@ export default function ParentFees() {
             const paid = records.reduce((sum, r) => sum + Number(r.paid_amount), 0);
             const concession = records.reduce((sum, r) => sum + Number(r.concession_amount || 0), 0);
             const total = Number(cf.amount);
-            const remaining = total - paid - concession;
+            const remainingRaw = total - paid - concession;
+            const remaining = Math.max(0, remainingRaw); // ✅ never show negative "available"
 
             const isPending = pendingSubmissions.some(ps =>
                 ps.fee_types?.toLowerCase().includes(cf.fee_type.toLowerCase())
@@ -130,11 +130,10 @@ export default function ParentFees() {
                 already_paid: paid,
                 concession_amount: concession,
                 remaining_balance: remaining,
-                status: remaining <= 0 ? "verified" : (isPending ? "pending" : "available")
+                status: remainingRaw <= 0 ? "verified" : (isPending ? "pending" : "available"), // ✅ use raw for status check
             };
         });
     }, [classFees, verifiedFees, pendingSubmissions]);
-
     const stats = useMemo(() => {
         const total = feeCalculation.reduce((sum, f) => sum + f.total_assigned, 0);
         const paid = feeCalculation.reduce((sum, f) => sum + f.already_paid, 0);
@@ -242,9 +241,9 @@ export default function ParentFees() {
                                                 <span className="text-xs font-black uppercase">{f.fee_type}</span>
                                             </div>
                                             {/* Subtitle displays custom context if it is a custom entry */}
-                                            <span className="text-[10px] opacity-60 font-bold">
+                                          <span className="text-[10px] opacity-60 font-bold">
                                                 {f.is_custom_entry ? `${f.description} | ` : ""}
-                                                Total: ₹{f.total_assigned.toLocaleString()} | Paid: ₹{(f.already_paid + f.concession_amount).toLocaleString()}
+                                                Total: ₹{f.total_assigned.toLocaleString()} | Paid: ₹{f.already_paid.toLocaleString()} | Balance: ₹{f.remaining_balance.toLocaleString()}
                                             </span>
                                         </div>
                                         <div className="text-right">

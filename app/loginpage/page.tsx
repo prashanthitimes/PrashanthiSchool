@@ -153,7 +153,7 @@ export default function UnifiedLoginPage() {
             <Image src="/Schoollogo.jpg" alt="Logo" fill className="object-contain p-2" />
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Prashanti Vidyalaya <br /> & High School
+            Prashanthi Vidyalaya <br /> & High School
           </h1>
           <p className="text-black font-bold text-xs uppercase tracking-widest mt-1">
             {step === 1 ? 'Welcome Back' : `${role} Portal`}
@@ -322,7 +322,7 @@ export default function UnifiedLoginPage() {
 
     {/* Copyright Line */}
     <p className="text-[10px] text-white/70 font-bold uppercase tracking-[0.15em]">
-      © 2026 Prashanti Vidyalaya & High School
+      © 2026 Prashanthi Vidyalaya & High School
     </p>
 
     {/* Developer Line */}

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 // Metadata ONLY works in Server Components (no "use client" at the top)
 export const metadata: Metadata = {
-  title: "Prashanti Vidyalaya & High School.",
+  title: "Prashanthi Vidyalaya & High School.",
   description: "School Management System",
   icons: {
     icon: [

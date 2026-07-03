@@ -7,6 +7,7 @@ import {
 } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
+import { saveImageFromDataUrl } from "@/lib/nativeDownload";
 
 export default function ExamTimetable() {
   const [exams, setExams] = useState<any[]>([]);
@@ -68,30 +69,28 @@ export default function ExamTimetable() {
     }
   }
 
-  const exportOfficialSchedule = async () => {
-    if (printRef.current) {
-      setIsExporting(true);
-      const element = printRef.current;
-      
-      // Temporarily show the element off-screen to capture
-      element.style.display = "block";
+const exportOfficialSchedule = async () => {
+  if (!printRef.current) return;
+  setIsExporting(true);
 
-      const canvas = await html2canvas(element, {
-        scale: 3, // High resolution for printing
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
+  const element = printRef.current;
+  element.style.display = "block";
 
-      element.style.display = "none";
-      
-      const link = document.createElement("a");
-      link.download = `Official_Schedule_${studentInfo?.full_name.replace(/\s+/g, '_')}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-      setIsExporting(false);
-    }
-  };
+  const canvas = await html2canvas(element, {
+    scale: 3,
+    useCORS: true,
+    backgroundColor: "#ffffff",
+    logging: false,
+  });
+
+  element.style.display = "none";
+
+  const dataUrl = canvas.toDataURL("image/png");
+  const fileName = `Official_Schedule_${studentInfo?.full_name.replace(/\s+/g, '_')}.png`;
+  await saveImageFromDataUrl(dataUrl, fileName);
+
+  setIsExporting(false);
+};
 
   if (loading) return (
     <div className="flex h-screen flex-col items-center justify-center bg-slate-50">
@@ -118,7 +117,7 @@ export default function ExamTimetable() {
         <div style={{ border: '8px double #a63d93', padding: '40px', position: 'relative' }}>
           {/* Official Header */}
           <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '2px solid #a63d93', paddingBottom: '20px' }}>
-            <h1 style={{ fontSize: '36px', fontWeight: '900', textTransform: 'uppercase', color: '#a63d93', margin: '0 0 5px 0' }}>Prashanti Vidyalaya</h1>
+            <h1 style={{ fontSize: '36px', fontWeight: '900', textTransform: 'uppercase', color: '#a63d93', margin: '0 0 5px 0' }}>Prashanthi Vidyalaya</h1>
             <p style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '4px', color: '#64748b', margin: 0 }}>OFFICIAL EXAMINATION ADVISORY</p>
           </div>
 
@@ -277,7 +276,7 @@ export default function ExamTimetable() {
         </div>
 
         <div className="bg-slate-900 p-8 text-center">
-           <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em]">Prashanti Vidyalaya Academic Portal • 2026</p>
+           <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em]">Prashanthi Vidyalaya Academic Portal • 2026</p>
         </div>
       </div>
     </div>

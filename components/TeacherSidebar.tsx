@@ -107,7 +107,7 @@ export default function TeacherSidebar({ activeMenu, setActiveMenu, isOpen, setI
 
           <h2 className={`text-md font-black text-center leading-tight
             ${isDarkMode ? 'text-slate-100' : 'text-white'}`}>
-            Prashanti Vidyalaya & High School.
+            Prashanthi Vidyalaya & High School.
           </h2>
 
           <span className={`text-[9px] tracking-[0.2em] uppercase mt-1 font-bold
