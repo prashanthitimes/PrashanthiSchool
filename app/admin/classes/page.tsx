@@ -840,7 +840,7 @@ const fetchStudents = useCallback(async () => {
     type="date"
     value={formatDateForInput(formData.dob)}
     onChange={(val: string) => handleInputChange('dob', val)}
-    disabled={isReadOnly}   {/* <-- changed from mode === 'view' */}
+    disabled={isReadOnly}
   />
 )}
                       <Input
