@@ -96,23 +96,27 @@ export default function ParentMarks() {
 const downloadOfficialCard = async () => {
   if (!printTemplateRef.current) return;
   setIsDownloading(true);
+  try {
+    const element = printTemplateRef.current;
+    element.style.display = "block";
 
-  const element = printTemplateRef.current;
-  element.style.display = "block";
+    const canvas = await html2canvas(element, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+    });
 
-  const canvas = await html2canvas(element, {
-    scale: 3,
-    useCORS: true,
-    backgroundColor: "#ffffff",
-  });
+    element.style.display = "none";
 
-  element.style.display = "none";
-
-  const dataUrl = canvas.toDataURL("image/png");
-  const fileName = `Official_Marks_Card_${student?.full_name || "student"}.png`;
-  await saveImageFromDataUrl(dataUrl, fileName);
-
-  setIsDownloading(false);
+    const dataUrl = canvas.toDataURL("image/png");
+    const fileName = `Official_Marks_Card_${student?.full_name || "student"}.png`;
+    await saveImageFromDataUrl(dataUrl, fileName);
+  } catch (err) {
+    console.error("Download failed", err);
+    alert("Download failed: " + (err instanceof Error ? err.message : String(err))); // TEMP for debugging
+  } finally {
+    setIsDownloading(false);
+  }
 };
 
   if (loading) return (

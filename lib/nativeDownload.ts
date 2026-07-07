@@ -1,3 +1,4 @@
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Media } from '@capacitor-community/media';
 import { Capacitor } from '@capacitor/core';
 
@@ -7,15 +8,20 @@ import { Capacitor } from '@capacitor/core';
  */
 export async function saveImageFromDataUrl(dataUrl: string, fileName: string) {
   if (Capacitor.isNativePlatform()) {
-    try {
-      await Media.savePhoto({
-        path: dataUrl, // accepts base64 data URL directly
-        fileName,
-      });
-    } catch (err) {
-      console.error('Failed to save image to gallery:', err);
-      throw err;
-    }
+    const base64Data = dataUrl.split(',')[1];
+
+    // 1. Write to a temp file first — Media.savePhoto needs a real file URI,
+    //    it does not reliably accept a raw base64 data URL.
+    const tempFile = await Filesystem.writeFile({
+      path: fileName,
+      data: base64Data,
+      directory: Directory.Cache,
+    });
+
+    // 2. Copy that file into the gallery
+    await Media.savePhoto({
+      path: tempFile.uri,
+    });
   } else {
     const link = document.createElement('a');
     link.download = fileName;
@@ -27,28 +33,27 @@ export async function saveImageFromDataUrl(dataUrl: string, fileName: string) {
 /**
  * Saves a remote image (fetched by URL) directly to the device's
  * Photos/Gallery on Android, or triggers a browser download on web.
- * Used for gallery photos.
  */
 export async function saveImageFromUrl(url: string, fileName: string) {
   if (Capacitor.isNativePlatform()) {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const base64Data: string = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const base64Data: string = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
 
-      await Media.savePhoto({
-        path: base64Data, // full data URL string works here too
-        fileName,
-      });
-    } catch (err) {
-      console.error('Failed to save image to gallery:', err);
-      throw err;
-    }
+    const tempFile = await Filesystem.writeFile({
+      path: fileName,
+      data: base64Data,
+      directory: Directory.Cache,
+    });
+
+    await Media.savePhoto({
+      path: tempFile.uri,
+    });
   } else {
     const response = await fetch(url);
     const blob = await response.blob();

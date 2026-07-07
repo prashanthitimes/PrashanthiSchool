@@ -4,7 +4,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { FiClock, FiChevronDown, FiPrinter } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
-
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import { saveImageFromDataUrl } from "@/lib/nativeDownload";
 
 const getPeriodTypeColor = (type: string = "period") => {
@@ -91,31 +93,32 @@ export default function StudentTimetable() {
     }
   }
 
-const downloadOfficialImage = async () => {
-  if (!printRef.current) return;
-  try {
-    setDownloading(true);
-    const element = printRef.current;
-    element.style.display = "block";
+  const downloadOfficialImage = async () => {
+    if (!printRef.current) return;
+    try {
+      setDownloading(true);
+      const element = printRef.current;
+      element.style.display = "block";
 
-    const canvas = await html2canvas(element, {
-      scale: 3,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      logging: false,
-    });
+      const canvas = await html2canvas(element, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
 
-    element.style.display = "none";
+      element.style.display = "none";
 
-    const dataUrl = canvas.toDataURL("image/png");
-    const fileName = `Official_Timetable_${studentInfo?.name.replace(/\s+/g, '_')}.png`;
-    await saveImageFromDataUrl(dataUrl, fileName);
-  } catch (err) {
-    console.error("Download failed", err);
-  } finally {
-    setDownloading(false);
-  }
-};
+      const dataUrl = canvas.toDataURL("image/png");
+      const fileName = `Official_Timetable_${studentInfo?.name.replace(/\s+/g, '_')}.png`;
+      await saveImageFromDataUrl(dataUrl, fileName);
+    } catch (err) {
+      console.error("Download failed", err);
+      alert("Download failed: " + (err instanceof Error ? err.message : String(err))); // TEMP for debugging
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const getSubColor = (name: string = "") => {
     const n = name.toLowerCase();
@@ -172,7 +175,7 @@ const downloadOfficialImage = async () => {
               <div className="py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-center text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">{day}</div>
               {periods.map((slot) => {
                 const entry = timetable.find(t => t.day.trim().toLowerCase() === day.toLowerCase() && t.period === slot.id);
-                
+
                 // Determine label name
                 let periodLabel = entry?.subjects?.name || "—";
                 if (slot.type === "break") periodLabel = "Short Break";
@@ -180,10 +183,10 @@ const downloadOfficialImage = async () => {
 
                 return (
                   <div key={slot.id} className={`p-3 rounded-2xl border flex flex-col gap-1 min-h-[95px] transition-all ${slot.type === "break" || slot.type === "lunch"
-                      ? getPeriodTypeColor(slot.type)
-                      : entry
-                        ? getSubColor(entry.subjects?.name)
-                        : 'bg-slate-50/30 border-dashed border-slate-200 dark:bg-slate-950/20 dark:border-slate-800 opacity-40'
+                    ? getPeriodTypeColor(slot.type)
+                    : entry
+                      ? getSubColor(entry.subjects?.name)
+                      : 'bg-slate-50/30 border-dashed border-slate-200 dark:bg-slate-950/20 dark:border-slate-800 opacity-40'
                     }`}>
                     <span className="text-[8px] font-black opacity-40 uppercase tracking-tighter">
                       {slot.type === "break" || slot.type === "lunch" ? "Break" : `P${slot.id}`}
@@ -276,7 +279,7 @@ const downloadOfficialImage = async () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {periods.map((slot) => {
                         const entry = timetable.find(t => t.day.trim().toLowerCase() === day.toLowerCase() && t.period === slot.id);
-                        
+
                         // Handle break typography for Print view
                         let printLabel = entry?.subjects?.name || "—";
                         let isBreakSlot = false;
@@ -284,14 +287,14 @@ const downloadOfficialImage = async () => {
                         if (slot.type === "lunch") { printLabel = "Lunch Break"; isBreakSlot = true; }
 
                         return (
-                          <div key={slot.id} style={{ 
-                            padding: '12px', 
-                            borderRadius: '10px', 
-                            border: '1px solid #e2e8f0', 
-                            minHeight: '100px', 
-                            backgroundColor: isBreakSlot ? '#f8fafc' : entry ? '#f8fafc' : '#ffffff', 
-                            display: 'flex', 
-                            flexDirection: 'column' 
+                          <div key={slot.id} style={{
+                            padding: '12px',
+                            borderRadius: '10px',
+                            border: '1px solid #e2e8f0',
+                            minHeight: '100px',
+                            backgroundColor: isBreakSlot ? '#f8fafc' : entry ? '#f8fafc' : '#ffffff',
+                            display: 'flex',
+                            flexDirection: 'column'
                           }}>
                             <span style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8' }}>
                               {slot.type === "break" || slot.type === "lunch" ? "BREAK" : `PERIOD ${slot.id}`}
