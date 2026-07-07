@@ -59,26 +59,22 @@ export default function ExamTimetable() {
     } catch (err) { console.error(err); } finally { setLoading(false); }
   }
 
-  const handleDownload = async () => {
-    if (printRef.current) {
-      setIsDownloading(true);
-      const element = printRef.current;
-      element.style.display = "block"; // Temporarily show
+const handleDownload = async () => {
+  if (printRef.current) {
+    setIsDownloading(true);
+    const element = printRef.current;
+    element.style.display = "block";
 
-      const canvas = await html2canvas(element, {
-        scale: 3, // High DPI for printing
-        useCORS: true,
-        backgroundColor: "#ffffff",
-      });
+    const canvas = await html2canvas(element, { scale: 3, useCORS: true, backgroundColor: "#ffffff" });
 
-      element.style.display = "none"; // Hide again
-      const link = document.createElement("a");
-      link.download = `Official_Exam_Schedule_${studentInfo?.full_name}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-      setIsDownloading(false);
-    }
-  };
+    element.style.display = "none";
+    const link = document.createElement("a");
+    link.download = `Official_Exam_Schedule_${studentInfo?.full_name}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    setIsDownloading(false);
+  }
+};
 
   if (loading) return <div className="p-20 text-center font-black text-[#a63d93] animate-pulse uppercase tracking-widest">Generating Academic Schedule...</div>;
 
