@@ -1,31 +1,22 @@
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Media } from '@capacitor-community/media';
 import { Capacitor } from '@capacitor/core';
+import { Toast } from '@capacitor/toast';
 
 const ALBUM_NAME = 'Prashanthi Vidyalaya';
 
-/**
- * Ensures the app's album exists, creating it if necessary.
- * Returns the album identifier to save into.
- */
 async function getOrCreateAlbum(): Promise<string> {
   const { albums } = await Media.getAlbums();
   const existing = albums.find(a => a.name === ALBUM_NAME);
   if (existing) return existing.identifier;
 
-  const created = await Media.createAlbum({ name: ALBUM_NAME });
-  // createAlbum doesn't return the identifier directly on all versions,
-  // so re-fetch to be safe
+  await Media.createAlbum({ name: ALBUM_NAME });
   const { albums: refreshed } = await Media.getAlbums();
   const found = refreshed.find(a => a.name === ALBUM_NAME);
   if (!found) throw new Error('Failed to create or locate album');
   return found.identifier;
 }
 
-/**
- * Saves a PNG (from a data URL, e.g. canvas.toDataURL()) directly to the
- * device's Photos/Gallery on Android, or triggers a browser download on web.
- */
 export async function saveImageFromDataUrl(dataUrl: string, fileName: string) {
   if (Capacitor.isNativePlatform()) {
     const base64Data = dataUrl.split(',')[1];
@@ -42,6 +33,12 @@ export async function saveImageFromDataUrl(dataUrl: string, fileName: string) {
       path: tempFile.uri,
       albumIdentifier,
     });
+
+    await Toast.show({
+      text: 'Downloaded ✓ Saved to gallery',
+      duration: 'short',
+      position: 'bottom',
+    });
   } else {
     const link = document.createElement('a');
     link.download = fileName;
@@ -50,10 +47,6 @@ export async function saveImageFromDataUrl(dataUrl: string, fileName: string) {
   }
 }
 
-/**
- * Saves a remote image (fetched by URL) directly to the device's
- * Photos/Gallery on Android, or triggers a browser download on web.
- */
 export async function saveImageFromUrl(url: string, fileName: string) {
   if (Capacitor.isNativePlatform()) {
     const response = await fetch(url);
@@ -76,6 +69,12 @@ export async function saveImageFromUrl(url: string, fileName: string) {
     await Media.savePhoto({
       path: tempFile.uri,
       albumIdentifier,
+    });
+
+    await Toast.show({
+      text: 'Downloaded ✓ Saved to gallery',
+      duration: 'short',
+      position: 'bottom',
     });
   } else {
     const response = await fetch(url);
