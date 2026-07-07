@@ -96,11 +96,8 @@ const downloadOfficialImage = async () => {
   try {
     setDownloading(true);
     const element = printRef.current;
-    
-    // 1. Temporarily bring it into view layout calculations
     element.style.display = "block";
 
-    // 2. Snap the high-res screenshot
     const canvas = await html2canvas(element, {
       scale: 3,
       useCORS: true,
@@ -108,23 +105,11 @@ const downloadOfficialImage = async () => {
       logging: false,
     });
 
-    // 3. Hide it back away immediately
     element.style.display = "none";
 
-    // 4. Transform canvas to raw image data URL
     const dataUrl = canvas.toDataURL("image/png");
     const fileName = `Official_Timetable_${studentInfo?.name.replace(/\s+/g, '_')}.png`;
-
-    // 5. FORCE A DIRECT GALLERY/FILE DOWNLOAD BYPASSING THE SHARE SHEET
-    const downloadLink = document.createElement("a");
-    downloadLink.href = dataUrl;
-    downloadLink.download = fileName;
-    
-    // Append to body, click it programmatically, and clean up
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-
+    await saveImageFromDataUrl(dataUrl, fileName);
   } catch (err) {
     console.error("Download failed", err);
   } finally {
