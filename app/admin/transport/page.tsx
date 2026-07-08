@@ -32,21 +32,57 @@ export default function TransportPage() {
     driver_name: "", driver_contact: "", bus_capacity: 50, stops: "",
   });
 
+// FIX (root cause of "VENNALA"/late-alphabet students not showing up):
+// Supabase's PostgREST layer enforces its own server-side "Max Rows" limit
+// (project default: 1000) on EVERY query, no matter what .range() you ask
+// for client-side. A single .range(0, 4999) call still gets silently
+// truncated to ~1000 rows by the server. Since the query is sorted by
+// full_name ascending, only the first ~1000 names alphabetically were ever
+// reaching the browser — anything after that (V, W, X, Y, Z names, etc.)
+// was never fetched at all, so it could never appear in search no matter
+// how the dropdown filtering logic was fixed.
+//
+// Fix: page through the table in chunks (1000 rows at a time, matching the
+// server cap) and keep requesting the next chunk until a page comes back
+// with fewer rows than the page size — that means we've reached the end.
+// This works regardless of whatever Max Rows value the Supabase project
+// has configured, so it doesn't rely on changing dashboard settings.
+const fetchAllActiveStudents = async () => {
+  const PAGE_SIZE = 1000;
+  let allStudents: any[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("students")
+      .select("*")
+      .eq('status', 'active')
+      .order('full_name', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+
+    allStudents = allStudents.concat(data);
+
+    if (data.length < PAGE_SIZE) break; // last page reached
+    from += PAGE_SIZE;
+  }
+
+  return allStudents;
+};
+
 const fetchData = async () => {
     setLoading(true);
     try {
-      const [routeRes, studentRes, assignRes] = await Promise.all([
+      const [routeRes, studentList, assignRes] = await Promise.all([
         supabase.from("transport_routes").select("*").order("route_number"),
-        supabase.from("students")
-          .select("*")
-          .eq('status', 'active')
-          .order('full_name', { ascending: true })
-          .range(0, 4999), // pull well beyond the 1000-row default cap
+        fetchAllActiveStudents(),
         supabase.from("transport_assignments").select("*")
       ]);
 
       setRoutes(routeRes.data || []);
-      setStudents(studentRes.data || []);
+      setStudents(studentList || []);
       setAssignments(assignRes.data || []);
     } catch (error) {
       toast.error("Failed to load data");
@@ -59,6 +95,17 @@ const fetchData = async () => {
 
 const EARLY_CLASSES = ['Pre-KG', 'LKG', 'UKG', '9th'];
 
+// FIX: Previously this sliced the *combined* early-class matches and the
+// *combined* other-class matches down to just 5 results each — meaning
+// only the first 5 alphabetical names across ALL early classes (and
+// separately across ALL other classes) could ever be selected. Any
+// student whose name came later alphabetically was silently excluded
+// from the dropdown, making them impossible to assign.
+//
+// Fix: raise the cap generously (or drop it) and make the dropdown
+// scrollable in the UI instead of truncating the data.
+const SEARCH_RESULT_LIMIT = 50;
+
 const filteredSearchStudents = useMemo(() => {
     if (studentSearchTerm.length < 2 || selectedStudent) return [];
 
@@ -69,16 +116,12 @@ const filteredSearchStudents = useMemo(() => {
       (s.father_name && s.father_name.toLowerCase().includes(term))
     );
 
-    // Guarantee Pre-KG, LKG, UKG, 9th always appear, even if other-class matches crowd them out
-    const earlyMatches = allMatches
-      .filter(s => EARLY_CLASSES.includes(s.class_name))
-      .slice(0, 5);
+    // Keep early classes visually grouped first (nice for admin workflow),
+    // but no longer throw away matches past an arbitrary count of 5.
+    const earlyMatches = allMatches.filter(s => EARLY_CLASSES.includes(s.class_name));
+    const otherMatches = allMatches.filter(s => !EARLY_CLASSES.includes(s.class_name));
 
-    const otherMatches = allMatches
-      .filter(s => !EARLY_CLASSES.includes(s.class_name))
-      .slice(0, 5);
-
-    return [...earlyMatches, ...otherMatches];
+    return [...earlyMatches, ...otherMatches].slice(0, SEARCH_RESULT_LIMIT);
 }, [studentSearchTerm, students, selectedStudent]);
   // --- Handlers ---
 
@@ -301,7 +344,9 @@ const filteredSearchStudents = useMemo(() => {
                   className="w-full mt-2 p-4 bg-[#f3e8f1]/50 dark:bg-zinc-800/50 border border-[#f3e8f1] dark:border-zinc-700 rounded-2xl font-bold outline-none text-[#6b165c] dark:text-white placeholder:text-zinc-500"
                 />
                 {filteredSearchStudents.length > 0 && (
-                  <div className="absolute z-50 w-full mt-2 bg-white dark:bg-zinc-800 border border-[#f3e8f1] dark:border-zinc-700 rounded-2xl shadow-2xl overflow-hidden">
+                  // FIX: dropdown is now scrollable (max-h + overflow-y-auto)
+                  // so raising the result limit above doesn't break the layout.
+                  <div className="absolute z-50 w-full mt-2 bg-white dark:bg-zinc-800 border border-[#f3e8f1] dark:border-zinc-700 rounded-2xl shadow-2xl overflow-y-auto max-h-72 custom-scrollbar">
                     {filteredSearchStudents.map(s => (
                       <button key={s.id} onClick={() => { setSelectedStudent(s); setStudentSearchTerm(s.full_name); }} className="w-full text-left p-4 hover:bg-[#f3e8f1] dark:hover:bg-zinc-700 border-b border-[#f3e8f1] dark:border-zinc-700 last:border-0">
                         <p className="text-sm font-black text-[#6b165c] dark:text-plum-100 uppercase">{s.full_name}</p>

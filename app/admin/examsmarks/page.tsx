@@ -27,7 +27,10 @@ interface MarkRecord {
   is_locked: boolean
 }
 
-interface Exam { id: string; exam_name: string; classes: any }
+// FIX: exams now carry their own total_marks (Maximum Marks) and pass_marks
+// (Passing Marks) from Exam Setup — these were previously never selected
+// or used anywhere, so the ledger fell back to hardcoded values (100 / 35).
+interface Exam { id: string; exam_name: string; classes: any; total_marks: number; pass_marks: number }
 interface Subject { id: string; name: string }
 
 export default function ExamMarksManager() {
@@ -47,7 +50,10 @@ export default function ExamMarksManager() {
     const loadFilters = async () => {
       setIsLoading(true)
       try {
-        const { data: ex } = await supabase.from('exams').select('id, exam_name, classes').order('created_at', { ascending: false })
+        // FIX: pull total_marks and pass_marks along with the rest of the
+        // exam record so the ledger knows what "full marks" actually is
+        // for the exam the user picked (e.g. 25 for FA-1/FA-2).
+        const { data: ex } = await supabase.from('exams').select('id, exam_name, classes, total_marks, pass_marks').order('created_at', { ascending: false })
         const { data: sub } = await supabase.from('subjects').select('id, name').order('name')
         if (ex) setExams(ex)
         if (sub) setSubjects(sub)
@@ -59,6 +65,15 @@ export default function ExamMarksManager() {
     }
     loadFilters()
   }, [])
+
+  // FIX: derive the selected exam's configured max/pass marks in one place,
+  // with a safe fallback (100 / 35) only if an exam somehow has no config.
+  const selectedExam = useMemo(
+    () => exams.find(x => x.id === selectedExamId),
+    [exams, selectedExamId]
+  )
+  const maxMarks = selectedExam?.total_marks ?? 100
+  const passMarks = selectedExam?.pass_marks ?? 35
 
   const handleExamChange = (examId: string) => {
     setSelectedExamId(examId)
@@ -118,12 +133,13 @@ export default function ExamMarksManager() {
     if (item.student_id === studentId) {
       let finalValue = value;
 
-      // Logic to block numbers greater than 100
+      // FIX: clamp against the exam's configured max marks instead of a
+      // hardcoded 100, so e.g. FA-1 (25 marks) correctly rejects >25.
       if (field === 'marks_obtained' && value !== '') {
         const numValue = parseFloat(value);
-        if (numValue > 100) {
-          finalValue = 100; // Force it to 100
-          toast.warning("Maximum marks allowed is 100");
+        if (numValue > maxMarks) {
+          finalValue = maxMarks;
+          toast.warning(`Maximum marks allowed is ${maxMarks}`);
         } else if (numValue < 0) {
           finalValue = 0; // Force it to 0
         }
@@ -131,9 +147,11 @@ export default function ExamMarksManager() {
 
       const updated = { ...item, [field]: finalValue };
       
+      // FIX: pass/fail threshold now uses the exam's configured pass_marks
+      // instead of a hardcoded 35.
       if (field === 'marks_obtained' && updated.status !== 'Absent') {
         const numValue = parseFloat(String(finalValue));
-        updated.status = isNaN(numValue) ? 'Pending' : (numValue >= 35 ? 'Pass' : 'Fail');
+        updated.status = isNaN(numValue) ? 'Pending' : (numValue >= passMarks ? 'Pass' : 'Fail');
       }
       return updated;
     }
@@ -168,7 +186,9 @@ export default function ExamMarksManager() {
       student_id: row.student_id,
       teacher_id: user?.id || 'a735f722-cdd6-4b7e-bbf8-4e5e240fddc2', 
       marks_obtained: row.status === 'Absent' ? 0 : (parseFloat(String(row.marks_obtained)) || 0),
-      total_marks: 100,
+      // FIX: persist the exam's actual configured max marks (e.g. 25)
+      // instead of hardcoding 100 into every saved record.
+      total_marks: maxMarks,
       remarks: row.remarks,
       status: row.status
     }))
@@ -201,6 +221,7 @@ export default function ExamMarksManager() {
             <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">Registry Allotment</h1>
             <p className="text-[10px] font-bold text-brand tracking-[0.2em] uppercase">
               {selectedClass ? `Class: ${selectedClass}` : 'Filters required'}
+              {selectedExam ? ` • Max: ${maxMarks} • Pass: ${passMarks}` : ''}
             </p>
           </div>
         </div>
@@ -235,7 +256,7 @@ export default function ExamMarksManager() {
               <h2 className="text-base font-black uppercase tracking-[0.3em]">New Entries ({pendingStudents.length})</h2>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-brand/20 overflow-hidden">
-              <MarksTable data={pendingStudents} onUpdate={updateRow} onToggleAbsent={toggleAbsent} />
+              <MarksTable data={pendingStudents} onUpdate={updateRow} onToggleAbsent={toggleAbsent} maxMarks={maxMarks} />
             </div>
           </section>
 
@@ -245,7 +266,7 @@ export default function ExamMarksManager() {
               <h2 className="text-base font-black uppercase tracking-[0.3em]">Locked Records ({savedStudents.length})</h2>
             </div>
             <div className="bg-white/50 dark:bg-slate-900/40 rounded-[3rem] border border-slate-100 overflow-hidden">
-              <MarksTable data={savedStudents} onUpdate={()=>{}} onToggleAbsent={()=>{}} isLocked={true} />
+              <MarksTable data={savedStudents} onUpdate={()=>{}} onToggleAbsent={()=>{}} isLocked={true} maxMarks={maxMarks} />
             </div>
           </section>
         </div>
@@ -281,7 +302,10 @@ function FilterSelect({ label, value, onChange, options, disabled = false }: any
   )
 }
 
-function MarksTable({ data, onUpdate, onToggleAbsent, isLocked = false }: any) {
+// FIX: MarksTable now accepts maxMarks so the column header and the input's
+// clamping logic reflect the selected exam's configured maximum instead of
+// a hardcoded 100.
+function MarksTable({ data, onUpdate, onToggleAbsent, isLocked = false, maxMarks = 100 }: any) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left">
@@ -289,7 +313,7 @@ function MarksTable({ data, onUpdate, onToggleAbsent, isLocked = false }: any) {
           <tr className="bg-slate-50/80 dark:bg-slate-800/50 text-[10px] font-black uppercase text-brand tracking-[0.25em] border-b border-slate-100">
             <th className="p-8">ID / Roll</th>
             <th className="p-8">Student Name</th>
-            <th className="p-8 text-center">Marks (100)</th>
+            <th className="p-8 text-center">Marks ({maxMarks})</th>
             <th className="p-8 text-center">Status</th>
             <th className="p-8">Remarks</th>
             <th className="p-8 text-center">Absent</th>
@@ -309,13 +333,15 @@ function MarksTable({ data, onUpdate, onToggleAbsent, isLocked = false }: any) {
   type="number"
   value={row.marks_obtained}
   disabled={isLocked || isAbsent}
-  // Prevent typing 'e', '+', '-', etc. and clamp value
+  max={maxMarks}
+  min={0}
+  // Prevent typing 'e', '+', '-', etc. and clamp value against maxMarks
   onChange={(e) => {
     const val = e.target.value;
-    if (Number(val) <= 100) {
+    if (val === '' || Number(val) <= maxMarks) {
       onUpdate(row.student_id, 'marks_obtained', val);
     } else {
-      onUpdate(row.student_id, 'marks_obtained', 100);
+      onUpdate(row.student_id, 'marks_obtained', maxMarks);
     }
   }}
   onKeyDown={(e) => {
