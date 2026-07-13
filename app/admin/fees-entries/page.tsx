@@ -18,6 +18,7 @@ export default function FeesEntriesRegistry() {
 
   // Search & Target Filtering States
   const [studentSearchTerm, setStudentSearchTerm] = useState("");
+  const [tableSearchTerm, setTableSearchTerm] = useState(""); // NEW: search bar for the records table
   const [targetRecord, setTargetRecord] = useState<any>(null);
   const [editRecord, setEditRecord] = useState<any>(null);
   const [totals, setTotals] = useState({ totalRecords: 0, aggregateAmount: 0 });
@@ -212,6 +213,17 @@ export default function FeesEntriesRegistry() {
       `${st.class_name} ${st.section}`.toLowerCase().includes(studentSearchTerm.toLowerCase())
     ).slice(0, 5);
 
+  // NEW: filters the fee records table by student name / student ID / class
+  const visibleFeeRecords = tableSearchTerm.trim() === ""
+    ? feeRecords
+    : feeRecords.filter((rec) => {
+        const q = tableSearchTerm.toLowerCase();
+        const name = rec.student?.full_name?.toLowerCase() || "";
+        const sid = rec.student?.student_id?.toLowerCase() || "";
+        const classInfo = `${rec.student?.class_name || ""} ${rec.student?.section || ""}`.toLowerCase();
+        return name.includes(q) || sid.includes(q) || classInfo.includes(q);
+      });
+
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-brand-soft/20 dark:bg-slate-950">
       <div className="w-10 h-10 border-4 border-brand-soft border-t-brand-light rounded-full animate-spin" />
@@ -244,6 +256,32 @@ export default function FeesEntriesRegistry() {
         <StatCard title="Total Revenue Received" value={`₹${totals.aggregateAmount.toLocaleString('en-IN')}`} icon={<Wallet size={18} />} />
       </div>
 
+      {/* SEARCH BAR — filter records table by student name / ID / class */}
+      <div className="relative">
+        <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-brand-light/50 pointer-events-none" />
+        <input
+          type="text"
+          value={tableSearchTerm}
+          onChange={(e) => setTableSearchTerm(e.target.value)}
+          placeholder="Search by student name, ID, or class..."
+          className="w-full bg-white dark:bg-slate-900 border border-brand-soft dark:border-slate-800 rounded-2xl pl-12 pr-12 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200 placeholder:text-slate-400 placeholder:font-medium focus:outline-none focus:ring-2 focus:ring-brand-light/40 shadow-sm transition-all"
+        />
+        {tableSearchTerm && (
+          <button
+            onClick={() => setTableSearchTerm("")}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+            aria-label="Clear search"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+      {tableSearchTerm && (
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest -mt-4 ml-2">
+          {visibleFeeRecords.length} match{visibleFeeRecords.length === 1 ? "" : "es"} for "{tableSearchTerm}"
+        </p>
+      )}
+
       {/* MAIN DATA INTERFACE */}
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-brand-soft dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="hidden md:block overflow-x-auto">
@@ -257,11 +295,15 @@ export default function FeesEntriesRegistry() {
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-soft/40 dark:divide-slate-800">
-              {feeRecords.length === 0 ? (
+              {visibleFeeRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-10 text-center text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">No active Special Development Fee allocations located inside system registers.</td>
+                  <td colSpan={4} className="p-10 text-center text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                    {tableSearchTerm
+                      ? `No students matched "${tableSearchTerm}".`
+                      : "No active Special Development Fee allocations located inside system registers."}
+                  </td>
                 </tr>
-              ) : feeRecords.map((rec) => (
+              ) : visibleFeeRecords.map((rec) => (
                 <tr key={rec.id} className="hover:bg-brand-soft/10 dark:hover:bg-slate-800/30 transition-colors group">
                   <td className="p-6">
                     <div className="flex items-center gap-4">
@@ -297,9 +339,11 @@ export default function FeesEntriesRegistry() {
 
         {/* RESPONSIVE MOBILE GRID PANELS */}
         <div className="md:hidden divide-y divide-brand-soft/40 dark:divide-slate-800">
-          {feeRecords.length === 0 ? (
-            <div className="p-8 text-center text-[10px] font-black text-slate-400 uppercase tracking-wider">No entry items mapped currently.</div>
-          ) : feeRecords.map((rec) => (
+          {visibleFeeRecords.length === 0 ? (
+            <div className="p-8 text-center text-[10px] font-black text-slate-400 uppercase tracking-wider">
+              {tableSearchTerm ? `No students matched "${tableSearchTerm}".` : "No entry items mapped currently."}
+            </div>
+          ) : visibleFeeRecords.map((rec) => (
             <div key={rec.id} className="p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

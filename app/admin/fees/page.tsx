@@ -165,7 +165,7 @@ export default function FeesPage() {
       if (!feeType || !studentId) return;
 
       if (
-        feeType === "Old Balances" ||
+        feeType === "Opening Balance" ||
         feeType === "Special Development Fee" ||
         feeType === "Concession Fee"
       ) {
@@ -207,7 +207,10 @@ export default function FeesPage() {
         .eq("fee_type", feeType);
 
       const alreadyPaid =
-        payments?.reduce((sum, p) => sum + Number(p.paid_amount), 0) || 0;
+        payments?.reduce(
+          (sum, p) => sum + Number(p.paid_amount) + Number(p.concession_amount || 0),
+          0
+        ) || 0;
 
       setStudentForm((prev) => ({
         ...prev,
@@ -220,7 +223,6 @@ export default function FeesPage() {
 
     autoFetchFeeAmount();
   }, [studentForm.fee_type, studentForm.class, studentForm.student_id]);
-
   // ✅ FETCH STUDENT SUGGESTIONS WITH PRE-KG, LKG, UKG, 9TH FIX
   useEffect(() => {
     async function fetchStudentSuggestions() {
@@ -554,24 +556,24 @@ export default function FeesPage() {
         setAllFees(combinedFees);
       }
 
-     setStudentForm({
-  student_id: item.student_id || "",
-  student_name: item.student_name || "",
-  father_name: item.father_name || "",
-  roll_no: item.roll_no?.toString() || "",
-  class: item.class || "",
-  section: item.section || "",
-  fee_type_id: item.fee_type_id || "",
-  fee_type: item.fee_type || "",
-  total_amount: item.total_amount?.toString() || "0",
-  already_paid: (item.total_amount - item.paid_amount - (item.concession_amount || 0)).toString() || "0", // ✅ SHOW REMAINING
-  paying_now: item.paid_amount?.toString() || "0", // ✅ SHOW PAID AMOUNT
-  concession_amount: (item.concession_amount || 0).toString() || "0", // ✅ SHOW CONCESSION
-  payment_date: item.payment_date ? item.payment_date : new Date().toISOString().split('T')[0], // ✅ SHOW DATE
-  payment_method: item.payment_method || "Cash",
-  utr_number: item.utr_number || "",
-  remarks: item.remarks || "",
-});
+      setStudentForm({
+        student_id: item.student_id || "",
+        student_name: item.student_name || "",
+        father_name: item.father_name || "",
+        roll_no: item.roll_no?.toString() || "",
+        class: item.class || "",
+        section: item.section || "",
+        fee_type_id: item.fee_type_id || "",
+        fee_type: item.fee_type || "",
+        total_amount: item.total_amount?.toString() || "0",
+        already_paid: (item.total_amount - item.paid_amount - (item.concession_amount || 0)).toString() || "0", // ✅ SHOW REMAINING
+        paying_now: item.paid_amount?.toString() || "0", // ✅ SHOW PAID AMOUNT
+        concession_amount: (item.concession_amount || 0).toString() || "0", // ✅ SHOW CONCESSION
+        payment_date: item.payment_date ? item.payment_date : new Date().toISOString().split('T')[0], // ✅ SHOW DATE
+        payment_method: item.payment_method || "Cash",
+        utr_number: item.utr_number || "",
+        remarks: item.remarks || "",
+      });
 
       setStudentSearch(item.student_name);
       setIsStudentModalOpen(true);
@@ -990,8 +992,16 @@ export default function FeesPage() {
                               <select className="modal-input text-sm" value={studentForm.fee_type} onChange={async (e) => {
                                 const selected = allFees.find((f) => f.label === e.target.value);
                                 if (!selected) return;
-                                const { data: payments } = await supabase.from("student_fees").select("paid_amount, concession_amount").eq("student_id", studentForm.student_id).eq("fee_type", selected.fee_type);
-                                const alreadyPaid = payments?.reduce((sum, item) => sum + Number(item.paid_amount), 0) || 0;
+                                const { data: payments } = await supabase
+                                  .from("student_fees")
+                                  .select("paid_amount, concession_amount")
+                                  .eq("student_id", studentForm.student_id)
+                                  .eq("fee_type", selected.fee_type);
+                                const alreadyPaid =
+                                  payments?.reduce(
+                                    (sum, item) => sum + Number(item.paid_amount) + Number(item.concession_amount || 0),
+                                    0
+                                  ) || 0;
                                 setStudentForm({
                                   ...studentForm,
                                   fee_type_id: ["Opening Balance", "Special Development Fee", "Concession Fee", "Transport Fee"].includes(selected.fee_type) ? null : selected.id,
@@ -1025,9 +1035,9 @@ export default function FeesPage() {
                             {/* ✅ Payment Date Field - Shows Today by Default */}
                             <div className="space-y-1.5">
                               <label className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase ml-1">Payment Date (Today)</label>
-                              <input 
-                                type="date" 
-                                className="modal-input text-sm border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-blue-500/5 text-blue-700 dark:text-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-bold" 
+                              <input
+                                type="date"
+                                className="modal-input text-sm border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-blue-500/5 text-blue-700 dark:text-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-bold"
                                 value={studentForm.payment_date}
                                 onChange={(e) => setStudentForm({ ...studentForm, payment_date: e.target.value })}
                                 required
