@@ -10,11 +10,17 @@ export default function TeacherTimetable() {
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
   const [teacherName, setTeacherName] = useState("")
-  
+  // Which day is shown in the mobile card view
+  const [activeDay, setActiveDay] = useState('Monday')
+
   // Ref for the high-quality official document template
   const printRef = useRef<HTMLDivElement>(null)
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const dayShort: Record<string, string> = {
+    Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed',
+    Thursday: 'Thu', Friday: 'Fri', Saturday: 'Sat',
+  }
   const periods = [1, 2, 3, 4, 5, 6]
 
   const timeSlots: Record<number, string> = {
@@ -119,36 +125,96 @@ export default function TeacherTimetable() {
 
   return (
     <div className="space-y-4">
-      {/* Action Bar - No Design Changes */}
-      <div className="flex justify-between items-center px-4 mt-10">
-        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+      {/* Action Bar - responsive: stacks on very small screens, button label shortens */}
+      <div className="flex flex-wrap justify-between items-center gap-3 px-4 mt-6 sm:mt-10">
+        <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
           <FiCalendar className="text-brand dark:text-brand-soft" /> Weekly Schedule
         </h2>
         <button
           onClick={handleDownloadOfficial}
           disabled={downloading}
-          className="flex items-center gap-2 bg-slate-900 dark:bg-brand text-white px-4 py-2 rounded-xl text-xs font-black hover:bg-slate-800 dark:hover:bg-brand-dark transition-all active:scale-95 shadow-lg shadow-slate-200 dark:shadow-none"
+          className="flex items-center gap-2 bg-slate-900 dark:bg-brand text-white px-3 sm:px-4 py-2 rounded-xl text-xs font-black hover:bg-slate-800 dark:hover:bg-brand-dark transition-all active:scale-95 shadow-lg shadow-slate-200 dark:shadow-none whitespace-nowrap"
         >
-          {downloading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <FiPrinter />} 
-          {downloading ? 'Processing...' : 'Export Official'}
+          {downloading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <FiPrinter />}
+          <span className="hidden xs:inline sm:inline">{downloading ? 'Processing...' : 'Export Official'}</span>
+          <span className="inline xs:hidden sm:hidden">{downloading ? '...' : 'Export'}</span>
         </button>
       </div>
 
-      {/* VISIBLE UI - KEEPING YOUR DESIGN EXACTLY THE SAME */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
           <div>
-            <h1 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Teacher Timetable</h1>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Academic Session 2025-26</p>
+            <h1 className="text-base sm:text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Teacher Timetable</h1>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Academic Session 2025-26</p>
           </div>
           <div className="text-right">
-            <div className="text-xs font-black text-brand dark:text-brand-soft flex items-center gap-1">
-              <span className="w-2 h-2 bg-brand dark:bg-brand-soft rounded-full animate-pulse"></span> Live Schedule
+            <div className="text-[10px] sm:text-xs font-black text-brand dark:text-brand-soft flex items-center gap-1">
+              <span className="w-2 h-2 bg-brand dark:bg-brand-soft rounded-full animate-pulse"></span>
+              <span className="hidden sm:inline">Live Schedule</span>
+              <span className="sm:hidden">Live</span>
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* ---------- MOBILE VIEW: day tabs + stacked cards (hidden sm and up) ---------- */}
+        <div className="sm:hidden">
+          {/* Day tabs - horizontally scrollable */}
+          <div className="flex gap-2 overflow-x-auto px-3 py-3 border-b border-slate-100 dark:border-slate-800 no-scrollbar">
+            {days.map(day => (
+              <button
+                key={day}
+                onClick={() => setActiveDay(day)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide transition-all active:scale-95 ${
+                  activeDay === day
+                    ? 'bg-slate-900 dark:bg-brand text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {dayShort[day]}
+              </button>
+            ))}
+          </div>
+
+          {/* Periods list for the selected day */}
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {periods.map(period => {
+              const slot = timetableMatrix[activeDay]?.[period]
+              const styles = slot ? getSubjectStyle(slot.subjects?.name) : null;
+              return (
+                <div key={period} className="flex items-stretch gap-3 p-3">
+                  <div className="w-16 shrink-0 flex flex-col justify-center">
+                    <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 leading-tight">
+                      {timeSlots[period].split(' - ')[0]}
+                    </span>
+                    <span className="text-[9px] font-black text-slate-300 dark:text-slate-600 leading-tight">
+                      {timeSlots[period].split(' - ')[1]}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    {slot ? (
+                      <div className={`rounded-xl p-3 border-l-4 shadow-sm ${styles?.bg} ${styles?.border} ${styles?.text} dark:brightness-90 dark:contrast-125`}>
+                        <div className="flex items-center justify-between">
+                          <p className="font-black text-xs leading-tight">{slot.subjects?.name}</p>
+                          <FiInfo size={12} className="opacity-40 shrink-0 ml-2" />
+                        </div>
+                        <span className="inline-block mt-2 text-[9px] font-black bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded-md uppercase">
+                          {slot.class}-{slot.section}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="h-12 flex items-center">
+                        <div className="w-6 h-[2px] bg-slate-100 dark:bg-slate-800 rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ---------- DESKTOP / TABLET VIEW: full table (hidden below sm) ---------- */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-slate-50/80 dark:bg-slate-800/50">
@@ -196,16 +262,19 @@ export default function TeacherTimetable() {
             </tbody>
           </table>
         </div>
+
         <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 text-center">
           <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">Generated via School Management System</p>
         </div>
       </div>
 
-      {/* --- HIDDEN OFFICIAL PRINT TEMPLATE (Used for Download Only) --- */}
-      <div style={{ position: 'absolute', left: '-9999px', top: '0' }}>
+      {/* --- HIDDEN OFFICIAL PRINT TEMPLATE (Used for Download Only, unaffected by mobile view) ---
+          Wrapper uses fixed position + overflow:hidden + height:0 so this large
+          off-canvas block never adds extra scroll height to the page. */}
+      <div style={{ position: 'fixed', top: 0, left: '-9999px', width: 0, height: 0, overflow: 'hidden' }}>
         <div ref={printRef} style={{ width: '1200px', padding: '60px', backgroundColor: 'white', fontFamily: 'sans-serif' }}>
           <div style={{ border: '10px double #a63d93', padding: '40px', position: 'relative' }}>
-            
+
             {/* Header */}
             <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '4px solid #a63d93', paddingBottom: '20px' }}>
               <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#a63d93', margin: 0, textTransform: 'uppercase' }}>Prashanthi Vidyalaya</h1>
@@ -228,7 +297,7 @@ export default function TeacherTimetable() {
             <div style={{ display: 'grid', gridTemplateColumns: '120px repeat(6, 1fr)', gap: '10px' }}>
               {/* Corner Cell */}
               <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '12px' }}>TIME / DAY</div>
-              
+
               {/* Days Header */}
               {days.map(day => (
                 <div key={day} style={{ backgroundColor: '#a63d93', color: 'white', padding: '15px', textAlign: 'center', borderRadius: '8px', fontSize: '14px', fontWeight: '900', textTransform: 'uppercase' }}>
@@ -247,10 +316,10 @@ export default function TeacherTimetable() {
                   {days.map(day => {
                     const slot = timetableMatrix[day]?.[period];
                     return (
-                      <div key={`${day}-${period}`} style={{ 
-                        padding: '15px', 
-                        borderRadius: '8px', 
-                        border: '1px solid #e2e8f0', 
+                      <div key={`${day}-${period}`} style={{
+                        padding: '15px',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
                         minHeight: '110px',
                         backgroundColor: slot ? '#fdf2f8' : 'white',
                         display: 'flex',

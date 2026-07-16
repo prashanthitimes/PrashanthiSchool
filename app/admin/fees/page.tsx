@@ -62,6 +62,28 @@ interface StudentFormType {
   remarks: string;
 }
 
+// ✅ Single source of truth for a blank student fee form so we never
+// forget to clear a field when resetting (New Entry button, closeModals,
+// or switching to a different student mid-modal).
+const blankStudentForm = (): StudentFormType => ({
+  student_id: "",
+  student_name: "",
+  father_name: "",
+  roll_no: "",
+  class: "",
+  section: "",
+  fee_type_id: "",
+  fee_type: "",
+  total_amount: "",
+  already_paid: "",
+  paying_now: "",
+  concession_amount: "",
+  payment_date: new Date().toISOString().split('T')[0],
+  payment_method: "",
+  utr_number: "",
+  remarks: "",
+});
+
 export default function FeesPage() {
   const [classFees, setClassFees] = useState<ClassFee[]>([]);
   const [studentFees, setStudentFees] = useState<StudentFee[]>([]);
@@ -85,24 +107,7 @@ export default function FeesPage() {
 
   // Form States
   const [classForm, setClassForm] = useState({ class: "", fee_type: "", amount: "" });
-  const [studentForm, setStudentForm] = useState<StudentFormType>({
-    student_id: "",
-    student_name: "",
-    father_name: "",
-    roll_no: "",
-    class: "",
-    section: "",
-    fee_type_id: "",
-    fee_type: "",
-    total_amount: "",
-    already_paid: "",
-    paying_now: "",
-    concession_amount: "",
-    payment_date: new Date().toISOString().split('T')[0], // ✅ NEW - Default to today
-    payment_method: "",
-    utr_number: "",
-    remarks: "",
-  });
+  const [studentForm, setStudentForm] = useState<StudentFormType>(blankStudentForm());
 
   // ✅ FETCH FEE TYPES
   useEffect(() => {
@@ -135,9 +140,15 @@ export default function FeesPage() {
     - Number(studentForm.paying_now || 0)
     - Number(studentForm.concession_amount || 0);
 
+  // ✅ FIX: isFullyPaid must only reflect HISTORY (amounts already saved to
+  // the database in previous transactions) — NOT the concession/amount the
+  // admin is currently typing in for this new transaction. Previously this
+  // also subtracted the in-progress concession_amount, so simply typing a
+  // full concession into the field made the fee look "already settled"
+  // and blocked the very submission meant to record that concession.
   const isFullyPaid =
     Number(studentForm.total_amount || 0) -
-    Number(studentForm.already_paid || 0) - Number(studentForm.concession_amount || 0) <= 0;
+    Number(studentForm.already_paid || 0) <= 0;
 
   const remainingBalance =
     Number(studentForm.total_amount || 0)
@@ -300,6 +311,18 @@ export default function FeesPage() {
       class: student.class_name,
       section: student.section,
       payment_date: new Date().toISOString().split('T')[0], // ✅ Reset to today
+      // ✅ FIX: clear any fee selection/amounts left over from a previously
+      // picked student. Without this, switching students inside the same
+      // modal session (without closing it first) kept the old student's
+      // fee_type/total_amount/concession_amount, which could make a brand
+      // new student's fee look "already fully paid" purely because of
+      // stale numbers still sitting in the form.
+      fee_type_id: "",
+      fee_type: "",
+      total_amount: "",
+      already_paid: "",
+      paying_now: "",
+      concession_amount: "",
     }));
 
     let combinedFees: any[] = [];
@@ -413,6 +436,12 @@ export default function FeesPage() {
     e.preventDefault();
     setLoading(true);
 
+    if (!studentForm.fee_type) {
+      toast.error("Please select a fee type.");
+      setLoading(false);
+      return;
+    }
+
     if (isFullyPaid) {
       toast.error("This fee is already fully paid.");
       setLoading(false);
@@ -488,6 +517,21 @@ export default function FeesPage() {
       fetchAll();
       toast.success("Record deleted!");
     }
+  };
+
+  // ✅ OPEN A CLEAN "NEW ENTRY" STUDENT MODAL
+  // FIX: previously the header button called setIsStudentModalOpen(true)
+  // directly, so any student/fee data left in the form from a prior modal
+  // session (e.g. picking a second student without closing first, or a
+  // leftover edit) silently carried over into the "New Entry" form. This
+  // guarantees a fully blank form every time "New Entry" is clicked.
+  const openNewStudentEntry = () => {
+    setEditingId(null);
+    setStudentForm(blankStudentForm());
+    setStudentSearch("");
+    setStudentSuggestions([]);
+    setAllFees([]);
+    setIsStudentModalOpen(true);
   };
 
   // ✅ OPEN EDIT
@@ -587,28 +631,11 @@ export default function FeesPage() {
     setEditingId(null);
 
     setClassForm({ class: "", fee_type: "", amount: "" });
-
-    setStudentForm({
-      student_id: "",
-      student_name: "",
-      father_name: "",
-      roll_no: "",
-      class: "",
-      section: "",
-      fee_type_id: "",
-      fee_type: "",
-      total_amount: "",
-      already_paid: "",
-      paying_now: "",
-      concession_amount: "",
-      payment_date: new Date().toISOString().split('T')[0],
-      payment_method: "",
-      utr_number: "",
-      remarks: "",
-    });
+    setStudentForm(blankStudentForm());
 
     setStudentSearch("");
     setStudentSuggestions([]);
+    setAllFees([]);
   };
 
   // ✅ FILTER BY DATE AND SEARCH
@@ -684,7 +711,7 @@ export default function FeesPage() {
 
           <div className="flex flex-wrap md:flex-row items-center gap-2 md:gap-3">
             <button
-              onClick={() => setIsStudentModalOpen(true)}
+              onClick={openNewStudentEntry}
               className="flex-[1.5] md:flex-none bg-brand text-white px-4 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/20 hover:shadow-brand/40"
             >
               <Plus size={16} className="inline mr-1" /> New Entry
