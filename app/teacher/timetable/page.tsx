@@ -80,42 +80,53 @@ export default function TeacherTimetable() {
     fetchTeacherTimetable()
   }, [])
 
-  async function fetchTeacherTimetable() {
-    try {
-      setLoading(true);
-      const userEmail = localStorage.getItem('teacherEmail');
+async function fetchTeacherTimetable() {
+  try {
+    setLoading(true);
+    const userEmail = localStorage.getItem('teacherEmail');
 
-      const { data: teacher, error: tError } = await supabase
-        .from('teachers')
-        .select('*')
-        .eq('email', userEmail)
-        .single();
+    const { data: teacher, error: tError } = await supabase
+      .from('teachers')
+      .select('*')
+      .eq('email', userEmail)
+      .single();
 
-      if (tError || !teacher) return;
-      setTeacherName(teacher.full_name);
+    if (tError || !teacher) return;
+    setTeacherName(teacher.full_name);
 
-      const [assignmentsRes, timetableRes] = await Promise.all([
-        supabase.from('subject_assignments').select('*').eq('teacher_id', teacher.id),
-        supabase.from('timetable').select('*, subjects(*)')
-      ]);
+    const [assignmentsRes, timetableRes] = await Promise.all([
+      supabase.from('subject_assignments').select('*').eq('teacher_id', teacher.id),
+      supabase.from('timetable').select('*, subjects(*)')
+    ]);
 
-      const matrix: any = {};
-      if (timetableRes.data && assignmentsRes.data) {
-        timetableRes.data.forEach(slot => {
-          const match = assignmentsRes.data.find(a => a.subject_id === slot.subject_id);
-          if (match) {
-            if (!matrix[slot.day]) matrix[slot.day] = {};
-            matrix[slot.day][slot.period] = slot;
-          }
-        });
-      }
-      setTimetableMatrix(matrix);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
+    // "10th" -> "10", "1st" -> "1", "Pre-KG" -> "Pre-KG" (unchanged)
+    const normalizeClass = (val: string) => {
+      if (!val) return val;
+      const digits = val.match(/\d+/);
+      return digits ? digits[0] : val.trim().toUpperCase();
+    };
+
+    const matrix: any = {};
+    if (timetableRes.data && assignmentsRes.data) {
+      timetableRes.data.forEach(slot => {
+        const match = assignmentsRes.data.find(a =>
+          a.subject_id === slot.subject_id &&
+          normalizeClass(a.class_name) === normalizeClass(slot.class) &&
+          a.section?.trim().toUpperCase() === slot.section?.trim().toUpperCase()
+        );
+        if (match) {
+          if (!matrix[slot.day]) matrix[slot.day] = {};
+          matrix[slot.day][slot.period] = slot;
+        }
+      });
     }
+    setTimetableMatrix(matrix);
+  } catch (error) {
+    console.error('Error:', error);
+  } finally {
+    setLoading(false);
   }
+}
 
   if (loading) return (
     <div className="flex justify-center items-center h-64">
