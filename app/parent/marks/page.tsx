@@ -17,6 +17,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { saveImageFromDataUrl } from "@/lib/nativeDownload";
+
 export default function ParentMarks() {
   const [marks, setMarks] = useState<any[]>([]);
   const [student, setStudent] = useState<any>(null);
@@ -93,31 +94,31 @@ export default function ParentMarks() {
     });
   };
 
-const downloadOfficialCard = async () => {
-  if (!printTemplateRef.current) return;
-  setIsDownloading(true);
-  try {
-    const element = printTemplateRef.current;
-    element.style.display = "block";
+  const downloadOfficialCard = async () => {
+    if (!printTemplateRef.current) return;
+    setIsDownloading(true);
+    try {
+      const element = printTemplateRef.current;
+      element.style.display = "block";
 
-    const canvas = await html2canvas(element, {
-      scale: 3,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-    });
+      const canvas = await html2canvas(element, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
 
-    element.style.display = "none";
+      element.style.display = "none";
 
-    const dataUrl = canvas.toDataURL("image/png");
-    const fileName = `Official_Marks_Card_${student?.full_name || "student"}.png`;
-    await saveImageFromDataUrl(dataUrl, fileName);
-  } catch (err) {
-    console.error("Download failed", err);
-    alert("Download failed: " + (err instanceof Error ? err.message : String(err))); // TEMP for debugging
-  } finally {
-    setIsDownloading(false);
-  }
-};
+      const dataUrl = canvas.toDataURL("image/png");
+      const fileName = `Official_Marks_Card_${student?.full_name || "student"}.png`;
+      await saveImageFromDataUrl(dataUrl, fileName);
+    } catch (err) {
+      console.error("Download failed", err);
+      alert("Download failed: " + (err instanceof Error ? err.message : String(err))); // TEMP for debugging
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -145,7 +146,7 @@ const downloadOfficialCard = async () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
             <div style={{ fontSize: '12px' }}><strong>STUDENT:</strong> {student?.full_name?.toUpperCase()}</div>
             <div style={{ fontSize: '12px' }}><strong>CLASS:</strong> {student?.class_name}-{student?.section}</div>
-            <div style={{ fontSize: '12px' }}><strong>ACADEMIC YEAR:</strong> 2025-2026</div>
+            <div style={{ fontSize: '12px' }}><strong>ACADEMIC YEAR:</strong> {student?.academic_year || "---"}</div>
             <div style={{ fontSize: '12px' }}><strong>DATE:</strong> {new Date().toLocaleDateString()}</div>
           </div>
 
@@ -230,22 +231,22 @@ const downloadOfficialCard = async () => {
             </div>
             <div className="text-left md:text-right">
               <p className="text-[10px] font-black uppercase opacity-60 leading-none">Session</p>
-              <p className="text-xl md:text-2xl font-black tracking-tighter">2025 - 2026</p>
+              <p className="text-xl md:text-2xl font-black tracking-tighter">{student?.academic_year || "---"}</p>
             </div>
           </div>
         </div>
 
-        {/* INTERACTIVE TABLE */}
+        {/* INTERACTIVE TABLE - UPDATED FOR FULL VISIBILITY */}
         <div className="relative">
-          <div className="overflow-x-auto scrollbar-hide">
-            <table className="w-full border-collapse min-w-[600px]">
+          <div className="w-full">
+            <table className="w-full border-collapse table-fixed md:table-auto">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  <th className="p-4 md:p-6 text-left text-[10px] md:text-xs uppercase font-black sticky left-0 bg-slate-900 z-30 min-w-[140px] md:min-w-[200px]">Subject</th>
+                  <th className="px-2 py-3 md:p-6 text-left text-[9px] md:text-xs uppercase font-black w-1/3 md:w-auto">Subject</th>
                   {availableExams.map(ex => (
-                    <th key={ex.id} className="p-4 text-center text-[9px] md:text-[11px] uppercase font-black border-l border-white/5">{ex.exam_name}</th>
+                    <th key={ex.id} className="px-1 py-3 md:p-4 text-center text-[8px] md:text-[11px] uppercase font-black border-l border-white/5">{ex.exam_name}</th>
                   ))}
-                  <th className="p-4 text-center text-[10px] md:text-xs uppercase font-black bg-brand sticky right-0 z-30">Avg</th>
+                  <th className="px-2 py-3 md:p-4 text-center text-[9px] md:text-xs uppercase font-black bg-brand">Avg</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -254,23 +255,23 @@ const downloadOfficialCard = async () => {
                   let subjectTotal = 0;
                   let examCount = 0;
                   return (
-                    <tr key={subId} className={`${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800/20'}`}>
-                      <td className="p-4 md:p-6 font-black text-[11px] md:text-sm uppercase sticky left-0 bg-inherit z-20 border-r dark:border-slate-800">
-                        <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 bg-brand rounded-full"></div>
-                          {asgn.subjects?.name}
+                    <tr key={subId} className={`${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800'}`}>
+                      <td className="px-2 py-4 md:p-6 font-black text-[10px] md:text-sm uppercase border-r border-slate-100 dark:border-slate-800 leading-tight break-words">
+                        <div className="flex items-center gap-1.5 md:gap-2">
+                          <div className="w-1 md:w-1.5 h-1 md:h-1.5 bg-brand rounded-full shrink-0"></div>
+                          <span>{asgn.subjects?.name}</span>
                         </div>
                       </td>
                       {availableExams.map(ex => {
                         const m = getMark(subId, ex.id);
                         if (m) { subjectTotal += (m.marks_obtained / m.total_marks) * 100; examCount++; }
                         return (
-                          <td key={ex.id} className="p-4 text-center">
+                          <td key={ex.id} className="px-1 py-4 md:p-4 text-center text-[10px] md:text-sm">
                             {m ? <span className="font-bold text-slate-800 dark:text-white">{m.marks_obtained}/{m.total_marks}</span> : <span className="opacity-20">—</span>}
                           </td>
                         );
                       })}
-                      <td className="p-4 text-center bg-brand/5 dark:bg-brand/10 font-black text-brand sticky right-0 z-20 backdrop-blur-sm">
+                      <td className="px-2 py-4 md:p-4 text-center bg-brand/5 dark:bg-brand/10 border-l border-slate-100 dark:border-slate-800 font-black text-brand text-[10px] md:text-sm">
                         {examCount > 0 ? Math.round(subjectTotal / examCount) + "%" : "-"}
                       </td>
                     </tr>
