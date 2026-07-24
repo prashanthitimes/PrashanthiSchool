@@ -17,7 +17,7 @@ import {
   FiInfo,
   FiAlertTriangle,
   FiXCircle,
-  FiUsers // Add this if you used it in the branding section
+  FiUsers 
 } from 'react-icons/fi';
 import { toast, Toaster } from "sonner";
 
@@ -31,7 +31,7 @@ const Input = ({ label, value, onChange, disabled, type = "text" }: any) => {
         type={type}
         value={value || ""}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)} // This triggers handleInputChange
+        onChange={(e) => onChange(e.target.value)} 
         className="w-full bg-white dark:bg-slate-900 
         border-2 border-slate-300 dark:border-slate-700 
         rounded-xl px-4 py-3 text-sm font-semibold 
@@ -54,15 +54,15 @@ export default function StudentManagement() {
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [mode, setMode] = useState<'add' | 'edit' | 'view'>('add'); // <-- move this up
-  const isReadOnly = mode === 'view'; // <-- now this works
+  const [mode, setMode] = useState<'add' | 'edit' | 'view'>('add'); 
+  const isReadOnly = mode === 'view'; 
 
   const lastAction = useRef<{ type: 'delete' | 'import', data: any[] | any } | null>(null);
   const [canUndo, setCanUndo] = useState(false);
 
   const [selectedClass, setSelectedClass] = useState("Pre-KG");
   const [selectedSection, setSelectedSection] = useState("A");
-  const [academicYear, setAcademicYear] = useState("2026-27"); // default fallback
+  const [academicYear, setAcademicYear] = useState("2026-27"); 
 
   const classes = ["Pre-KG", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
   const sections = ["A", "B", "C", "D"];
@@ -72,23 +72,22 @@ export default function StudentManagement() {
       const { data, error } = await supabase
         .from("school_settings")
         .select("academic_start_year, academic_end_year")
-        .single(); // only 1 row expected
+        .single(); 
 
       if (!error && data) {
         const startYear = data.academic_start_year;
         const endYear = data.academic_end_year;
-        setAcademicYear(`${startYear}-${endYear}`); // e.g., "2030-2031"
+        setAcademicYear(`${startYear}-${endYear}`); 
       } else {
         console.error("Failed to fetch academic year:", error);
-        setAcademicYear("2026-27"); // fallback
+        setAcademicYear("2026-27"); 
       }
     };
 
     fetchAcademicYear();
   }, []);
 
-  // This filters the students list in real-time as you type
-const filteredStudents = students
+  const filteredStudents = students
     .filter((s) => {
       const searchTerm = search.toLowerCase();
       return (
@@ -99,8 +98,9 @@ const filteredStudents = students
       );
     })
     .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
+    
   const [formData, setFormData] = useState({
-    student_id: "", // ✅ ADD THIS
+    student_id: "", 
     full_name: "",
     email: "",
     parent_phone: "",
@@ -117,10 +117,10 @@ const filteredStudents = students
     class_name: "",
     section: "",
     roll_number: "",
-    academic_year: academicYear, // dynamic
+    academic_year: academicYear, 
   });
 
-const fetchStudents = useCallback(async () => {
+  const fetchStudents = useCallback(async () => {
     setLoading(true);
 
     let query = supabase.from("students").select("*");
@@ -133,7 +133,7 @@ const fetchStudents = useCallback(async () => {
       query = query.eq("section", selectedSection);
     }
 
-    const { data, error } = await query.order("full_name", { ascending: true }); // ✅ changed from roll_number
+    const { data, error } = await query.order("full_name", { ascending: true }); 
 
     if (!error) setStudents(data || []);
     setLoading(false);
@@ -195,8 +195,6 @@ const fetchStudents = useCallback(async () => {
     }
   };
 
-  // --- BULK IMPORT LOGIC WITH ERROR HANDLING ---
-  // --- BULK IMPORT LOGIC WITH ENHANCED ERROR HANDLING ---
   // --- BULK IMPORT LOGIC WITH ENHANCED ERROR HANDLING ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -234,7 +232,11 @@ const fetchStudents = useCallback(async () => {
             // 2. DATE PARSING & REVERSAL LOGIC
             if (row.dob) {
               if (row.dob instanceof Date) {
-                formattedDob = row.dob.toISOString().split('T')[0];
+                // UPDATED: Extract local date components directly to avoid the UTC timezone shift!
+                const y = row.dob.getFullYear();
+                const m = String(row.dob.getMonth() + 1).padStart(2, '0');
+                const d = String(row.dob.getDate()).padStart(2, '0');
+                formattedDob = `${y}-${m}-${d}`;
               } else {
                 const dateStr = String(row.dob).trim();
                 // Split by common delimiters like / or -
@@ -281,7 +283,6 @@ const fetchStudents = useCallback(async () => {
           }
         });
 
-        // 4. SUPABASE INSERT
         // 4. SUPABASE INSERT
         if (validRecords.length > 0) {
           const duplicateErrors: string[] = [];
@@ -456,8 +457,6 @@ const fetchStudents = useCallback(async () => {
       email: formData.email || null,
     };
 
-
-
     if (mode === 'edit') {
       if (!currentStudentId) {
         return toast.error("Error: Missing Student ID for update");
@@ -499,7 +498,7 @@ const fetchStudents = useCallback(async () => {
     setIsEditing(false);
     setMode('add'); setCurrentStudentId(null);
     setFormData({
-      student_id: "", // ✅ RESET
+      student_id: "", 
       full_name: "",
       email: "",
       parent_phone: "",
@@ -518,9 +517,9 @@ const fetchStudents = useCallback(async () => {
       roll_number: "",
       academic_year: academicYear,
     });
-
   };
-  // ✅ Explicit DD/MM/YYYY formatter — avoids relying on browser/locale date format
+  
+  // Explicit DD/MM/YYYY formatter — avoids relying on browser/locale date format
   const formatDateDDMMYYYY = (dateString?: string | null) => {
     if (!dateString) return "--";
     const datePart = String(dateString).split("T")[0]; // handles "2015-01-01" or full timestamps
@@ -529,7 +528,7 @@ const fetchStudents = useCallback(async () => {
     return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
   };
 
-  // ✅ PLACE THIS OUTSIDE YOUR MAIN COMPONENT FUNCTION
+  // PLACE THIS OUTSIDE YOUR MAIN COMPONENT FUNCTION
   const formatDateForInput = (dateString: string) => {
     if (!dateString) return "";
 
@@ -544,6 +543,7 @@ const fetchStudents = useCallback(async () => {
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
   };
+  
   // Place this inside StudentManagement component, after closeModal
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -551,6 +551,7 @@ const fetchStudents = useCallback(async () => {
       [field]: value
     }));
   };
+  
   return (
     <div className="bg-[#fdfafc] dark:bg-slate-950 p-4 lg:p-10 font-sans transition-colors duration-300">
       <Toaster position="top-center" richColors />
@@ -781,11 +782,7 @@ const fetchStudents = useCallback(async () => {
       </div>
 
       {/* MODAL - Fully Responsive Dark Mode */}
-      {/* MODAL - Fully Responsive Dark Mode */}
       {showModal && (
-        /* High Z-index (z-[9999]) ensures it stays above any sticky/fixed headers.
-           backdrop-blur and bg-slate-900/80 create a clear visual separation.
-        */
         <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/80 backdrop-blur-md overflow-hidden">
 
           <div className="bg-white dark:bg-slate-900 rounded-t-[2rem] sm:rounded-[2rem] w-full max-w-6xl shadow-2xl border border-white dark:border-slate-800 overflow-hidden flex flex-col h-[95vh] sm:h-auto max-h-[95vh] animate-in fade-in zoom-in duration-200">
