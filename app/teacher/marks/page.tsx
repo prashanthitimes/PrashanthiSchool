@@ -93,7 +93,7 @@ export default function MarksEntryPage() {
             .select('id, full_name, roll_number, student_id')
             .eq('class_name', exam.class_name)
             .eq('section', exam.section)
-            .order('roll_number', { ascending: true })
+            .order('full_name', { ascending: true }) // UPDATED: Now sorts alphabetically by name
 
         const { data: existingMarks } = await supabase.from('exam_marks').select('*').eq('syllabus_id', exam.id)
 
