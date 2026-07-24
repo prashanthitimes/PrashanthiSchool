@@ -59,29 +59,39 @@ export default function StudentAdminPage() {
         ? `${schoolData.academic_start_year}-${schoolData.academic_end_year}`
         : '2026-2027';
 
-// Query Pre-KG, LKG, UKG from any year
-// Query Pre-KG, LKG, UKG, 9th from any year
-const { data: earlyClassData, error: earlyError } = await supabase
-  .from('students')
-  .select('*')
-  .in('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
-  .order('class_name', { ascending: true })
-  .order('roll_number', { ascending: true });
+      // Classes that are always shown regardless of academic year
+      const EARLY_CLASSES = ['Pre-KG', 'LKG', 'UKG', '9th'];
 
-// Query other classes from current year
-const { data: mainClassData, error: mainError } = await supabase
-  .from('students')
-  .select('*')
-  .notIn('class_name', ['Pre-KG', 'LKG', 'UKG'])
-  .eq('academic_year', yearFilter)
-  .order('class_name', { ascending: true })
-  .order('roll_number', { ascending: true });
+      // Query Pre-KG, LKG, UKG, 9th from any year
+      const { data: earlyClassData, error: earlyError } = await supabase
+        .from('students')
+        .select('*')
+        .in('class_name', EARLY_CLASSES)
+        .order('class_name', { ascending: true })
+        .order('roll_number', { ascending: true });
 
-const error = earlyError || mainError;
-const data = [...(earlyClassData || []), ...(mainClassData || [])];
+      // Query all other classes from the current academic year only.
+      // IMPORTANT: this exclusion list must match EARLY_CLASSES above,
+      // otherwise a class (e.g. '9th') can be pulled in by both queries
+      // and produce duplicate rows / duplicate React keys.
+      const { data: mainClassData, error: mainError } = await supabase
+        .from('students')
+        .select('*')
+        .notIn('class_name', EARLY_CLASSES)
+        .eq('academic_year', yearFilter)
+        .order('class_name', { ascending: true })
+        .order('roll_number', { ascending: true });
 
+      const error = earlyError || mainError;
       if (error) throw error;
-      setStudents(data || []);
+
+      const combined = [...(earlyClassData || []), ...(mainClassData || [])];
+
+      // Defensive de-dupe by id, in case of any other overlap between
+      // the two queries (e.g. bad data, race conditions, future filter changes).
+      const deduped = Array.from(new Map(combined.map((s) => [s.id, s])).values());
+
+      setStudents(deduped);
     } catch (err) { console.error("Fetch Error:", err); } finally { setLoading(false); }
   };
 
@@ -129,18 +139,18 @@ const data = [...(earlyClassData || []), ...(mainClassData || [])];
     try {
       const classOrder = ['Pre-KG', 'LKG', 'UKG', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
 
-const promotedRecords = students.map(({ id, ...rest }) => {
-  const currentIndex = classOrder.indexOf(rest.class_name);
-  const nextIndex = currentIndex + 1;
-  const nextClassName = nextIndex < classOrder.length ? classOrder[nextIndex] : '10th';
-  
-  return {
-    ...rest,
-    academic_year: nextYear,
-    class_name: nextClassName,
-    status: nextIndex >= 10 ? 'graduated' : 'active'
-  };
-});
+      const promotedRecords = students.map(({ id, ...rest }) => {
+        const currentIndex = classOrder.indexOf(rest.class_name);
+        const nextIndex = currentIndex + 1;
+        const nextClassName = nextIndex < classOrder.length ? classOrder[nextIndex] : '10th';
+
+        return {
+          ...rest,
+          academic_year: nextYear,
+          class_name: nextClassName,
+          status: nextIndex >= 10 ? 'graduated' : 'active'
+        };
+      });
 
       const { error: insertErr } = await supabase.from('students').insert(promotedRecords);
       if (insertErr) throw insertErr;
@@ -172,27 +182,27 @@ const promotedRecords = students.map(({ id, ...rest }) => {
   });
 
   const classOrder = ['Pre-KG', 'LKG', 'UKG', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
-const uniqueClasses = Array.from(new Set(students.map(s => s.class_name)))
-  .sort((a, b) => classOrder.indexOf(a) - classOrder.indexOf(b));
+  const uniqueClasses = Array.from(new Set(students.map(s => s.class_name)))
+    .sort((a, b) => classOrder.indexOf(a) - classOrder.indexOf(b));
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 p-6 pt-16">
       
       {/* HEADER */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
-       <div>
-  <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">
-    Student Registry
-  </h1>
-  <div className="flex items-center gap-2">
-    <p className="text-brand font-bold text-xs uppercase tracking-[0.3em]">
-      Current Session: {currentYearString}
-    </p>
-    <span className="bg-slate-200 dark:bg-slate-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
-      {filteredStudents.length} Students Total
-    </span>
-  </div>
-</div>
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">
+            Student Registry
+          </h1>
+          <div className="flex items-center gap-2">
+            <p className="text-brand font-bold text-xs uppercase tracking-[0.3em]">
+              Current Session: {currentYearString}
+            </p>
+            <span className="bg-slate-200 dark:bg-slate-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
+              {filteredStudents.length} Students Total
+            </span>
+          </div>
+        </div>
         
         <div className="flex flex-wrap gap-3">
           <button onClick={fetchData} className="p-3 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">
