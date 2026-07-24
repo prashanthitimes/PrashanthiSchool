@@ -23,25 +23,25 @@ export default function TeacherClassList() {
         initData()
     }, [])
 
-async function initData() {
-    setLoading(true)
-    const { data: settings } = await supabase
-        .from('school_settings')
-        .select('academic_start_year, academic_end_year')
-        .eq('id', 1)
-        .single()
+    async function initData() {
+        setLoading(true)
+        const { data: settings } = await supabase
+            .from('school_settings')
+            .select('academic_start_year, academic_end_year')
+            .eq('id', 1)
+            .single()
 
-    if (settings) {
-        // Change this line to use the full year: 2026-2027
-        const yearString = `${settings.academic_start_year}-${settings.academic_end_year}`;
-        
-        console.log("Searching for Academic Year:", yearString); 
-        setCurrentAcademicYear(yearString)
-        await fetchTeacherAllocations(yearString)
-    } else {
-        setLoading(false)
+        if (settings) {
+            // Change this line to use the full year: 2026-2027
+            const yearString = `${settings.academic_start_year}-${settings.academic_end_year}`;
+            
+            console.log("Searching for Academic Year:", yearString); 
+            setCurrentAcademicYear(yearString)
+            await fetchTeacherAllocations(yearString)
+        } else {
+            setLoading(false)
+        }
     }
-}
 
     async function fetchTeacherAllocations(yearString: string) {
         const email = localStorage.getItem('teacherEmail')
@@ -98,7 +98,7 @@ async function initData() {
             .eq('class_name', allocation.class_name)
             .eq('section', allocation.section)
             .eq('academic_year', targetYear) // Dynamic search based on school_settings
-            .order('roll_number', { ascending: true })
+            .order('full_name', { ascending: true }) // UPDATED: Now sorts alphabetically by name
 
         if (error) console.error("Query Error:", error.message);
 
@@ -106,7 +106,7 @@ async function initData() {
         setLoading(false)
     }
 
-const filteredStudents = students.filter((stu) => {
+    const filteredStudents = students.filter((stu) => {
         const search = searchTerm.toLowerCase();
         return (
             stu.full_name?.toLowerCase().includes(search) ||
@@ -212,7 +212,7 @@ const filteredStudents = students.filter((stu) => {
                                                     <p className="font-black text-slate-700 dark:text-slate-200 text-sm capitalize">
                                                         {stu.full_name}
                                                     </p>            
-                                                                                            <p className="text-[10px] font-bold text-brand-light dark:text-slate-500 uppercase">{stu.student_id}</p>
+                                                    <p className="text-[10px] font-bold text-brand-light dark:text-slate-500 uppercase">{stu.student_id}</p>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
