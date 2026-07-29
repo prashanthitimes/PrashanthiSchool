@@ -29,15 +29,21 @@ export default function ParentHomework() {
       setStudentDetails(student);
 
       const cleanedClass = student.class_name.replace(/(st|nd|rd|th)$/i, "").trim();
-      const today = new Date().toISOString().split('T')[0];
+      
+      // ✅ FIX: Create two separate time references
+      const now = new Date();
+      const currentIsoTime = now.toISOString(); // e.g. "2026-07-27T16:34:00.000Z"
+      const todayMidnight = currentIsoTime.split('T')[0]; // "2026-07-27"
 
       const { data: hw } = await supabase
         .from("homework")
         .select(`*, subjects (name), teachers (full_name)`)
         .or(`class_name.eq."${student.class_name}",class_name.eq."${cleanedClass}"`)
         .eq("section", student.section)
-        .lte("assigned_date", today)
-        .gte("due_date", today)
+        // ✅ Compare assigned_date to RIGHT NOW (includes today's afternoon homework)
+        .lte("assigned_date", currentIsoTime)
+        // ✅ Compare due_date to midnight (keeps homework active for the whole due date)
+        .gte("due_date", todayMidnight)
         .order('due_date', { ascending: true });
 
       setHomework(hw || []);
