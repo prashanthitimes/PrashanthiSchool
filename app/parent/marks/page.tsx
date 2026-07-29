@@ -158,9 +158,9 @@ export default function ParentMarks() {
 
       {/* --- HIDDEN PRINT TEMPLATE (This is what downloads) --- */}
       <div
-        ref={printTemplateRef}
-        style={{ display: 'none', width: '800px', padding: '60px', backgroundColor: 'white' }}
-      >
+  ref={printTemplateRef}
+  style={{ display: 'none', width: '800px', padding: '60px', backgroundColor: 'white', color: 'black' }}
+>
         <div style={{ border: '12px double #1e293b', padding: '40px', position: 'relative' }}>
           <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
             <h1 style={{ fontSize: '32px', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>Prashanthi Vidyalaya</h1>
