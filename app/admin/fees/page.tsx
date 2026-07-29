@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { Plus, Edit, Trash2, Search, X, Shield, Calendar, BookOpen } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
@@ -895,9 +896,12 @@ export default function FeesPage() {
           </div>
         </div>
 
-        {/* MODAL */}
-        {(isClassModalOpen || isStudentModalOpen) && (
-          <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-6">
+        {/* MODAL — rendered via portal to document.body so `fixed` positioning
+            is always relative to the viewport, not to any ancestor layout
+            wrapper (e.g. a sidebar container with a transform/overflow set),
+            which is what was causing it to visually collide with the sidebar. */}
+        {(isClassModalOpen || isStudentModalOpen) && typeof document !== "undefined" && createPortal(
+          <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4 md:p-6">
             <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-5xl h-full max-h-[85vh] md:h-auto overflow-hidden animate-in zoom-in duration-300 border border-slate-100 dark:border-slate-800/80 flex flex-col md:flex-row">
 
               {/* Left Sidebar */}
@@ -1115,7 +1119,8 @@ export default function FeesPage() {
                 </form>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         <style jsx>{`
