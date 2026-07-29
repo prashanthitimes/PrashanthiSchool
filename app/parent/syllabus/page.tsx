@@ -7,6 +7,8 @@ import {
 } from "react-icons/fi";
 import { supabase } from "@/lib/supabase";
 import html2canvas from "html2canvas";
+// 1. ADDED NATIVE DOWNLOAD IMPORT
+import { saveImageFromDataUrl } from "@/lib/nativeDownload";
 
 // ... Types remain same ...
 type Student = { full_name: string; class_name: string; section: string; image_url?: string; };
@@ -59,20 +61,30 @@ export default function ExamTimetable() {
     } catch (err) { console.error(err); } finally { setLoading(false); }
   }
 
+// 2. UPDATED DOWNLOAD FUNCTION FOR APK SUPPORT
 const handleDownload = async () => {
   if (printRef.current) {
     setIsDownloading(true);
-    const element = printRef.current;
-    element.style.display = "block";
+    try {
+      const element = printRef.current;
+      element.style.display = "block";
 
-    const canvas = await html2canvas(element, { scale: 3, useCORS: true, backgroundColor: "#ffffff" });
+      const canvas = await html2canvas(element, { scale: 3, useCORS: true, backgroundColor: "#ffffff" });
 
-    element.style.display = "none";
-    const link = document.createElement("a");
-    link.download = `Official_Exam_Schedule_${studentInfo?.full_name}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-    setIsDownloading(false);
+      element.style.display = "none";
+      
+      const dataUrl = canvas.toDataURL("image/png");
+      const fileName = `Official_Exam_Schedule_${studentInfo?.full_name?.replace(/\s+/g, '_') || "Student"}.png`;
+      
+      // Replaced the web 'a' tag with the native download helper
+      await saveImageFromDataUrl(dataUrl, fileName);
+
+    } catch (err) {
+      console.error("Download failed", err);
+      alert("Download failed: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsDownloading(false);
+    }
   }
 };
 
@@ -139,7 +151,7 @@ const handleDownload = async () => {
       {/* 2. INTERACTIVE UI (The screen version) */}
       <div className="max-w-7xl mx-auto flex justify-between items-center mb-8 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-pink-50 dark:border-slate-800">
         <div>
-           <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter">Academic Calendar</h2>
+           <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter">Exam syllabus</h2>
            <p className="text-[10px] text-slate-400 font-bold uppercase">View & Download Schedule</p>
         </div>
         <button
