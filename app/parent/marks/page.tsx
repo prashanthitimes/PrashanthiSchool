@@ -54,8 +54,32 @@ export default function ParentMarks() {
         const cleanClassName = studentData.class_name.replace(/(th|st|nd|rd)/gi, "");
         const matchString = `${cleanClassName}-${studentData.section}`;
 
+        // 1. Fetch the raw exams from Supabase
         const { data: examData } = await supabase.from("exams").select("*").contains("classes", [matchString]);
-        setAvailableExams(examData || []);
+        
+        // ---------------------------------------------------------
+        // 2. BULLETPROOF SORTING LOGIC
+        // ---------------------------------------------------------
+        const strictExamOrder = ["FA1", "FA2", "SA1", "FA3", "FA4", "SA2"];
+
+        const sortedExams = (examData || []).sort((a, b) => {
+          // Clean up the names from the database (removes spaces/dashes, makes uppercase)
+          const cleanNameA = (a.exam_name || "").toUpperCase().replace(/[^A-Z0-9]/g, '');
+          const cleanNameB = (b.exam_name || "").toUpperCase().replace(/[^A-Z0-9]/g, '');
+          
+          let indexA = strictExamOrder.indexOf(cleanNameA);
+          let indexB = strictExamOrder.indexOf(cleanNameB);
+
+          // If it doesn't match perfectly, push to the end
+          if (indexA === -1) indexA = 999;
+          if (indexB === -1) indexB = 999;
+
+          return indexA - indexB;
+        });
+
+        // 3. Save the perfectly sorted array to state
+        setAvailableExams(sortedExams);
+        // ---------------------------------------------------------
 
         const { data: asgn } = await supabase.from("subject_assignments").select(`*, subjects (id, name)`).eq("class_name", studentData.class_name).eq("section", studentData.section);
         setAssignments(asgn || []);
