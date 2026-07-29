@@ -4,14 +4,20 @@ import React, { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { FiCalendar, FiClock, FiDownload, FiInfo, FiPrinter } from 'react-icons/fi'
 import html2canvas from 'html2canvas'
+import { saveImageFromDataUrl } from "@/lib/nativeDownload"
 
 export default function TeacherTimetable() {
   const [timetableMatrix, setTimetableMatrix] = useState<any>({})
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
   const [teacherName, setTeacherName] = useState("")
-  // Which day is shown in the mobile card view
-  const [activeDay, setActiveDay] = useState('Monday')
+  
+  // Automatically select today's day (Defaults to Monday if it's Sunday)
+  const [activeDay, setActiveDay] = useState(() => {
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    const daysList = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return daysList.includes(today) ? today : 'Monday';
+  });
 
   // Ref for the high-quality official document template
   const printRef = useRef<HTMLDivElement>(null)
@@ -28,7 +34,7 @@ export default function TeacherTimetable() {
     4: "12:00 - 01:00", 5: "02:00 - 03:00", 6: "03:00 - 04:00",
   }
 
-  // --- HELPER: Generate Consistent Colors Based on Subject Name ---
+  // --- HELPER 1: Web UI Tailwind Colors ---
   const getSubjectStyle = (subjectName: string) => {
     const name = subjectName || 'Default';
     let hash = 0;
@@ -48,13 +54,33 @@ export default function TeacherTimetable() {
     return colors[Math.abs(hash) % colors.length];
   }
 
-  // --- FUNCTION: Official Download Method ---
+  // --- HELPER 2: PDF Export HEX Colors (Forces html2canvas to render bright colors) ---
+  const getSubjectHexStyle = (subjectName: string) => {
+    const name = subjectName || 'Default';
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colors = [
+      { bg: '#eff6ff', border: '#60a5fa', text: '#1d4ed8' }, // Blue
+      { bg: '#ecfdf5', border: '#34d399', text: '#047857' }, // Emerald
+      { bg: '#f5f3ff', border: '#a78bfa', text: '#4338ca' }, // Violet
+      { bg: '#fffbeb', border: '#fbbf24', text: '#b45309' }, // Amber
+      { bg: '#fff1f2', border: '#fb7185', text: '#be123c' }, // Rose
+      { bg: '#eef2ff', border: '#818cf8', text: '#4338ca' }, // Indigo
+      { bg: '#ecfeff', border: '#22d3ee', text: '#0f766e' }, // Cyan
+      { bg: '#fff7ed', border: '#fb923c', text: '#c2410c' }, // Orange
+    ];
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  // --- FUNCTION: Official Download Method (APK & Web Supported) ---
   const handleDownloadOfficial = async () => {
     if (!printRef.current) return;
     try {
       setDownloading(true);
       const element = printRef.current;
-      element.style.display = "block";
+      element.style.display = "block"; // Temporarily reveal it
 
       const canvas = await html2canvas(element, {
         scale: 3, // High-definition
@@ -63,14 +89,17 @@ export default function TeacherTimetable() {
         logging: false,
       });
 
-      element.style.display = "none";
+      element.style.display = "none"; // Hide it again
 
-      const link = document.createElement("a");
-      link.download = `Official_Teacher_Schedule_${teacherName.replace(/\s+/g, '_')}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      const dataUrl = canvas.toDataURL("image/png");
+      const fileName = `Official_Teacher_Schedule_${teacherName.replace(/\s+/g, '_')}.png`;
+
+      // Use the native download bridge so it works in the Android APK
+      await saveImageFromDataUrl(dataUrl, fileName);
+
     } catch (err) {
       console.error("Download failed", err);
+      alert("Download failed: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setDownloading(false);
     }
@@ -80,53 +109,52 @@ export default function TeacherTimetable() {
     fetchTeacherTimetable()
   }, [])
 
-async function fetchTeacherTimetable() {
-  try {
-    setLoading(true);
-    const userEmail = localStorage.getItem('teacherEmail');
+  async function fetchTeacherTimetable() {
+    try {
+      setLoading(true);
+      const userEmail = localStorage.getItem('teacherEmail');
 
-    const { data: teacher, error: tError } = await supabase
-      .from('teachers')
-      .select('*')
-      .eq('email', userEmail)
-      .single();
+      const { data: teacher, error: tError } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('email', userEmail)
+        .single();
 
-    if (tError || !teacher) return;
-    setTeacherName(teacher.full_name);
+      if (tError || !teacher) return;
+      setTeacherName(teacher.full_name);
 
-    const [assignmentsRes, timetableRes] = await Promise.all([
-      supabase.from('subject_assignments').select('*').eq('teacher_id', teacher.id),
-      supabase.from('timetable').select('*, subjects(*)')
-    ]);
+      const [assignmentsRes, timetableRes] = await Promise.all([
+        supabase.from('subject_assignments').select('*').eq('teacher_id', teacher.id),
+        supabase.from('timetable').select('*, subjects(*)')
+      ]);
 
-    // "10th" -> "10", "1st" -> "1", "Pre-KG" -> "Pre-KG" (unchanged)
-    const normalizeClass = (val: string) => {
-      if (!val) return val;
-      const digits = val.match(/\d+/);
-      return digits ? digits[0] : val.trim().toUpperCase();
-    };
+      const normalizeClass = (val: string) => {
+        if (!val) return val;
+        const digits = val.match(/\d+/);
+        return digits ? digits[0] : val.trim().toUpperCase();
+      };
 
-    const matrix: any = {};
-    if (timetableRes.data && assignmentsRes.data) {
-      timetableRes.data.forEach(slot => {
-        const match = assignmentsRes.data.find(a =>
-          a.subject_id === slot.subject_id &&
-          normalizeClass(a.class_name) === normalizeClass(slot.class) &&
-          a.section?.trim().toUpperCase() === slot.section?.trim().toUpperCase()
-        );
-        if (match) {
-          if (!matrix[slot.day]) matrix[slot.day] = {};
-          matrix[slot.day][slot.period] = slot;
-        }
-      });
+      const matrix: any = {};
+      if (timetableRes.data && assignmentsRes.data) {
+        timetableRes.data.forEach(slot => {
+          const match = assignmentsRes.data.find(a =>
+            a.subject_id === slot.subject_id &&
+            normalizeClass(a.class_name) === normalizeClass(slot.class) &&
+            a.section?.trim().toUpperCase() === slot.section?.trim().toUpperCase()
+          );
+          if (match) {
+            if (!matrix[slot.day]) matrix[slot.day] = {};
+            matrix[slot.day][slot.period] = slot;
+          }
+        });
+      }
+      setTimetableMatrix(matrix);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
     }
-    setTimetableMatrix(matrix);
-  } catch (error) {
-    console.error('Error:', error);
-  } finally {
-    setLoading(false);
   }
-}
 
   if (loading) return (
     <div className="flex justify-center items-center h-64">
@@ -136,7 +164,7 @@ async function fetchTeacherTimetable() {
 
   return (
     <div className="space-y-4">
-      {/* Action Bar - responsive: stacks on very small screens, button label shortens */}
+      {/* Action Bar */}
       <div className="flex flex-wrap justify-between items-center gap-3 px-4 mt-6 sm:mt-10">
         <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
           <FiCalendar className="text-brand dark:text-brand-soft" /> Weekly Schedule
@@ -167,9 +195,8 @@ async function fetchTeacherTimetable() {
           </div>
         </div>
 
-        {/* ---------- MOBILE VIEW: day tabs + stacked cards (hidden sm and up) ---------- */}
+        {/* ---------- MOBILE VIEW ---------- */}
         <div className="sm:hidden">
-          {/* Day tabs - horizontally scrollable */}
           <div className="flex gap-2 overflow-x-auto px-3 py-3 border-b border-slate-100 dark:border-slate-800 no-scrollbar">
             {days.map(day => (
               <button
@@ -186,7 +213,6 @@ async function fetchTeacherTimetable() {
             ))}
           </div>
 
-          {/* Periods list for the selected day */}
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {periods.map(period => {
               const slot = timetableMatrix[activeDay]?.[period]
@@ -224,7 +250,7 @@ async function fetchTeacherTimetable() {
           </div>
         </div>
 
-        {/* ---------- DESKTOP / TABLET VIEW: full table (hidden below sm) ---------- */}
+        {/* ---------- DESKTOP / TABLET VIEW ---------- */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -279,92 +305,101 @@ async function fetchTeacherTimetable() {
         </div>
       </div>
 
-      {/* --- HIDDEN OFFICIAL PRINT TEMPLATE (Used for Download Only, unaffected by mobile view) ---
-          Wrapper uses fixed position + overflow:hidden + height:0 so this large
-          off-canvas block never adds extra scroll height to the page. */}
-      <div style={{ position: 'fixed', top: 0, left: '-9999px', width: 0, height: 0, overflow: 'hidden' }}>
-        <div ref={printRef} style={{ width: '1200px', padding: '60px', backgroundColor: 'white', fontFamily: 'sans-serif' }}>
-          <div style={{ border: '10px double #a63d93', padding: '40px', position: 'relative' }}>
+      {/* --- HIDDEN OFFICIAL PRINT TEMPLATE (WITH INCREASED FONTS & DYNAMIC COLORS) --- */}
+      <div 
+        ref={printRef} 
+        style={{ 
+          display: 'none', 
+          width: '1200px', 
+          padding: '60px', 
+          backgroundColor: 'white', 
+          fontFamily: 'sans-serif' 
+        }}
+      >
+        <div style={{ border: '10px double #a63d93', padding: '40px', position: 'relative' }}>
 
-            {/* Header */}
-            <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '4px solid #a63d93', paddingBottom: '20px' }}>
-              <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#a63d93', margin: 0, textTransform: 'uppercase' }}>Prashanthi Vidyalaya</h1>
-              <p style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '6px', color: '#64748b', margin: '8px 0' }}>OFFICIAL FACULTY TIME-TABLE • 2026-27</p>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '4px solid #a63d93', paddingBottom: '20px' }}>
+            <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#a63d93', margin: 0, textTransform: 'uppercase' }}>Prashanthi Vidyalaya</h1>
+            <p style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '6px', color: '#64748b', margin: '8px 0' }}>OFFICIAL FACULTY TIME-TABLE • 2026-27</p>
+          </div>
+
+          {/* Teacher Details */}
+          <div style={{ display: 'flex', justifyItems: 'space-between', backgroundColor: '#fdf2f8', padding: '25px', borderRadius: '15px', marginBottom: '40px', border: '1px solid #fbcfe8' }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '14px', fontWeight: '900', color: '#a63d93', textTransform: 'uppercase', margin: 0 }}>Faculty Name</p>
+              <h2 style={{ fontSize: '32px', fontWeight: '800', margin: 0, color: '#000' }}>{teacherName.toUpperCase()}</h2>
             </div>
-
-            {/* Teacher Details */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#fdf2f8', padding: '25px', borderRadius: '15px', marginBottom: '40px', border: '1px solid #fbcfe8' }}>
-              <div>
-                <p style={{ fontSize: '12px', fontWeight: '900', color: '#a63d93', textTransform: 'uppercase', margin: 0 }}>Faculty Name</p>
-                <h2 style={{ fontSize: '28px', fontWeight: '800', margin: 0, color: '#000' }}>{teacherName.toUpperCase()}</h2>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: '12px', fontWeight: '900', color: '#a63d93', textTransform: 'uppercase', margin: 0 }}>Designation</p>
-                <h2 style={{ fontSize: '28px', fontWeight: '800', margin: 0, color: '#000' }}>Senior Faculty</h2>
-              </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '14px', fontWeight: '900', color: '#a63d93', textTransform: 'uppercase', margin: 0 }}>Designation</p>
+              <h2 style={{ fontSize: '32px', fontWeight: '800', margin: 0, color: '#000' }}>Senior Faculty</h2>
             </div>
+          </div>
 
-            {/* Official Table Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '120px repeat(6, 1fr)', gap: '10px' }}>
-              {/* Corner Cell */}
-              <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '12px' }}>TIME / DAY</div>
+          {/* Official Table Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '120px repeat(6, 1fr)', gap: '10px' }}>
+            {/* Corner Cell */}
+            <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '14px', color: '#475569' }}>TIME / DAY</div>
 
-              {/* Days Header */}
-              {days.map(day => (
-                <div key={day} style={{ backgroundColor: '#a63d93', color: 'white', padding: '15px', textAlign: 'center', borderRadius: '8px', fontSize: '14px', fontWeight: '900', textTransform: 'uppercase' }}>
-                  {day}
+            {/* Days Header */}
+            {days.map(day => (
+              <div key={day} style={{ backgroundColor: '#a63d93', color: 'white', padding: '15px', textAlign: 'center', borderRadius: '8px', fontSize: '16px', fontWeight: '900', textTransform: 'uppercase' }}>
+                {day}
+              </div>
+            ))}
+
+            {/* Rows */}
+            {periods.map(period => (
+              <React.Fragment key={period}>
+                {/* Time Cell */}
+                <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                  {timeSlots[period]}
                 </div>
-              ))}
+                {/* Subject Cells */}
+                {days.map(day => {
+                  const slot = timetableMatrix[day]?.[period];
+                  const hexStyle = slot ? getSubjectHexStyle(slot.subjects?.name) : null;
+                  
+                  return (
+                    <div key={`${day}-${period}`} style={{
+                      padding: '15px',
+                      borderRadius: '12px',
+                      border: slot ? `2px solid ${hexStyle?.border}` : '1px solid #e2e8f0',
+                      minHeight: '120px',
+                      backgroundColor: slot ? hexStyle?.bg : 'white',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      textAlign: 'center'
+                    }}>
+                      {slot ? (
+                        <>
+                          <p style={{ fontSize: '20px', fontWeight: '900', color: hexStyle?.text, margin: '0 0 10px 0', lineHeight: '1.2' }}>
+                            {slot.subjects?.name}
+                          </p>
+                          <span style={{ fontSize: '14px', fontWeight: '800', backgroundColor: hexStyle?.text, color: 'white', padding: '4px 10px', borderRadius: '6px', alignSelf: 'center' }}>
+                            CL {slot.class}-{slot.section}
+                          </span>
+                        </>
+                      ) : <span style={{ color: '#cbd5e1', fontSize: '16px' }}>—</span>}
+                    </div>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
 
-              {/* Rows */}
-              {periods.map(period => (
-                <React.Fragment key={period}>
-                  {/* Time Cell */}
-                  <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '11px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {timeSlots[period]}
-                  </div>
-                  {/* Subject Cells */}
-                  {days.map(day => {
-                    const slot = timetableMatrix[day]?.[period];
-                    return (
-                      <div key={`${day}-${period}`} style={{
-                        padding: '15px',
-                        borderRadius: '8px',
-                        border: '1px solid #e2e8f0',
-                        minHeight: '110px',
-                        backgroundColor: slot ? '#fdf2f8' : 'white',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        textAlign: 'center'
-                      }}>
-                        {slot ? (
-                          <>
-                            <p style={{ fontSize: '14px', fontWeight: '900', color: '#a63d93', margin: '0 0 8px 0' }}>{slot.subjects?.name}</p>
-                            <span style={{ fontSize: '11px', fontWeight: '800', backgroundColor: '#a63d93', color: 'white', padding: '2px 8px', borderRadius: '4px', alignSelf: 'center' }}>
-                              CL {slot.class}-{slot.section}
-                            </span>
-                          </>
-                        ) : <span style={{ color: '#cbd5e1' }}>—</span>}
-                      </div>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
-            </div>
-
-            {/* Verification Footer */}
-            <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-               <div style={{ textAlign: 'center' }}>
-                  <div style={{ borderTop: '2px solid #000', width: '220px', paddingTop: '10px', fontSize: '12px', fontWeight: '900' }}>ISSUED BY ADMINISTRATION</div>
-               </div>
-               <div style={{ textAlign: 'center', opacity: 0.3 }}>
-                  <p style={{ fontSize: '10px', fontWeight: 'bold' }}>OFFICIAL DIGITAL COPY • 2026</p>
-               </div>
-               <div style={{ textAlign: 'center' }}>
-                  <div style={{ borderTop: '2px solid #000', width: '220px', paddingTop: '10px', fontSize: '12px', fontWeight: '900' }}>PRINCIPAL / OFFICE SEAL</div>
-               </div>
-            </div>
+          {/* Verification Footer */}
+          <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+             <div style={{ textAlign: 'center' }}>
+                <div style={{ borderTop: '2px solid #000', width: '220px', paddingTop: '10px', fontSize: '12px', fontWeight: '900' }}>ISSUED BY ADMINISTRATION</div>
+             </div>
+             <div style={{ textAlign: 'center', opacity: 0.3 }}>
+                <p style={{ fontSize: '10px', fontWeight: 'bold' }}>OFFICIAL DIGITAL COPY • 2026</p>
+             </div>
+             <div style={{ textAlign: 'center' }}>
+                <div style={{ borderTop: '2px solid #000', width: '220px', paddingTop: '10px', fontSize: '12px', fontWeight: '900' }}>PRINCIPAL / OFFICE SEAL</div>
+             </div>
           </div>
         </div>
       </div>
