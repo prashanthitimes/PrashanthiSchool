@@ -11,15 +11,25 @@ export default function TeacherTimetable() {
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
   const [teacherName, setTeacherName] = useState("")
+  const [academicYear, setAcademicYear] = useState("")
   
-  // Automatically select today's day (Defaults to Monday if it's Sunday)
+  // Dynamic periods based on database
+  const [periods, setPeriods] = useState<number[]>([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+  
+  // Default standard school timings as a fallback
+  const [timeSlots, setTimeSlots] = useState<Record<number, string>>({
+    1: "09:00 - 09:45", 2: "09:45 - 10:30", 3: "10:30 - 11:15",
+    4: "11:15 - 12:00", 5: "12:00 - 12:45", 6: "12:45 - 01:30",
+    7: "01:30 - 02:15", 8: "02:15 - 03:00", 9: "03:00 - 03:45",
+    10: "03:45 - 04:30", 11: "04:30 - 05:15", 12: "05:15 - 06:00"
+  })
+  
   const [activeDay, setActiveDay] = useState(() => {
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     const daysList = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return daysList.includes(today) ? today : 'Monday';
   });
 
-  // Ref for the high-quality official document template
   const printRef = useRef<HTMLDivElement>(null)
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -27,14 +37,8 @@ export default function TeacherTimetable() {
     Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed',
     Thursday: 'Thu', Friday: 'Fri', Saturday: 'Sat',
   }
-  const periods = [1, 2, 3, 4, 5, 6]
 
-  const timeSlots: Record<number, string> = {
-    1: "09:00 - 10:00", 2: "10:00 - 11:00", 3: "11:00 - 12:00",
-    4: "12:00 - 01:00", 5: "02:00 - 03:00", 6: "03:00 - 04:00",
-  }
-
-  // --- HELPER 1: Web UI Tailwind Colors ---
+  // UI Colors
   const getSubjectStyle = (subjectName: string) => {
     const name = subjectName || 'Default';
     let hash = 0;
@@ -54,7 +58,7 @@ export default function TeacherTimetable() {
     return colors[Math.abs(hash) % colors.length];
   }
 
-  // --- HELPER 2: PDF Export HEX Colors (Forces html2canvas to render bright colors) ---
+  // PDF Export HEX Colors
   const getSubjectHexStyle = (subjectName: string) => {
     const name = subjectName || 'Default';
     let hash = 0;
@@ -62,39 +66,37 @@ export default function TeacherTimetable() {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     const colors = [
-      { bg: '#eff6ff', border: '#60a5fa', text: '#1d4ed8' }, // Blue
-      { bg: '#ecfdf5', border: '#34d399', text: '#047857' }, // Emerald
-      { bg: '#f5f3ff', border: '#a78bfa', text: '#4338ca' }, // Violet
-      { bg: '#fffbeb', border: '#fbbf24', text: '#b45309' }, // Amber
-      { bg: '#fff1f2', border: '#fb7185', text: '#be123c' }, // Rose
-      { bg: '#eef2ff', border: '#818cf8', text: '#4338ca' }, // Indigo
-      { bg: '#ecfeff', border: '#22d3ee', text: '#0f766e' }, // Cyan
-      { bg: '#fff7ed', border: '#fb923c', text: '#c2410c' }, // Orange
+      { bg: '#eff6ff', border: '#60a5fa', text: '#1d4ed8' }, 
+      { bg: '#ecfdf5', border: '#34d399', text: '#047857' }, 
+      { bg: '#f5f3ff', border: '#a78bfa', text: '#4338ca' }, 
+      { bg: '#fffbeb', border: '#fbbf24', text: '#b45309' }, 
+      { bg: '#fff1f2', border: '#fb7185', text: '#be123c' }, 
+      { bg: '#eef2ff', border: '#818cf8', text: '#4338ca' }, 
+      { bg: '#ecfeff', border: '#22d3ee', text: '#0f766e' }, 
+      { bg: '#fff7ed', border: '#fb923c', text: '#c2410c' }, 
     ];
     return colors[Math.abs(hash) % colors.length];
   }
 
-  // --- FUNCTION: Official Download Method (APK & Web Supported) ---
   const handleDownloadOfficial = async () => {
     if (!printRef.current) return;
     try {
       setDownloading(true);
       const element = printRef.current;
-      element.style.display = "block"; // Temporarily reveal it
+      element.style.display = "block"; 
 
       const canvas = await html2canvas(element, {
-        scale: 3, // High-definition
+        scale: 3, 
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
       });
 
-      element.style.display = "none"; // Hide it again
+      element.style.display = "none"; 
 
       const dataUrl = canvas.toDataURL("image/png");
       const fileName = `Official_Teacher_Schedule_${teacherName.replace(/\s+/g, '_')}.png`;
 
-      // Use the native download bridge so it works in the Android APK
       await saveImageFromDataUrl(dataUrl, fileName);
 
     } catch (err) {
@@ -123,30 +125,88 @@ export default function TeacherTimetable() {
       if (tError || !teacher) return;
       setTeacherName(teacher.full_name);
 
-      const [assignmentsRes, timetableRes] = await Promise.all([
+      const [assignmentsRes, timetableRes, periodsRes] = await Promise.all([
         supabase.from('subject_assignments').select('*').eq('teacher_id', teacher.id),
-        supabase.from('timetable').select('*, subjects(*)')
+        supabase.from('timetable').select('*, subjects(*)'),
+        supabase.from('periods').select('*')
       ]);
 
+      if (assignmentsRes.data && assignmentsRes.data.length > 0) {
+        setAcademicYear(assignmentsRes.data[0].academic_year || "");
+      }
+
       const normalizeClass = (val: string) => {
-        if (!val) return val;
-        const digits = val.match(/\d+/);
-        return digits ? digits[0] : val.trim().toUpperCase();
+        if (!val) return "";
+        return val.toString().toLowerCase().replace(/(st|nd|rd|th|class|\s)/gi, "").trim();
       };
 
+      const exactDBTimes: Record<number, string> = {};
       const matrix: any = {};
+      const activePeriods = new Set<number>();
+
       if (timetableRes.data && assignmentsRes.data) {
+        
+        // 1. Map exact timings from the periods table based on the teacher's assigned classes
+        if (periodsRes.data) {
+          assignmentsRes.data.forEach(assignment => {
+            const cleanAssignClass = normalizeClass(assignment.class_name);
+            const cleanAssignSec = (assignment.section || "").toLowerCase().trim();
+
+            periodsRes.data.forEach((p: any) => {
+              const cleanPeriodClass = normalizeClass(p.class);
+              const cleanPeriodSec = (p.section || "").toLowerCase().trim();
+              
+              // In your database, the period number is stored under 'id'
+              const periodNum = p.period || p.id;
+
+              if (cleanAssignClass === cleanPeriodClass && cleanAssignSec === cleanPeriodSec) {
+                if (periodNum && p.start_time && p.end_time) {
+                  const start = p.start_time.slice(0, 5);
+                  const end = p.end_time.slice(0, 5);
+                  exactDBTimes[periodNum] = `${start} - ${end}`;
+                }
+              }
+            });
+          });
+        }
+
+        // 2. Build the timetable matrix
         timetableRes.data.forEach(slot => {
-          const match = assignmentsRes.data.find(a =>
-            a.subject_id === slot.subject_id &&
-            normalizeClass(a.class_name) === normalizeClass(slot.class) &&
-            a.section?.trim().toUpperCase() === slot.section?.trim().toUpperCase()
-          );
-          if (match) {
+          const cleanSlotClass = normalizeClass(slot.class);
+          const cleanSlotSec = (slot.section || "").toLowerCase().trim();
+
+          const isAssignmentMatch = assignmentsRes.data?.find(a => {
+            const cleanAssignClass = normalizeClass(a.class_name);
+            const cleanAssignSec = (a.section || "").toLowerCase().trim();
+            
+            return a.subject_id === slot.subject_id && 
+                   cleanAssignClass === cleanSlotClass && 
+                   cleanAssignSec === cleanSlotSec;
+          });
+
+          if (isAssignmentMatch) {
+            if (slot.period) activePeriods.add(slot.period);
+
             if (!matrix[slot.day]) matrix[slot.day] = {};
-            matrix[slot.day][slot.period] = slot;
+            if (!matrix[slot.day][slot.period]) matrix[slot.day][slot.period] = [];
+            
+            const isDuplicate = matrix[slot.day][slot.period].some((existingSlot: any) => 
+               existingSlot.class === slot.class && existingSlot.section === slot.section && existingSlot.subject_id === slot.subject_id
+            );
+
+            if (!isDuplicate) {
+              matrix[slot.day][slot.period].push(slot);
+            }
           }
         });
+
+        // Update UI states
+        if (activePeriods.size > 0) {
+          setPeriods(Array.from(activePeriods).sort((a, b) => a - b));
+        }
+        if (Object.keys(exactDBTimes).length > 0) {
+          setTimeSlots(prev => ({ ...prev, ...exactDBTimes }));
+        }
       }
       setTimetableMatrix(matrix);
     } catch (error) {
@@ -158,7 +218,7 @@ export default function TeacherTimetable() {
 
   if (loading) return (
     <div className="flex justify-center items-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand"></div>
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand border-r-transparent"></div>
     </div>
   )
 
@@ -184,7 +244,7 @@ export default function TeacherTimetable() {
         <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
           <div>
             <h1 className="text-base sm:text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Teacher Timetable</h1>
-            <p className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Academic Session 2025-26</p>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Academic Session {academicYear}</p>
           </div>
           <div className="text-right">
             <div className="text-[10px] sm:text-xs font-black text-brand dark:text-brand-soft flex items-center gap-1">
@@ -215,27 +275,34 @@ export default function TeacherTimetable() {
 
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {periods.map(period => {
-              const slot = timetableMatrix[activeDay]?.[period]
-              const styles = slot ? getSubjectStyle(slot.subjects?.name) : null;
+              const slots = timetableMatrix[activeDay]?.[period] || [];
+              const hasClasses = slots.length > 0;
+              const styles = hasClasses ? getSubjectStyle(slots[0].subjects?.name) : null;
+              
+              const timeString = timeSlots[period] || `Per ${period}`;
+              const timeParts = timeString.includes('-') ? timeString.split('-') : [timeString, ''];
+
               return (
                 <div key={period} className="flex items-stretch gap-3 p-3">
                   <div className="w-16 shrink-0 flex flex-col justify-center">
                     <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 leading-tight">
-                      {timeSlots[period].split(' - ')[0]}
+                      {timeParts[0]?.trim()}
                     </span>
                     <span className="text-[9px] font-black text-slate-300 dark:text-slate-600 leading-tight">
-                      {timeSlots[period].split(' - ')[1]}
+                      {timeParts[1] ? `- ${timeParts[1].trim()}` : ''}
                     </span>
                   </div>
                   <div className="flex-1">
-                    {slot ? (
+                    {hasClasses ? (
                       <div className={`rounded-xl p-3 border-l-4 shadow-sm ${styles?.bg} ${styles?.border} ${styles?.text} dark:brightness-90 dark:contrast-125`}>
                         <div className="flex items-center justify-between">
-                          <p className="font-black text-xs leading-tight">{slot.subjects?.name}</p>
+                          <p className="font-black text-xs leading-tight">
+                            {Array.from(new Set(slots.map((s:any) => s.subjects?.name))).join(" / ")}
+                          </p>
                           <FiInfo size={12} className="opacity-40 shrink-0 ml-2" />
                         </div>
                         <span className="inline-block mt-2 text-[9px] font-black bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded-md uppercase">
-                          {slot.class}-{slot.section}
+                          {slots.map((s:any) => `${s.class || s.class_name}-${s.section}`).join(" / ")}
                         </span>
                       </div>
                     ) : (
@@ -268,20 +335,24 @@ export default function TeacherTimetable() {
             <tbody>
               {periods.map(period => (
                 <tr key={period} className="group">
-                  <td className="p-4 border-b border-r border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 dark:text-slate-500 bg-slate-50/30 dark:bg-slate-800/20">
-                    {timeSlots[period]}
+                  <td className="p-4 border-b border-r border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 dark:text-slate-500 bg-slate-50/30 dark:bg-slate-800/20 whitespace-nowrap">
+                    {timeSlots[period] || `Per ${period}`}
                   </td>
                   {days.map(day => {
-                    const slot = timetableMatrix[day]?.[period]
-                    const styles = slot ? getSubjectStyle(slot.subjects?.name) : null;
+                    const slots = timetableMatrix[day]?.[period] || [];
+                    const hasClasses = slots.length > 0;
+                    const styles = hasClasses ? getSubjectStyle(slots[0].subjects?.name) : null;
+                    
                     return (
                       <td key={`${day}-${period}`} className="p-2 border-b border-r border-slate-100 dark:border-slate-800 align-top">
-                        {slot ? (
+                        {hasClasses ? (
                           <div className={`rounded-xl p-3 h-full border-l-4 shadow-sm transition-all ${styles?.bg} ${styles?.border} ${styles?.text} dark:brightness-90 dark:contrast-125`}>
-                            <p className="font-black text-xs mb-1 leading-tight">{slot.subjects?.name}</p>
+                            <p className="font-black text-xs mb-1 leading-tight">
+                               {Array.from(new Set(slots.map((s:any) => s.subjects?.name))).join(" / ")}
+                            </p>
                             <div className="flex items-center justify-between mt-2">
                               <span className="text-[9px] font-black bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded-md uppercase">
-                                {slot.class}-{slot.section}
+                                {slots.map((s:any) => `${s.class || s.class_name}-${s.section}`).join(" / ")}
                               </span>
                               <FiInfo size={12} className="opacity-40" />
                             </div>
@@ -321,7 +392,7 @@ export default function TeacherTimetable() {
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '4px solid #a63d93', paddingBottom: '20px' }}>
             <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#a63d93', margin: 0, textTransform: 'uppercase' }}>Prashanthi Vidyalaya</h1>
-            <p style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '6px', color: '#64748b', margin: '8px 0' }}>OFFICIAL FACULTY TIME-TABLE • 2026-27</p>
+            <p style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '6px', color: '#64748b', margin: '8px 0' }}>OFFICIAL FACULTY TIME-TABLE {academicYear ? `• ${academicYear}` : ''}</p>
           </div>
 
           {/* Teacher Details */}
@@ -331,15 +402,17 @@ export default function TeacherTimetable() {
               <h2 style={{ fontSize: '32px', fontWeight: '800', margin: 0, color: '#000' }}>{teacherName.toUpperCase()}</h2>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '14px', fontWeight: '900', color: '#a63d93', textTransform: 'uppercase', margin: 0 }}>Designation</p>
-              <h2 style={{ fontSize: '32px', fontWeight: '800', margin: 0, color: '#000' }}>Senior Faculty</h2>
+              <p style={{ fontSize: '14px', fontWeight: '900', color: '#a63d93', textTransform: 'uppercase', margin: 0 }}>Status</p>
+              <h2 style={{ fontSize: '32px', fontWeight: '800', margin: 0, color: '#000' }}>OFFICIAL</h2>
             </div>
           </div>
 
           {/* Official Table Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '120px repeat(6, 1fr)', gap: '10px' }}>
             {/* Corner Cell */}
-            <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '14px', color: '#475569' }}>TIME / DAY</div>
+            <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '14px', color: '#475569', textAlign: 'center' }}>
+              TIME / DAY
+            </div>
 
             {/* Days Header */}
             {days.map(day => (
@@ -352,33 +425,34 @@ export default function TeacherTimetable() {
             {periods.map(period => (
               <React.Fragment key={period}>
                 {/* Time Cell */}
-                <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                  {timeSlots[period]}
+                <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', textAlign: 'center' }}>
+                  {timeSlots[period] || `Per ${period}`}
                 </div>
                 {/* Subject Cells */}
                 {days.map(day => {
-                  const slot = timetableMatrix[day]?.[period];
-                  const hexStyle = slot ? getSubjectHexStyle(slot.subjects?.name) : null;
+                  const slots = timetableMatrix[day]?.[period] || [];
+                  const hasClasses = slots.length > 0;
+                  const hexStyle = hasClasses ? getSubjectHexStyle(slots[0].subjects?.name) : null;
                   
                   return (
                     <div key={`${day}-${period}`} style={{
                       padding: '15px',
                       borderRadius: '12px',
-                      border: slot ? `2px solid ${hexStyle?.border}` : '1px solid #e2e8f0',
+                      border: hasClasses ? `2px solid ${hexStyle?.border}` : '1px solid #e2e8f0',
                       minHeight: '120px',
-                      backgroundColor: slot ? hexStyle?.bg : 'white',
+                      backgroundColor: hasClasses ? hexStyle?.bg : 'white',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'center',
                       textAlign: 'center'
                     }}>
-                      {slot ? (
+                      {hasClasses ? (
                         <>
-                          <p style={{ fontSize: '20px', fontWeight: '900', color: hexStyle?.text, margin: '0 0 10px 0', lineHeight: '1.2' }}>
-                            {slot.subjects?.name}
+                          <p style={{ fontSize: '18px', fontWeight: '900', color: hexStyle?.text, margin: '0 0 10px 0', lineHeight: '1.2' }}>
+                            {Array.from(new Set(slots.map((s:any) => s.subjects?.name))).join(" / ")}
                           </p>
                           <span style={{ fontSize: '14px', fontWeight: '800', backgroundColor: hexStyle?.text, color: 'white', padding: '4px 10px', borderRadius: '6px', alignSelf: 'center' }}>
-                            CL {slot.class}-{slot.section}
+                            CL {slots.map((s:any) => `${s.class || s.class_name}-${s.section}`).join(" / ")}
                           </span>
                         </>
                       ) : <span style={{ color: '#cbd5e1', fontSize: '16px' }}>—</span>}
@@ -395,7 +469,7 @@ export default function TeacherTimetable() {
                 <div style={{ borderTop: '2px solid #000', width: '220px', paddingTop: '10px', fontSize: '12px', fontWeight: '900' }}>ISSUED BY ADMINISTRATION</div>
              </div>
              <div style={{ textAlign: 'center', opacity: 0.3 }}>
-                <p style={{ fontSize: '10px', fontWeight: 'bold' }}>OFFICIAL DIGITAL COPY • 2026</p>
+                <p style={{ fontSize: '10px', fontWeight: 'bold' }}>OFFICIAL DIGITAL COPY</p>
              </div>
              <div style={{ textAlign: 'center' }}>
                 <div style={{ borderTop: '2px solid #000', width: '220px', paddingTop: '10px', fontSize: '12px', fontWeight: '900' }}>PRINCIPAL / OFFICE SEAL</div>
