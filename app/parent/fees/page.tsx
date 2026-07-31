@@ -108,7 +108,7 @@ export default function ParentFees() {
     }
 
     // --- LOGIC FOR REMAINING BALANCES ---
- const feeCalculation = useMemo(() => {
+    const feeCalculation = useMemo(() => {
         return classFees.map(cf => {
             const records = verifiedFees.filter(
                 vf => vf.fee_type.toLowerCase() === cf.fee_type.toLowerCase()
@@ -134,13 +134,13 @@ export default function ParentFees() {
             };
         });
     }, [classFees, verifiedFees, pendingSubmissions]);
+
     const stats = useMemo(() => {
         const total = feeCalculation.reduce((sum, f) => sum + f.total_assigned, 0);
         const paid = feeCalculation.reduce((sum, f) => sum + f.already_paid, 0);
         const concession = feeCalculation.reduce((sum, f) => sum + f.concession_amount, 0);
         return { total, paid, concession, balance: total - paid - concession };
     }, [feeCalculation]);
-
 
     const calculatedTotalSelection = feeCalculation
         .filter(f => selectedFeeTypes.includes(f.fee_type))
@@ -210,17 +210,17 @@ export default function ParentFees() {
             {activeTab === "pay" ? (
                 <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
                     {/* FORM SECTION */}
-                    <div className="lg:col-span-2 bg-slate-900 rounded-[2.5rem] p-6 md:p-10 text-white shadow-2xl">
+                    <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 md:p-10 text-slate-900 dark:text-white shadow-2xl border border-slate-200 dark:border-slate-800 transition-colors">
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-black italic">Pay Remaining Balance</h2>
-                            <div className="bg-white/10 px-3 py-1 rounded-full flex items-center gap-2">
-                                <Clock size={12} className="text-amber-400" />
-                                <span className="text-[9px] font-bold tracking-tighter text-amber-400">Receipt will be generated after 24 hours of working day.</span>
+                            <div className="bg-slate-100 dark:bg-white/10 px-3 py-1 rounded-full flex items-center gap-2">
+                                <Clock size={12} className="text-amber-500 dark:text-amber-400" />
+                                <span className="text-[9px] font-bold tracking-tighter text-amber-600 dark:text-amber-400">Receipt will be generated after 24 hours of working day.</span>
                             </div>
                         </div>
 
                         <div className="space-y-3 mb-8">
-                            <label className="text-[10px] font-black uppercase opacity-40 block">Select Pending Fees</label>
+                            <label className="text-[10px] font-black uppercase opacity-40 block text-slate-800 dark:text-white">Select Pending Fees</label>
                             {feeCalculation.map((f) => {
                                 const isDisabled = f.status !== "available";
                                 return (
@@ -230,18 +230,18 @@ export default function ParentFees() {
                                         disabled={isDisabled}
                                         onClick={() => setSelectedFeeTypes(prev => prev.includes(f.fee_type) ? prev.filter(t => t !== f.fee_type) : [...prev, f.fee_type])}
                                         className={`w-full p-4 rounded-2xl border transition-all flex items-center justify-between text-left
-                                        ${isDisabled ? "opacity-40 grayscale bg-white/5 border-transparent" :
-                                                selectedFeeTypes.includes(f.fee_type) ? "bg-brand-light/20 border-brand-light" : "bg-white/5 border-white/10 hover:border-white/30"}`}
+                                        ${isDisabled ? "opacity-40 grayscale bg-slate-50 dark:bg-white/5 border-transparent" :
+                                                selectedFeeTypes.includes(f.fee_type) ? "bg-brand-light/10 dark:bg-brand-light/20 border-brand-light" : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/30"}`}
                                     >
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
                                                 {f.is_transport && <Bus size={14} className="text-brand-light" />}
-                                                {f.is_opening_balance && <Layers size={14} className="text-amber-400" />}
-                                                {f.is_custom_entry && <FileText size={14} className="text-blue-400" />}
+                                                {f.is_opening_balance && <Layers size={14} className="text-amber-500 dark:text-amber-400" />}
+                                                {f.is_custom_entry && <FileText size={14} className="text-blue-500 dark:text-blue-400" />}
                                                 <span className="text-xs font-black uppercase">{f.fee_type}</span>
                                             </div>
                                             {/* Subtitle displays custom context if it is a custom entry */}
-                                          <span className="text-[10px] opacity-60 font-bold">
+                                            <span className="text-[10px] opacity-60 font-bold">
                                                 {f.is_custom_entry ? `${f.description} | ` : ""}
                                                 Total: ₹{f.total_assigned.toLocaleString()} | Paid: ₹{f.already_paid.toLocaleString()} | Balance: ₹{f.remaining_balance.toLocaleString()}
                                             </span>
@@ -260,7 +260,7 @@ export default function ParentFees() {
                             <InputField label="Payment Date" type="date" value={payDate} onChange={(e: any) => setPayDate(e.target.value)} />
                         </div>
 
-                        <div className="mb-8 border-2 border-dashed border-white/10 rounded-3xl p-8 text-center hover:bg-white/5 cursor-pointer transition-all">
+                        <div className="mb-8 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-3xl p-8 text-center hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-all">
                             <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="hidden" id="fileUp" accept="image/*" />
                             <label htmlFor="fileUp" className="cursor-pointer flex flex-col items-center gap-3">
                                 <Upload size={32} className="text-brand-light" />
@@ -268,9 +268,9 @@ export default function ParentFees() {
                             </label>
                         </div>
 
-                        <div className="flex flex-col md:flex-row justify-between items-center border-t border-white/10 pt-8 gap-6">
+                        <div className="flex flex-col md:flex-row justify-between items-center border-t border-slate-200 dark:border-white/10 pt-8 gap-6">
                             <div>
-                                <p className="text-[10px] font-black opacity-40 uppercase">Total to Pay Now</p>
+                                <p className="text-[10px] font-black opacity-40 uppercase text-slate-800 dark:text-white">Total to Pay Now</p>
                                 <p className="text-4xl font-black text-brand-light italic">₹{calculatedTotalSelection.toLocaleString()}</p>
                             </div>
                             <button
@@ -319,13 +319,12 @@ function StatCard({ label, value, icon, color }: any) {
     );
 }
 
-// ... Keep other Sub-components (InputField, BankRow, TabButton, HistorySection) exactly as they were in your version
 function InputField({ label, onChange, value, ...props }: any) {
     return (
         <div className="space-y-2">
-            <label className="text-[10px] font-black opacity-40 uppercase">{label}</label>
+            <label className="text-[10px] font-black opacity-40 uppercase text-slate-800 dark:text-white">{label}</label>
             <input
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-brand-light text-white"
+                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-brand-light text-slate-900 dark:text-white transition-colors"
                 value={value}
                 onChange={onChange}
                 {...props}
@@ -376,7 +375,7 @@ function HistorySection({ title, items, status }: { title: string; items: any[];
                                     {status === "pending" ? (item.fee_types || "Fee Payment") : (item.fee_type || "Academic Fee")}
                                 </p>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-400 dark:text-slate-500 font-bold">
-                                    <span>Date: {status === "pending" ? item.payment_date : (item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "---")}</span>
+                                    <span>Date: {status === "pending" ? item.payment_date : (item.created_at ? new Date(item.created_at).toLocaleDateString() : "---")}</span>
                                     {item.utr_number && <span>UTR: {item.utr_number}</span>}
                                 </div>
                             </div>
