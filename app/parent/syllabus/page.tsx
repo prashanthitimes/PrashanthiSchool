@@ -11,7 +11,7 @@ import html2canvas from "html2canvas";
 import { saveImageFromDataUrl } from "@/lib/nativeDownload";
 
 // ... Types remain same ...
-type Student = { full_name: string; class_name: string; section: string; image_url?: string; };
+type Student = { full_name: string; class_name: string; section: string; image_url?: string; academic_year?: string; };
 type Syllabus = { id: string | number; subject_id: string | number; exam_name: string; chapters: string[]; pdf_url?: string; };
 type Exam = { id: string | number; exam_date: string; start_time: string; end_time: string; room_no?: string; subjects?: { name: string }; exams?: { exam_name: string }; syllabus_details?: Syllabus; };
 type ExamGroup = [string, Exam[]];
@@ -107,7 +107,7 @@ const handleDownload = async () => {
               <p>CLASS: {studentInfo?.class_name} - {studentInfo?.section}</p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <p>ACADEMIC YEAR: 2025-26</p>
+              <p>ACADEMIC YEAR: {studentInfo?.academic_year || "---"}</p>
               <p>STATUS: OFFICIAL</p>
             </div>
           </div>
@@ -143,7 +143,7 @@ const handleDownload = async () => {
 
           <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: 'bold' }}>
             <div style={{ borderTop: '1px solid #000', width: '150px', textAlign: 'center', paddingTop: '5px' }}>OFFICE SEAL</div>
-            <div style={{ borderTop: '1px solid #000', width: '150px', textAlign: 'center', paddingTop: '5px' }}>PRINCIPAL</div>
+            <div style={{ borderTop: '1px solid #000', width: '150px', textAlign: 'center', paddingTop: '5px' }}>HEAD MASTER</div>
           </div>
         </div>
       </div>
