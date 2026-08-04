@@ -210,7 +210,7 @@ export default function ParentMarks() {
 
           <div style={{ marginTop: '80px', display: 'flex', justifyContent: 'space-between' }}>
             <div style={{ textAlign: 'center', width: '150px', borderTop: '1px solid #000', paddingTop: '5px', fontSize: '10px', fontWeight: 'bold' }}>CLASS TEACHER</div>
-            <div style={{ textAlign: 'center', width: '150px', borderTop: '1px solid #000', paddingTop: '5px', fontSize: '10px', fontWeight: 'bold' }}>PRINCIPAL</div>
+            <div style={{ textAlign: 'center', width: '150px', borderTop: '1px solid #000', paddingTop: '5px', fontSize: '10px', fontWeight: 'bold' }}>HEAD MASTER</div>
           </div>
         </div>
       </div>
