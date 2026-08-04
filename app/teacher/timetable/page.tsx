@@ -384,6 +384,7 @@ export default function TeacherTimetable() {
           width: '1200px', 
           padding: '60px', 
           backgroundColor: 'white', 
+          color: '#000',
           fontFamily: 'sans-serif' 
         }}
       >
@@ -472,7 +473,7 @@ export default function TeacherTimetable() {
                 <p style={{ fontSize: '10px', fontWeight: 'bold' }}>OFFICIAL DIGITAL COPY</p>
              </div>
              <div style={{ textAlign: 'center' }}>
-                <div style={{ borderTop: '2px solid #000', width: '220px', paddingTop: '10px', fontSize: '12px', fontWeight: '900' }}>PRINCIPAL / OFFICE SEAL</div>
+                <div style={{ borderTop: '2px solid #000', width: '220px', paddingTop: '10px', fontSize: '12px', fontWeight: '900' }}>HEAD MASTER</div>
              </div>
           </div>
         </div>
