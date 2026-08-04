@@ -170,7 +170,7 @@ const exportOfficialSchedule = async () => {
               <div style={{ borderTop: '1px solid #000', width: '180px', marginTop: '40px', paddingTop: '10px', fontSize: '10px', fontWeight: '900' }}>CONTROLLER OF EXAMS</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ borderTop: '1px solid #000', width: '180px', marginTop: '40px', paddingTop: '10px', fontSize: '10px', fontWeight: '900' }}>PRINCIPAL SEAL</div>
+              <div style={{ borderTop: '1px solid #000', width: '180px', marginTop: '40px', paddingTop: '10px', fontSize: '10px', fontWeight: '900' }}>HEAD MASTER</div>
             </div>
           </div>
         </div>
