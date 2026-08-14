@@ -459,7 +459,21 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
         });
       }
 
-      setDetails({ name: student.name, class: studentClass, records: mergedRecords });
+// ✅ Concession is already folded into `paid` on every record (for
+      // correct due-balance math), so it has no visibility of its own.
+      // Sum it separately here, straight from the raw payment rows, purely
+      // for display — this does not touch any due/settled calculation.
+      const totalConcessionGiven = paymentsData.reduce(
+        (sum, p) => sum + Number(p.concession_amount || 0),
+        0
+      );
+
+      setDetails({
+        name: student.name,
+        class: studentClass,
+        records: mergedRecords,
+        totalConcession: totalConcessionGiven,
+      });
       setLoading(false);
     }
     getDetails();
@@ -588,9 +602,13 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-gray-500">Total Balanced Dues</p>
               <p className="text-sm md:text-xl font-bold text-slate-700 dark:text-slate-300 print:text-black">₹{details?.records.reduce((a: number, b: any) => a + b.standard, 0).toLocaleString('en-IN')}</p>
             </div>
-            <div>
+           <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-gray-500">Total Collections Paid</p>
               <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">₹{details?.records.reduce((a: number, b: any) => a + b.paid, 0).toLocaleString('en-IN')}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-gray-500">Concession Given</p>
+              <p className="text-xl font-bold text-purple-600 dark:text-purple-400">₹{(details?.totalConcession || 0).toLocaleString('en-IN')}</p>
             </div>
             <div className="md:ml-auto flex items-center justify-between md:block pt-3 md:pt-0 border-t md:border-0 border-slate-200 print:border-none">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-gray-500">Net Outstanding Balance</p>

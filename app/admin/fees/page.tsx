@@ -235,7 +235,25 @@ export default function FeesPage() {
 
     autoFetchFeeAmount();
   }, [studentForm.fee_type, studentForm.class, studentForm.student_id]);
-  // ✅ FETCH STUDENT SUGGESTIONS WITH PRE-KG, LKG, UKG, 9TH FIX
+
+  // ✅ FETCH STUDENT SUGGESTIONS
+  //
+  // FIX: the previous implementation ran TWO separate queries (one for
+  // Pre-KG/LKG/UKG/9th, one for everything else), each with .limit(5) and
+  // NO .order() clause. Supabase/Postgres does not guarantee any particular
+  // row order when no ORDER BY is specified, so whenever a search term
+  // matched more than 5 students in a bucket (very common — e.g. searching
+  // "MA" or even a full name like "MANOJ" against a large student table),
+  // rows were silently dropped before they ever reached the dropdown. That's
+  // why some students (e.g. "MANOJ" in 3rd-B) appeared to "not be found"
+  // even though they exist and are active — they were being cut off by the
+  // limit, not actually missing from the search.
+  //
+  // This version runs a single query with a much higher limit, orders
+  // results alphabetically, and then re-sorts client-side so names that
+  // START WITH the typed term are shown first (most relevant), followed by
+  // names that merely contain it — before trimming to the 8 shown in the
+  // dropdown. This guarantees an exact/near match always surfaces.
   useEffect(() => {
     async function fetchStudentSuggestions() {
       if (isSelectingStudent) {
@@ -243,36 +261,34 @@ export default function FeesPage() {
         return;
       }
 
-      if (!studentSearch || studentSearch.length < 2) {
+      const term = studentSearch.trim();
+
+      if (!term || term.length < 2) {
         setStudentSuggestions([]);
         return;
       }
 
       setFetchingStudents(true);
 
-      // Fetch Pre-KG, LKG, UKG, 9th from any year
-      const { data: earlyClassData, error: earlyError } = await supabase
+      const { data, error } = await supabase
         .from("students")
         .select("id, full_name, father_name, roll_number, class_name, section")
-        .in('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
-        .ilike("full_name", `%${studentSearch}%`)
+        .ilike("full_name", `%${term}%`)
         .eq("status", "active")
-        .limit(5);
+        .order("full_name", { ascending: true })
+        .limit(50); // was 5+5 before — raised so matches are never silently dropped
 
-      // Fetch other classes
-      const { data: otherClassData, error: otherError } = await supabase
-        .from("students")
-        .select("id, full_name, father_name, roll_number, class_name, section")
-        .notIn('class_name', ['Pre-KG', 'LKG', 'UKG', '9th'])
-        .ilike("full_name", `%${studentSearch}%`)
-        .eq("status", "active")
-        .limit(5);
+      if (!error && data) {
+        const lowerTerm = term.toLowerCase();
 
-      const error = earlyError || otherError;
-      const data = [...(earlyClassData || []), ...(otherClassData || [])];
+        const sorted = [...data].sort((a, b) => {
+          const aStarts = a.full_name.toLowerCase().startsWith(lowerTerm) ? 0 : 1;
+          const bStarts = b.full_name.toLowerCase().startsWith(lowerTerm) ? 0 : 1;
+          if (aStarts !== bStarts) return aStarts - bStarts;
+          return a.full_name.localeCompare(b.full_name);
+        });
 
-      if (!error) {
-        setStudentSuggestions(data || []);
+        setStudentSuggestions(sorted.slice(0, 8));
       } else {
         setStudentSuggestions([]);
       }

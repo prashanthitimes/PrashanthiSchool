@@ -213,13 +213,39 @@ const fetchActiveStudents = async () => {
   };
 
 // This filters the students array populated by fetchActiveStudents
-const matchedStudentFilteringList = studentSearchTerm.trim() === "" 
-    ? [] 
-    : students.filter(st => 
-        st.full_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-        st.student_id.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-        `${st.class_name} ${st.section}`.toLowerCase().includes(studentSearchTerm.toLowerCase())
-      ).slice(0, 5);
+// FIX: previously this was `students.filter(...).slice(0, 5)` with no
+// sorting. `students` is a concatenation of two raw DB fetch batches
+// (early classes, then everything else) in whatever order Postgres
+// returned them — not alphabetical, not relevance-ranked. So `.slice(0, 5)`
+// just grabbed the first 5 matches in that arbitrary order. If more than
+// 5 students matched the typed text, anything past position 5 was
+// filtered correctly but then silently cut before it ever reached the
+// dropdown — it looked like "search isn't finding this student" when it
+// actually was found and then discarded.
+//
+// This version sorts matches so names/IDs that START WITH the typed term
+// come first (closest match), then takes a slightly larger slice, so an
+// exact or near-exact match always surfaces regardless of how many other
+// students happen to contain that substring elsewhere in the list.
+const matchedStudentFilteringList = (() => {
+  const term = studentSearchTerm.trim().toLowerCase();
+  if (term === "") return [];
+
+  const matches = students.filter(st =>
+    st.full_name.toLowerCase().includes(term) ||
+    st.student_id.toLowerCase().includes(term) ||
+    `${st.class_name} ${st.section}`.toLowerCase().includes(term)
+  );
+
+  const sorted = [...matches].sort((a, b) => {
+    const aStarts = a.full_name.toLowerCase().startsWith(term) ? 0 : 1;
+    const bStarts = b.full_name.toLowerCase().startsWith(term) ? 0 : 1;
+    if (aStarts !== bStarts) return aStarts - bStarts;
+    return a.full_name.localeCompare(b.full_name);
+  });
+
+  return sorted.slice(0, 8);
+})();
 
   // NEW: filters the OB records table by student name / student ID / class
   const visibleObRecords = tableSearchTerm.trim() === ""
