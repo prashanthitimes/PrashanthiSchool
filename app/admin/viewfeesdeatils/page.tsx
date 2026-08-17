@@ -121,14 +121,16 @@ export default function PrincipalFeesPage() {
       });
   }, [students, feesPayments, feesOB, classStandards, transportAssignments, feesEntries, selectedClass, search]);
 
+  // ✅ Added concession to the overall stats calculator
   const overallStats = useMemo(() => {
     return studentData.reduce(
       (acc, s) => {
         acc.collected += s.paidAmount; 
         acc.outstanding += s.totalDue;
+        acc.concession += s.concessionAmount;
         return acc;
       },
-      { collected: 0, outstanding: 0 }
+      { collected: 0, outstanding: 0, concession: 0 }
     );
   }, [studentData]);
 
@@ -195,6 +197,11 @@ export default function PrincipalFeesPage() {
                   <div className="text-center sm:text-right">
                     <p className="text-[8px] md:text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase print:text-gray-500">Collected</p>
                     <p className="text-sm md:text-lg font-black text-emerald-600 dark:text-emerald-400">₹{overallStats.collected.toLocaleString('en-IN')}</p>
+                  </div>
+                  {/* ✅ Added Concession to Header */}
+                  <div className="text-center sm:text-right">
+                    <p className="text-[8px] md:text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase print:text-gray-500">Concession</p>
+                    <p className="text-sm md:text-lg font-black text-purple-600 dark:text-purple-400">₹{overallStats.concession.toLocaleString('en-IN')}</p>
                   </div>
                   <div className="text-center sm:text-right">
                     <p className="text-[8px] md:text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase print:text-gray-500">Outstanding</p>
@@ -604,7 +611,6 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
            <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-gray-500">Total Collections Paid</p>
               <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                {/* 🔴 ONLY FIX: Subtracted the totalConcession from the pure cash sum here */}
                 ₹{(details?.records.reduce((a: number, b: any) => a + b.paid, 0) - (details?.totalConcession || 0)).toLocaleString('en-IN')}
               </p>
             </div>
