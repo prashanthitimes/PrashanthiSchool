@@ -20,7 +20,7 @@ export default function PrincipalFeesPage() {
   const [feesOB, setFeesOB] = useState<any[]>([]);
   const [classStandards, setClassStandards] = useState<any[]>([]);
   const [transportAssignments, setTransportAssignments] = useState<any[]>([]);
-  const [feesEntries, setFeesEntries] = useState<any[]>([]); // ✅ Added to track assigned Special Fees
+  const [feesEntries, setFeesEntries] = useState<any[]>([]); 
   const [selectedClass, setSelectedClass] = useState("");
   const [search, setSearch] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
@@ -48,7 +48,6 @@ export default function PrincipalFeesPage() {
       const studentsData = [...(earlyClassData || []), ...(otherClassData || [])];
       const error = earlyError || otherError;
 
-      // ✅ Fetch student_fees_entries so we can see assigned Special Fees even if unpaid
       const [paymentsRes, obRes, standardsRes, transportRes, entriesRes] = await Promise.all([
         supabase.from("student_fees").select("*"),
         supabase.from("student_fees_ob").select("*"),
@@ -82,14 +81,12 @@ export default function PrincipalFeesPage() {
         const openingBalanceRecord = feesOB.find(o => o.student_id === student.id);
         const openingBalancePayable = openingBalanceRecord ? Number(openingBalanceRecord.opening_balance) : 0;
 
-        // ✅ Get assigned special fees (Even if 0 payments have been made)
         const studentEntries = feesEntries.filter(e => e.student_id === student.id);
         const specialFeesAssigned = studentEntries.reduce((sum, e) => sum + Number(e.amount_fees || 0), 0);
 
         const studentPayments = feesPayments.filter(f => f.student_id === student.id);
         const handledFeeTypes = ["tution fee", "tuition fee", "opening balance", "transport fee", "special development fee"];
         
-        // ✅ Calculate other dynamic fees perfectly (Prevents double counting total_amount if partial payments were made)
         const dynamicFeesMap = new Map();
         studentPayments.forEach(f => {
           const type = f.fee_type || "Other";
@@ -99,20 +96,22 @@ export default function PrincipalFeesPage() {
         });
         const correctedDynamicFeesRequired = Array.from(dynamicFeesMap.values()).reduce((sum, val) => sum + val, 0);
 
-        // ✅ Include concession amount as cleared/paid balance to fix "Settled" status
-        const totalPaidFromEntries = studentPayments.reduce((sum, f) => sum + Number(f.paid_amount || 0) + Number(f.concession_amount || 0), 0);
+        const purePaidAmount = studentPayments.reduce((sum, f) => sum + Number(f.paid_amount || 0), 0);
+        const concessionAmount = studentPayments.reduce((sum, f) => sum + Number(f.concession_amount || 0), 0);
+        const totalClearedAmount = purePaidAmount + concessionAmount;
 
         const balanceTotalRequired = coreTuitionRequired + transportAmount + openingBalancePayable + specialFeesAssigned + correctedDynamicFeesRequired;
-        const totalDueCalculated = Math.max(balanceTotalRequired - totalPaidFromEntries, 0);
+        const totalDueCalculated = Math.max(balanceTotalRequired - totalClearedAmount, 0);
 
         return {
           id: student.id,
           name: student.full_name,
           class: student.class_name,
           balanceRequired: balanceTotalRequired,
-          paidAmount: totalPaidFromEntries,
+          paidAmount: purePaidAmount,       
+          concessionAmount: concessionAmount, 
           totalDue: totalDueCalculated,
-          status: totalPaidFromEntries >= balanceTotalRequired ? "FULLY PAID" : "PENDING"
+          status: totalClearedAmount >= balanceTotalRequired ? "FULLY PAID" : "PENDING"
         };
       })
       .filter((s: any) => {
@@ -125,7 +124,7 @@ export default function PrincipalFeesPage() {
   const overallStats = useMemo(() => {
     return studentData.reduce(
       (acc, s) => {
-        acc.collected += s.paidAmount;
+        acc.collected += s.paidAmount; 
         acc.outstanding += s.totalDue;
         return acc;
       },
@@ -134,12 +133,13 @@ export default function PrincipalFeesPage() {
   }, [studentData]);
 
   const exportToCSV = () => {
-    const headers = ["Student Name", "Class", "Total Balance Required", "Total Paid Amount", "Net Due", "Status"];
+    const headers = ["Student Name", "Class", "Total Balance Required", "Total Paid Amount", "Concession", "Net Due", "Status"];
     const rows = studentData.map(s => [
       s.name,
       s.class,
       s.balanceRequired,
       s.paidAmount,
+      s.concessionAmount,
       s.totalDue,
       s.status
     ]);
@@ -246,6 +246,7 @@ export default function PrincipalFeesPage() {
                     <th className="p-6 print:p-3">Grade</th>
                     <th className="p-6 print:p-3 text-right">Balance Required</th>
                     <th className="p-6 print:p-3 text-right">Paid Amount</th>
+                    <th className="p-6 print:p-3 text-right">Concession</th>
                     <th className="p-6 print:p-3 text-center">Net Due</th>
                     <th className="p-6 text-center print:hidden">Action</th>
                   </tr>
@@ -267,6 +268,9 @@ export default function PrincipalFeesPage() {
                       </td>
                       <td className="p-6 print:p-3 text-right font-black text-emerald-600 dark:text-emerald-400">
                         ₹{student.paidAmount.toLocaleString('en-IN')}
+                      </td>
+                      <td className="p-6 print:p-3 text-right font-black text-purple-600 dark:text-purple-400">
+                        ₹{student.concessionAmount.toLocaleString('en-IN')}
                       </td>
                       <td className="p-6 print:p-3 text-center">
                         {student.totalDue <= 0 ? (
@@ -306,14 +310,18 @@ export default function PrincipalFeesPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl text-xs border border-slate-100 dark:border-slate-800">
+                  <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl text-xs border border-slate-100 dark:border-slate-800">
                     <div>
-                      <p className="text-[8px] text-slate-400 font-bold uppercase">Balance Required</p>
+                      <p className="text-[8px] text-slate-400 font-bold uppercase">Balance</p>
                       <p className="font-black text-slate-700 dark:text-slate-300 text-sm">₹{student.balanceRequired.toLocaleString('en-IN')}</p>
                     </div>
                     <div>
-                      <p className="text-[8px] text-emerald-500 font-bold uppercase">Total Paid</p>
+                      <p className="text-[8px] text-emerald-500 font-bold uppercase">Paid</p>
                       <p className="font-black text-emerald-600 text-sm">₹{student.paidAmount.toLocaleString('en-IN')}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] text-purple-500 font-bold uppercase">Concession</p>
+                      <p className="font-black text-purple-600 text-sm">₹{student.concessionAmount.toLocaleString('en-IN')}</p>
                     </div>
                   </div>
 
@@ -362,7 +370,7 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
         supabase.from("student_fees_ob").select("*").eq("student_id", student.id).maybeSingle(),
         supabase.from("students").select("class_name").eq("id", student.id).single(),
         supabase.from("transport_assignments").select("monthly_fare").eq("student_id", student.id).eq("status", "active").maybeSingle(),
-        supabase.from("student_fees_entries").select("*").eq("student_id", student.id) // ✅ Fetch Assigned Entries
+        supabase.from("student_fees_entries").select("*").eq("student_id", student.id) 
       ]);
 
       const studentClass = studentInfo.data?.class_name;
@@ -371,7 +379,6 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
       const paymentsData = feesTableRes.data || [];
       const mergedRecords: any[] = [];
 
-      // ✅ Include concessions in the paid amount calculation
       const getPaidAmountForType = (typeNames: string[]) => {
         return paymentsData
           .filter(p => p.fee_type && typeNames.some(t => p.fee_type.toLowerCase() === t.toLowerCase()))
@@ -416,7 +423,6 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
         });
       }
 
-      // ✅ Map Assigned Special Fees to the itemized list, even if 0 payments were made
       if (entriesRes.data && entriesRes.data.length > 0) {
         let remainingSpecialPaidPool = getPaidAmountForType(["Special Development Fee"]);
         entriesRes.data.forEach(entry => {
@@ -433,7 +439,6 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
         });
       }
 
-      // ✅ Fix duplicate grouping for multiple payments on identical dynamic fees
       const handledTypes = ["tution fee", "tuition fee", "opening balance", "transport fee", "special development fee"];
       const outsidePayments = paymentsData.filter(p => p.fee_type && !handledTypes.includes(p.fee_type.toLowerCase()));
 
@@ -459,10 +464,6 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
         });
       }
 
-// ✅ Concession is already folded into `paid` on every record (for
-      // correct due-balance math), so it has no visibility of its own.
-      // Sum it separately here, straight from the raw payment rows, purely
-      // for display — this does not touch any due/settled calculation.
       const totalConcessionGiven = paymentsData.reduce(
         (sum, p) => sum + Number(p.concession_amount || 0),
         0
@@ -481,13 +482,11 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
 
   if (!mounted) return null;
 
-  // React Portal injects this directly into the <body> tag, fully bypassing sidebar layouts.
   return createPortal(
     <div id="student-statement-modal-portal" className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm z-[99999] flex items-end md:items-center justify-center p-0 md:p-4 print:static print:bg-transparent print:z-auto print:block print:w-full print:p-0">
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 15mm; }
-          /* MAGIC: This completely deletes the Next.js Root Layout & Sidebar from the print engine's memory! */
           body > *:not(#student-statement-modal-portal) {
             display: none !important;
           }
@@ -604,7 +603,10 @@ function StudentDetailsModal({ student, onClose }: { student: { id: string; name
             </div>
            <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-gray-500">Total Collections Paid</p>
-              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">₹{details?.records.reduce((a: number, b: any) => a + b.paid, 0).toLocaleString('en-IN')}</p>
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                {/* 🔴 ONLY FIX: Subtracted the totalConcession from the pure cash sum here */}
+                ₹{(details?.records.reduce((a: number, b: any) => a + b.paid, 0) - (details?.totalConcession || 0)).toLocaleString('en-IN')}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-gray-500">Concession Given</p>
