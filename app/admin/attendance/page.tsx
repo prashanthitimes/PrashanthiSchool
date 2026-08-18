@@ -18,6 +18,43 @@ const classOptions = [
     ...Array.from({ length: 10 }, (_, i) => `${i + 1}`)
 ].flatMap(cls => ['A', 'B', 'C', 'D'].map(sec => `${cls}-${sec}`));
 
+// Normalizes "1st", "2nd", "3rd", "4th", "1", "Pre-KG" etc. down to a
+// comparable form by stripping any ordinal suffix off leading digits.
+const normalizeClass = (val: string) => {
+    const v = (val || "").toLowerCase().trim();
+    const match = v.match(/^(\d+)/); // grab leading number if any
+    return match ? match[1] : v;     // "1st" -> "1", "Pre-KG" -> "pre-kg"
+};
+
+// Works whether the student info comes back nested under item.students
+// (normal PostgREST embed) OR flat directly on the row itself (some
+// views / aliased joins return it this way). Always use this instead
+// of reaching into item.students directly.
+function getStudent(item: any) {
+    if (item?.students && typeof item.students === 'object') {
+        return {
+            full_name: item.students.full_name,
+            class_name: item.students.class_name,
+            section: item.students.section,
+            student_id: item.students.student_id,
+        };
+    }
+    // Fallback: flat fields directly on the attendance row
+    return {
+        full_name: item?.full_name,
+        class_name: item?.class_name,
+        section: item?.section,
+        student_id: item?.student_id,
+    };
+}
+
+function getTeacherName(item: any) {
+    if (item?.teachers && typeof item.teachers === 'object') {
+        return item.teachers.full_name;
+    }
+    return item?.teacher_name || item?.marked_by || null;
+}
+
 export default function AttendanceAdminPage() {
     const [attendance, setAttendance] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -41,7 +78,6 @@ export default function AttendanceAdminPage() {
     async function fetchAttendance() {
         setLoading(true);
         try {
-            // Clean Query String - No comments inside the backticks
             let query = supabase
                 .from('daily_attendance')
                 .select(`
@@ -67,30 +103,27 @@ export default function AttendanceAdminPage() {
             const { data, error } = await query;
             if (error) throw error;
 
+            // eslint-disable-next-line no-console
+            console.log('RAW DATA COUNT:', data?.length, 'SAMPLE ROW:', data?.[0]);
+
             let results = data || [];
 
+            if (selectedClass !== 'All') {
+                const lastDashIndex = selectedClass.lastIndexOf('-');
+                const cls = selectedClass.substring(0, lastDashIndex);
+                const sec = selectedClass.substring(lastDashIndex + 1);
 
-           // Client-side Filter for Class-Section
-if (selectedClass !== 'All') {
-    // This regex splits "7-C" into "7" and "C", or "Pre-KG-A" into "Pre-KG" and "A"
-    const lastDashIndex = selectedClass.lastIndexOf('-');
-    const cls = selectedClass.substring(0, lastDashIndex);
-    const sec = selectedClass.substring(lastDashIndex + 1);
+                results = results.filter((item: any) => {
+                    const student = getStudent(item);
+                    const studentClass = String(student.class_name || "").toLowerCase().trim();
+                    const studentSection = String(student.section || "").toLowerCase().trim();
 
-    results = results.filter((item: any) => {
-        const studentClass = String(item.students?.class_name || "").toLowerCase();
-        const studentSection = String(item.students?.section || "").toLowerCase();
-        
-        // Normalize the comparison: 
-        // Checks if "7th" includes "7" OR if they match exactly
-        const classMatch = studentClass === cls.toLowerCase() || 
-                           studentClass === `${cls.toLowerCase()}th`;
-                           
-        const sectionMatch = studentSection === sec.toLowerCase();
-        
-        return classMatch && sectionMatch;
-    });
-}
+                    const classMatch = normalizeClass(studentClass) === normalizeClass(cls);
+                    const sectionMatch = studentSection === sec.toLowerCase().trim();
+
+                    return classMatch && sectionMatch;
+                });
+            }
             setAttendance(results);
         } catch (error: any) {
             console.error("Supabase Query Error:", error.message);
@@ -101,7 +134,8 @@ if (selectedClass !== 'All') {
     }
 
     const filteredData = attendance.filter(item => {
-        const studentName = (item.students?.full_name || "").toLowerCase()
+        const student = getStudent(item);
+        const studentName = (student.full_name || "").toLowerCase()
         const search = searchTerm.toLowerCase()
         return studentName.includes(search)
     })
@@ -210,66 +244,74 @@ if (selectedClass !== 'All') {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                                    {filteredData.map((item) => (
-                                        <tr key={item.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all">
-                                            <td className="p-6">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center font-black text-indigo-600 shrink-0 uppercase">
-                                                        {(item.students?.full_name || "U")[0]}
+                                    {filteredData.map((item) => {
+                                        const student = getStudent(item);
+                                        const teacherName = getTeacherName(item);
+                                        return (
+                                            <tr key={item.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all">
+                                                <td className="p-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center font-black text-indigo-600 shrink-0 uppercase">
+                                                            {(student.full_name || "U")[0]}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-slate-800 dark:text-slate-200 font-black">{student.full_name || 'Unknown'}</div>
+                                                            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{student.student_id}</div>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <div className="text-slate-800 dark:text-slate-200 font-black">{item.students?.full_name || 'Unknown'}</div>
-                                                        <div className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{item.students?.student_id}</div>
+                                                </td>
+                                                <td className="p-6 text-slate-500 dark:text-slate-400 font-bold uppercase text-[11px]">
+                                                    {student.class_name}-{student.section}
+                                                </td>
+                                                <td className="p-6">
+                                                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px]">
+                                                        {item.session === 'morning' ? <FiSun className="text-orange-400" /> : <FiMoon className="text-indigo-400" />}
+                                                        {item.session}
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-6 text-slate-500 dark:text-slate-400 font-bold uppercase text-[11px]">
-                                                {item.students?.class_name}-{item.students?.section}
-                                            </td>
-                                            <td className="p-6">
-                                                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px]">
-                                                    {item.session === 'morning' ? <FiSun className="text-orange-400" /> : <FiMoon className="text-indigo-400" />}
-                                                    {item.session}
-                                                </div>
-                                            </td>
-                                            <td className="p-6 text-center">
-                                                <span className={`px-5 py-2 rounded-full border text-[9px] font-black tracking-widest uppercase ${statusStyles[item.status] || ''}`}>
-                                                    {item.status}
-                                                </span>
-                                            </td>
-                                            <td className="p-6 text-right text-slate-400 dark:text-slate-500 font-bold text-[10px]">
-                                                {item.teachers?.full_name || 'Admin'}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                                <td className="p-6 text-center">
+                                                    <span className={`px-5 py-2 rounded-full border text-[9px] font-black tracking-widest uppercase ${statusStyles[item.status] || ''}`}>
+                                                        {item.status}
+                                                    </span>
+                                                </td>
+                                                <td className="p-6 text-right text-slate-400 dark:text-slate-500 font-bold text-[10px]">
+                                                    {teacherName || 'Admin'}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
 
                         {/* Mobile List View */}
                         <div className="md:hidden divide-y divide-slate-50 dark:divide-slate-800">
-                            {filteredData.map((item) => (
-                                <div key={item.id} className="p-5 space-y-3">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center font-black text-indigo-600 uppercase">
-                                                {(item.students?.full_name || "U")[0]}
+                            {filteredData.map((item) => {
+                                const student = getStudent(item);
+                                const teacherName = getTeacherName(item);
+                                return (
+                                    <div key={item.id} className="p-5 space-y-3">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center font-black text-indigo-600 uppercase">
+                                                    {(student.full_name || "U")[0]}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-black text-slate-800 dark:text-slate-200">{student.full_name}</p>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">{student.class_name}-{student.section}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-black text-slate-800 dark:text-slate-200">{item.students?.full_name}</p>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">{item.students?.class_name}-{item.students?.section}</p>
-                                            </div>
+                                            <span className={`px-3 py-1 rounded-full border text-[8px] font-black uppercase ${statusStyles[item.status] || ''}`}>
+                                                {item.status}
+                                            </span>
                                         </div>
-                                        <span className={`px-3 py-1 rounded-full border text-[8px] font-black uppercase ${statusStyles[item.status] || ''}`}>
-                                            {item.status}
-                                        </span>
+                                        <div className="flex justify-between items-center text-[10px]">
+                                            <span className="text-slate-500 font-bold uppercase">{item.session} Session</span>
+                                            <span className="text-slate-400 font-bold">By {teacherName || 'Admin'}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between items-center text-[10px]">
-                                        <span className="text-slate-500 font-bold uppercase">{item.session} Session</span>
-                                        <span className="text-slate-400 font-bold">By {item.teachers?.full_name || 'Admin'}</span>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {filteredData.length === 0 && (
